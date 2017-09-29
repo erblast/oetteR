@@ -2,8 +2,12 @@
 
 export(f_boxcox)
 export(f_clean_data)
+export(f_get_col_vector60)
+export(f_plot_hist)
+export(f_plot_time)
 import(dplyr)
 import(purrr)
 import(tibble)
 importFrom(magrittr,"%>%")
 importFrom(stringr,str_c)
+importFrom(stringr,str_extract_all)

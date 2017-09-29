@@ -1,5 +1,18 @@
 
 
+#' @title FUNCTION_TITLE
+#' @description FUNCTION_DESCRIPTION
+
+#' @return OUTPUT_DESCRIPTION
+#' @details DETAILS
+#' @examples
+#' \dontrun{
+#' if(interactive()){
+#'  #EXAMPLE1
+#'  }
+#' }
+#' @rdname f_get_col_vector60
+#' @export
 f_get_col_vector60 = function(){
 
   library(RColorBrewer)
@@ -10,9 +23,33 @@ f_get_col_vector60 = function(){
 }
 
 
+#' @title FUNCTION_TITLE
+#' @description FUNCTION_DESCRIPTION
+#' @param variable PARAM_DESCRIPTION
+#' @param data_ls PARAM_DESCRIPTION
+#' @param group PARAM_DESCRIPTION, Default: NULL
+#' @param graph_type PARAM_DESCRIPTION, Default: c("violin", "bar", "line")
+#' @param y_axis PARAM_DESCRIPTION, Default: c("count", "density")
+#' @param auto_range PARAM_DESCRIPTION, Default: T
+#' @param n_breaks PARAM_DESCRIPTION, Default: 30
+#' @param x_min PARAM_DESCRIPTION, Default: 0
+#' @param x_max PARAM_DESCRIPTION, Default: 100
+#' @return OUTPUT_DESCRIPTION
+#' @details DETAILS
+#' @examples
+#'
+#' #plot single variable
+#' data_ls = f_clean_data(mtcars)
+#' f_plot_hist('disp', data_ls)
+#'
+#' @seealso
+#'  \code{\link[stringr]{str_extract_all}},\code{\link[stringr]{str_c}}
+#' @rdname f_plot_hist
+#' @export
+#' @importFrom stringr str_extract_all str_c
 f_plot_hist = function(variable
                        , data_ls
-                       , group = NULL
+                       , group = 'None'
                        , graph_type = c('violin','bar','line')
                        , y_axis = c('count','density')
                        , auto_range = T
@@ -48,9 +85,10 @@ f_plot_hist = function(variable
 
   if(group == 'None') group = NULL
 
+  #violin plots require a grouping variable
 
   #geom_freqpoly
-  if(variable %in% numericals & graph_type == 'line'){
+  if( (variable %in% numericals & graph_type == 'line') | (graph_type == 'violin' & is.null(group)) ){
 
     p = data %>%
       ggplot() +
@@ -60,7 +98,7 @@ f_plot_hist = function(variable
 
 
   #geom_histo
-  if(variable %in% numericals & graph_type == 'bar' ){
+  if( (variable %in% numericals & graph_type == 'bar') | (graph_type == 'violin' & is.null(group)) ){
 
 
     p = data %>%
@@ -71,10 +109,11 @@ f_plot_hist = function(variable
   }
 
   #geom_violin
-  if(variable %in% numericals & graph_type == 'violin'){
+  if(variable %in% numericals & graph_type == 'violin' & !is.null(group) ){
 
     medians = data %>%
-      group_by_(as.symbol(group)) %>%
+      #group_by_(as.symbol(group)) %>%
+      group_by_(group) %>%
       select( one_of(numericals ) ) %>%
       summarise_all(  median )
 
@@ -138,6 +177,26 @@ f_plot_hist = function(variable
 }
 
 
+#' @title FUNCTION_TITLE
+#' @description FUNCTION_DESCRIPTION
+#' @param variable PARAM_DESCRIPTION
+#' @param time_variable PARAM_DESCRIPTION
+#' @param data_ls PARAM_DESCRIPTION
+#' @param .f PARAM_DESCRIPTION, Default: mean
+#' @param time_variable_as_factor PARAM_DESCRIPTION, Default: F
+#' @param group PARAM_DESCRIPTION, Default: NULL
+#' @param normalize PARAM_DESCRIPTION, Default: F
+#' @param time_unit PARAM_DESCRIPTION, Default: 'day'
+#' @return OUTPUT_DESCRIPTION
+#' @details DETAILS
+#' @examples
+#' \dontrun{
+#' if(interactive()){
+#'  #EXAMPLE1
+#'  }
+#' }
+#' @rdname f_plot_time
+#' @export
 f_plot_time = function(variable
                        , time_variable
                        , data_ls
