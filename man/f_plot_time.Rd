@@ -4,9 +4,8 @@
 \alias{f_plot_time}
 \title{FUNCTION_TITLE}
 \usage{
-f_plot_time(variable, time_variable, data_ls, .f = mean,
-  time_variable_as_factor = F, group = NULL, normalize = F,
-  time_unit = "day")
+f_plot_time(variable, time_variable, data_ls, time_variable_as_factor = F,
+  group = NULL, normalize = F, time_unit = "day")
 }
 \arguments{
 \item{variable}{PARAM_DESCRIPTION}
@@ -14,8 +13,6 @@ f_plot_time(variable, time_variable, data_ls, .f = mean,
 \item{time_variable}{PARAM_DESCRIPTION}
 
 \item{data_ls}{PARAM_DESCRIPTION}
-
-\item{.f}{PARAM_DESCRIPTION, Default: mean}
 
 \item{time_variable_as_factor}{PARAM_DESCRIPTION, Default: F}
 
@@ -36,8 +33,12 @@ DETAILS
 }
 \examples{
 \dontrun{
-if(interactive()){
- #EXAMPLE1
- }
+data       = nycflights13::flights
+data$is_ua = ifelse( data$carrier == 'UA', 'UA', 'other')
+data$date  = data$year * 10000 + data$month * 100 + data$day
+data$date  = lubridate::as_date( data$date )
+data_ls    = f_clean_data( data, replace_neg_values_with_zero = F)
+f_plot_time( 'arr_delay', 'month', data_ls, group = 'is_ua', time_unit = 'month')
+
 }
 }
