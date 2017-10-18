@@ -181,9 +181,6 @@ f_plot_hist = function(variable
     stringr::str_c(collapse = '')
 
 
-
-  print(p)
-
   return(p)
 
 }
@@ -311,7 +308,7 @@ f_plot_time = function(variable
           , x = time_unit
           , subtitle = 'Boxes denote upper and lower 25% percentile')
 
-  print(p)
+  return(p)
 
 }
 
