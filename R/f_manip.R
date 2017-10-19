@@ -63,7 +63,7 @@ f_manip_transpose_tibble = function(tib){
     stop('input not transposable')
   }
 
-  tib = mtcars %>%
+  tib = tib %>%
     f_manip_matrix_2_tibble() %>%
     gather( key = 'key', value = 'value', 2:ncol(.) ) %>%
     spread( key = 1, value = value ) %>%
