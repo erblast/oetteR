@@ -4,10 +4,12 @@
 \alias{f_model_importance_svm}
 \title{extract variable importance for svm}
 \usage{
-f_model_importance_svm(m)
+f_model_importance_svm(m, data)
 }
 \arguments{
 \item{m}{model of class svm}
+
+\item{data}{original training dataframe}
 }
 \value{
 dataframe
@@ -20,11 +22,13 @@ uses 1D-SA 1 dimensional sensitivity analysis using
 
 #regression
 m = twidlr::svm(mtcars, disp~.)
-f_model_importance_svm(m)
+f_model_importance_svm(m, mtcars)
 
 #classification
-data_ls = f_clean_data(mtcars)
-m = twidlr::svm(data_ls$data, cyl~.)
-f_model_importance_svm(m)
+data = mtcars
+data$cyl = factor(data$cyl, ordered = T)
+m = twidlr::svm(data, cyl~.)
+f_model_importance_svm(m, data)
+
 
 }

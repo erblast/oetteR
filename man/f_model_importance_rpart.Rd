@@ -4,7 +4,7 @@
 \alias{f_model_importance_rpart}
 \title{extract variable importance for rpart}
 \usage{
-f_model_importance_rpart(m)
+f_model_importance_rpart(m, ...)
 }
 \arguments{
 \item{m}{model of class rpart}

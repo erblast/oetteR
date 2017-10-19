@@ -4,7 +4,7 @@
 \alias{f_model_importance_randomForest}
 \title{extract variable importance for randomForest model}
 \usage{
-f_model_importance_randomForest(m)
+f_model_importance_randomForest(m, ...)
 }
 \arguments{
 \item{m}{model of class randomForest}
