@@ -115,10 +115,10 @@ f_pca = function( data_ls
    pca$contrib_abs_perc = pca$contrib_abs_perc %>%
      gather(key = 'PC', value = 'value', everything(), -row_names)
 
-   #group variables with less than 2.5% contribution
+   #group variables with insufficient contribution contribution
    pca$contrib_abs_perc_reduced = pca$contrib_abs_perc  %>%
-     mutate(row_names = ifelse(value < 2.5
-                         , ' sum contrib < 2.5%'
+     mutate(row_names = ifelse(value < threshold_vae_for_pc_perc
+                         , paste( ' sum contrib <',threshold_vae_for_pc_perc, '%' )
                          , row_names)) %>%
      group_by( row_names, PC) %>%
      summarise( value = sum(value) )
@@ -155,15 +155,15 @@ f_pca = function( data_ls
 #' @param pca_ls list created by f_pca()
 #' @param x_axis character vector, Default: 'PC1'
 #' @param y_axis character vector, Default: 'PC2'
-#' @param group character vector denoting the grouping variable, determines dot colour, Default: NULL
-#' @return ggplot
+#' @param group character vector denoting the grouping variable, determines dot
+#'   colour, Default: NULL
+#' @return htmltools taglis containing a plotly graph and tow DT datatables
 #' @examples
 #' \dontrun{
-#'pca_ls = f_clean_data(mtcars) %>%
+#' tagls = f_clean_data(mtcars) %>%
 #' f_boxcox() %>%
 #' f_pca() %>%
-#' f_pca_plot_components()%>%
-#' print()
+#' f_pca_plot_components(group = 'cyl')
 #' }
 #' @rdname f_pca_plot_components
 #' @export
@@ -171,7 +171,7 @@ f_pca_plot_components = function(pca_ls
                                  , x_axis = 'PC1'
                                  , y_axis = 'PC2'
                                  , group = NULL
-                                 , print_tables = T){
+                                 ){
 
   data = pca_ls$data
   pca  = pca_ls$pca
@@ -188,14 +188,13 @@ f_pca_plot_components = function(pca_ls
     left_join( pca$contrib_abs_perc) %>%
     rename( abs_contrib_perc = value )
 
-
-
   #print contrib x_axis
   dt_x = tib %>%
     filter( PC == x_axis) %>%
     arrange( desc(abs_contrib_perc) ) %>%
     select(row_names, abs_contrib_perc, rotation) %>%
-    DT::datatable( caption = 'x-axis')
+    mutate_if(is.numeric, round, 2 ) %>%
+    DT::datatable( caption = x_axis)
 
 
   #print contrib y_axis
@@ -203,17 +202,21 @@ f_pca_plot_components = function(pca_ls
     filter( PC == y_axis) %>%
     arrange( desc(abs_contrib_perc) ) %>%
     select(row_names, abs_contrib_perc, rotation) %>%
-    DT::datatable()
+    mutate_if(is.numeric, round, 2 ) %>%
+    DT::datatable( caption = y_axis)
 
-  tagl = htmltools::tagList( list( p, dt_x, dt_y) )
+  # print(plotly::ggplotly(p))
+  tagl = htmltools::tagList()
+  tagl[[1]] = plotly::ggplotly(p)
+  tagl[[2]] = dt_x
+  tagl[[3]] = dt_y
 
+  return(tagl)
 }
 
-#' @title FUNCTION_TITLE
-#' @description FUNCTION_DESCRIPTION
-#' @param pca_ls PARAM_DESCRIPTION
-#' @return OUTPUT_DESCRIPTION
-#' @details DETAILS
+#' @title plot varaince explained of principle components
+#' @param pca_ls list created by f_pca()
+#' @return plotly graph
 #' @examples
 #' \dontrun{
 #' if(interactive()){
