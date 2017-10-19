@@ -30,7 +30,8 @@ allowed, Default: c("null")}
 \item{id_cols}{specify columns containing ids.}
 }
 \value{
-returns a list \item{data}{the cleaned dataframe as tibble}
+returns a list
+  \item{data}{the cleaned dataframe as tibble}
   \item{categoricals}{vector of column names containing categorical data}
   \item{numericals}{vector of column names containing numerical data}
   \item{ids}{vector of column names containing ids}
