@@ -25,7 +25,9 @@ f_model_importance_randomForest = function(m){
   }
 
   df = m$importance %>%
+
     f_manip_matrix_2_tibble()
+
 
   names(df) = c('row_names', 'value')
 
