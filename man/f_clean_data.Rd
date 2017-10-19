@@ -33,17 +33,18 @@ allowed, Default: c("null")}
 returns a list
   \item{data}{the cleaned dataframe as tibble}
   \item{categoricals}{vector of column names containing categorical data}
+  \item{categoricals_ordered}{vector of column names containing all ordered categorical data}
   \item{numericals}{vector of column names containing numerical data}
   \item{ids}{vector of column names containing ids}
 }
 \description{
 Performs a number of cleaning operations on a dataframe, detects
   numerical and categorical columns and returns a list containing the cleaned
-  dataframe and vectors naming the columns with a specific data type
+  dataframe and vectors naming the columns with a specific data type.
 }
 \details{
 The list this function returns can be a bit tedious to work with. If
-  you want to engineer a new feature that you have to manually update the
+  you want to engineer a new feature you have to manually update the
   categoricals or the numericals vector. I suggest that you do all the
   feature engineering before applying this function. The advantage of this
   column is that when you get to the modelling or visualisation steps you

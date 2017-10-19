@@ -5,7 +5,7 @@
 \title{plot principle components as a dot plot}
 \usage{
 f_pca_plot_components(pca_ls, x_axis = "PC1", y_axis = "PC2",
-  group = NULL)
+  group = NULL, print_tables = T)
 }
 \arguments{
 \item{pca_ls}{list created by f_pca()}

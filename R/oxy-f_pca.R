@@ -195,7 +195,7 @@ f_pca_plot_components = function(pca_ls
     filter( PC == x_axis) %>%
     arrange( desc(abs_contrib_perc) ) %>%
     select(row_names, abs_contrib_perc, rotation) %>%
-    DT::datatable()
+    DT::datatable( caption = 'x-axis')
 
 
   #print contrib y_axis
