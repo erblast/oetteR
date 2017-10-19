@@ -21,8 +21,10 @@ ggplot
 }
 \examples{
 \dontrun{
-data_ls = f_data_clean(mtcars)
-pca = f_pca(data_ls)
-f_pca_plot_components(group = 'cyl')
+pca_ls = f_clean_data(mtcars) \%>\%
+f_boxcox() \%>\%
+f_pca() \%>\%
+f_pca_plot_components()\%>\%
+print()
 }
 }

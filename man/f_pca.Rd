@@ -47,8 +47,10 @@ This function is an extenstion to prcomp(). I takes a data_ls
  post explaining how to calculate contributions}
 }
 \examples{
-data_ls = f_data_clean(mtcars)
-pca = f_pca(data_ls)
+pca_ls = f_clean_data(mtcars) \%>\%
+f_boxcox() \%>\%
+f_pca()
+
 }
 \seealso{
 \code{\link[stats]{prcomp}}

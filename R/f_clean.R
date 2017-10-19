@@ -8,7 +8,7 @@
 #' @title f_clean_data
 #' @description Performs a number of cleaning operations on a dataframe, detects
 #'   numerical and categorical columns and returns a list containing the cleaned
-#'   dataframe and vectors naming the columns with a specific data type
+#'   dataframe and vectors naming the columns with a specific data type.
 #' @param data a dataframe
 #' @param max_number_of_levels_factors If a factor variable contains more then
 #'   the maximum number of levels the levels with the lowest frequency will be
@@ -24,10 +24,11 @@
 #' @return returns a list
 #'   \item{data}{the cleaned dataframe as tibble}
 #'   \item{categoricals}{vector of column names containing categorical data}
+#'   \item{categoricals_ordered}{vector of column names containing all ordered categorical data}
 #'   \item{numericals}{vector of column names containing numerical data}
 #'   \item{ids}{vector of column names containing ids}
 #' @details The list this function returns can be a bit tedious to work with. If
-#'   you want to engineer a new feature that you have to manually update the
+#'   you want to engineer a new feature you have to manually update the
 #'   categoricals or the numericals vector. I suggest that you do all the
 #'   feature engineering before applying this function. The advantage of this
 #'   column is that when you get to the modelling or visualisation steps you
@@ -94,15 +95,28 @@ f_clean_data = function(data
   }
 
   # convert all non numericals and grouping variables to factors
+  # factors that could also be numeric become ordered and are listed
+  # as categoricals ordered
+
+  categoricals_ordered = c()
 
   for (var in categoricals ){
 
-    data[[var]] = as.factor(data[[var]])
+    if( is.numeric(data[[var]]) ){
+
+      data[[var]] = factor(data[[var]], ordered = T)
+
+      categoricals_ordered = c(categoricals_ordered, var)
+
+    }else{
+
+      data[[var]] = as.factor(data[[var]])
+
+    }
 
   }
 
   # collapse smallest levels into one if factor levels exceed size x
-
 
   no_levels = map_dbl( data[, categoricals], function(x) length( levels(x) ) )
 
@@ -138,11 +152,12 @@ f_clean_data = function(data
 
   # return statement
 
-  return( list( data            = as.tibble(data)
-                , numericals    = numericals
-                , categoricals  = categoricals
-                , all_variables = all_variables
-                , ids           = id_cols
+  return( list( data                   = as.tibble(data)
+                , numericals           = numericals
+                , categoricals         = categoricals
+                , categoricals_ordered = categoricals_ordered
+                , all_variables        = all_variables
+                , ids                  = id_cols
   )
   )
 }
