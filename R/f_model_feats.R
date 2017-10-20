@@ -1,4 +1,6 @@
 
+#'@import pipelearner
+
 # randomForest--------------------------------------------------------
 
 
@@ -71,6 +73,12 @@ f_model_importance_svm = function(m, data){
     return(NULL)
   }
 
+  # rminer does not like tibbles and resampling objects
+  # as.data.frame(resample_obj) will return a tibble
+  # thereofre we have to convert twice
+  data = as.data.frame(data)
+  data = as.data.frame(data)
+
   response_var = m$terms %>%
     as.character() %>%
     .[2]
@@ -89,9 +97,7 @@ f_model_importance_svm = function(m, data){
     data = data %>%
       mutate_if( is.character, factor, ordered = T ) %>%
       mutate_all( as.numeric ) %>%
-      mutate( !!response_var_sym := factor( !!response_var_sym, ordered = T ) ) %>%
-      as.data.frame()
-
+      mutate( !!response_var_sym := factor( !!response_var_sym, ordered = T ) )
 
     #classification
     m = rminer::fit( formula, data, model = 'svm' )
@@ -151,4 +157,119 @@ f_model_importance_rpart = function(m, ...){
 
 }
 
+#' @title model importance
+#' @description supports rpart, randomForest, svm, will return NULL for other models
+#' @param m model
+#' @param data training data
+#' @return tibble
+#' @examples
+#' pl = pipelearner::pipelearner(mtcars) %>%
+#'   pipelearner::learn_models( twidlr::rpart, disp~. ) %>%
+#'   pipelearner::learn_models( twidlr::randomForest, disp~. ) %>%
+#'   pipelearner::learn_models( twidlr::svm, disp~. ) %>%
+#'   pipelearner::learn() %>%
+#'   mutate( imp = map2(fit, train, f_model_importance) )
+#'pl$imp
+#' @rdname f_model_importance
+#' @export
 
+f_model_importance = function(m, data){
+
+  if( inherits(m, 'rpart') ){
+    return( f_model_importance_rpart(m) )
+  }
+
+  if( inherits(m, 'randomForest') ){
+    return( f_model_importance_randomForest(m) )
+  }
+
+  if( inherits(m, 'svm') ){
+
+    return(f_model_importance_svm(m, data))
+  }
+
+  return(NULL)
+}
+
+#' @title plot model importance
+#' @description optimised for usage in pipelearner dataframe
+#' @param importance dataframe importance created by f_model_importance()
+#' @param model_name character vector (model column in pipelearner dataframe)
+#'   will be pasted for plot title
+#' @param models.id character vector will be pasted for plot title
+#' @param cv_pairs.id character vector will be pasted for plot title
+#' @param train_p character vector will be pasted for plot title
+#' @param variable_color_code dataframe created by f_plot_color_code_variables()
+#' @param ... additional character vectors to be pasted to plot title
+#' @return plotly graph
+#' @examples
+#'
+#' data_ls = f_clean_data(mtcars)
+#' variable_color_code = f_plot_color_code_variables(data_ls)
+#' m = twidlr::rpart(mtcars, disp~.)
+#' imp = f_model_importance_rpart(m)
+#' f_model_importance_plot(imp
+#'                         , model_name = 'rpart'
+#'                         , variable_color_code = variable_color_code
+#'                         , 'example')
+#' #pipelearner
+#' pl = pipelearner::pipelearner(data_ls$data) %>%
+#'   pipelearner::learn_models( twidlr::rpart, disp~. ) %>%
+#'   pipelearner::learn_models( twidlr::randomForest, disp~. ) %>%
+#'   pipelearner::learn_models( twidlr::svm, disp~. ) %>%
+#'   pipelearner::learn() %>%
+#'   mutate( imp = map2(fit, train, f_model_importance)
+#'          , plot = pmap( list(imp, model, models.id, cv_pairs.id, train_p)
+#'                        , f_model_importance_plot
+#'                        , variable_color_code = variable_color_code
+#'                        , 'pipelearner'
+#'                        )
+#'          )
+#' htmltools::tagList(pl$plot)
+#' @rdname f_model_importance_plot
+#' @export
+#' @importFrom forcats fct_reorder
+#' @importFrom plotly ggplotly
+f_model_importance_plot = function( importance
+                                    , model_name
+                                    , models.id = NULL
+                                    , cv_pairs.id = NULL
+                                    , train_p = NULL
+                                    , variable_color_code = NULL
+                                    , ...
+                                    ){
+
+  importance = importance %>%
+    mutate( row_names = forcats::fct_reorder(row_names, value) )%>%
+    rename( variables = row_names)
+
+  title = paste( model_name, models.id, cv_pairs.id, train_p, ... )
+
+  if( ! is.null(variable_color_code) ){
+
+    importance = importance %>%
+      left_join( variable_color_code  ) %>%
+      mutate( variables = forcats::fct_reorder(variables, value) )%>%
+      arrange( variables )
+
+    col_vector = importance[['color']]
+
+  } else{
+    col_vector = f_plot_col_vector74()
+  }
+
+  p = ggplot(importance, aes( x = variables
+                              , y = value
+                              , fill = variables ) ) +
+    geom_col( show.legend = F ) +
+    coord_flip() +
+    labs( title = title
+          , x = 'variable'
+          , y = 'importance') +
+    theme( legend.position = 'none') +
+    scale_fill_manual( values = col_vector)
+
+
+  plotly::ggplotly(p)
+
+}

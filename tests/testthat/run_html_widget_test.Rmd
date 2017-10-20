@@ -1,0 +1,47 @@
+---
+title: "Test  html widget ouput"
+author: "OEB"
+date: "October 19, 2017"
+output: html_document
+---
+
+```{r f_pca_plot_components}
+require(oetteR)
+require(tidyverse)
+
+ls = f_clean_data(mtcars) %>%
+ f_boxcox() %>%
+ f_pca() %>%
+ f_pca_plot_components()
+
+ls
+```
+
+
+```{r f_pca_plot_variance_explained}
+
+f_clean_data(mtcars) %>%
+f_boxcox() %>%
+f_pca() %>%
+f_pca_plot_variance_explained()
+
+```
+
+```{r}
+#pipelearner
+pl = pipelearner::pipelearner(data_ls$data) %>%
+   pipelearner::learn_models( twidlr::rpart, disp~. ) %>%
+  pipelearner::learn_models( twidlr::randomForest, disp~. ) %>%
+  pipelearner::learn_models( twidlr::svm, disp~. ) %>%
+  pipelearner::learn() %>%
+  mutate( imp = map2(fit, train, f_model_importance)
+         , plot = pmap( list(imp, model, models.id, cv_pairs.id, train_p)
+                       , f_model_importance_plot
+                       , variable_color_code = variable_color_code
+                       , 'pipelearner'
+                       )
+         )
+
+htmltools::tagList(pl$plot)
+```
+

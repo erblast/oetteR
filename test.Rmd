@@ -17,6 +17,7 @@ ls = f_clean_data(mtcars) %>%
 ls
 ```
 
+<<<<<<< HEAD
 
 ```{r}
 
@@ -27,3 +28,5 @@ f_pca_get_plot_variance_explained()
 
 ```
 
+=======
+>>>>>>> 264899ae9c9af24e87146302f17800a84ab15d2b
