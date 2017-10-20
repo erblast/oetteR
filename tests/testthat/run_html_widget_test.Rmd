@@ -30,6 +30,11 @@ f_pca_plot_variance_explained()
 
 ```{r}
 #pipelearner
+
+data_ls = f_clean_data(mtcars)
+variable_color_code = f_plot_color_code_variables(data_ls)
+
+
 pl = pipelearner::pipelearner(data_ls$data) %>%
    pipelearner::learn_models( twidlr::rpart, disp~. ) %>%
   pipelearner::learn_models( twidlr::randomForest, disp~. ) %>%
