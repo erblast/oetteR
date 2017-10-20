@@ -2,26 +2,20 @@
 % Please edit documentation in R/oxy-f_pca.R
 \name{f_pca_get_plot_variance_explained}
 \alias{f_pca_get_plot_variance_explained}
-\title{FUNCTION_TITLE}
+\title{plot varaince explained of principle components}
 \usage{
 f_pca_get_plot_variance_explained(pca_ls)
 }
 \arguments{
-\item{pca_ls}{PARAM_DESCRIPTION}
+\item{pca_ls}{list created by f_pca()}
 }
 \value{
-OUTPUT_DESCRIPTION
-}
-\description{
-FUNCTION_DESCRIPTION
-}
-\details{
-DETAILS
+plotly graph
 }
 \examples{
-\dontrun{
-if(interactive()){
- #EXAMPLE1
- }
-}
+p = f_clean_data(mtcars) \%>\%
+  f_boxcox() \%>\%
+  f_pca() \%>\%
+  f_pca_get_plot_variance_explained()
+p
 }

@@ -5,7 +5,7 @@
 \title{plot principle components as a dot plot}
 \usage{
 f_pca_plot_components(pca_ls, x_axis = "PC1", y_axis = "PC2",
-  group = NULL, print_tables = T)
+  group = NULL)
 }
 \arguments{
 \item{pca_ls}{list created by f_pca()}
@@ -14,17 +14,18 @@ f_pca_plot_components(pca_ls, x_axis = "PC1", y_axis = "PC2",
 
 \item{y_axis}{character vector, Default: 'PC2'}
 
-\item{group}{character vector denoting the grouping variable, determines dot colour, Default: NULL}
+\item{group}{character vector denoting the grouping variable, determines dot
+colour, Default: NULL}
 }
 \value{
-ggplot
+htmltools taglist containing a plotly graph and tow DT datatables
+  will only show if printed in a rmarkdown document
 }
 \examples{
 \dontrun{
-pca_ls = f_clean_data(mtcars) \%>\%
-f_boxcox() \%>\%
-f_pca() \%>\%
-f_pca_plot_components()\%>\%
-print()
+tagls = f_clean_data(mtcars) \%>\%
+  f_boxcox() \%>\%
+  f_pca() \%>\%
+  f_pca_plot_components(group = 'cyl')
 }
 }
