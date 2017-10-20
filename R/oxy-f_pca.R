@@ -157,6 +157,7 @@ f_pca = function( data_ls
 #' @param y_axis character vector, Default: 'PC2'
 #' @param group character vector denoting the grouping variable, determines dot
 #'   colour, Default: NULL
+
 #' @return htmltools taglist containing a plotly graph and tow DT datatables
 #'   will only show if printed in a rmarkdown document
 #' @examples

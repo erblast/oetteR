@@ -27,6 +27,7 @@ f_pca_plot_variance_explained()
 
 ```
 
+
 ```{r}
 #pipelearner
 pl = pipelearner::pipelearner(data_ls$data) %>%
@@ -44,4 +45,5 @@ pl = pipelearner::pipelearner(data_ls$data) %>%
 
 htmltools::tagList(pl$plot)
 ```
+
 
