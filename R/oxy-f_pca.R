@@ -157,6 +157,7 @@ f_pca = function( data_ls
 #' @param y_axis character vector, Default: 'PC2'
 #' @param group character vector denoting the grouping variable, determines dot
 #'   colour, Default: NULL
+<<<<<<< HEAD
 #' @return htmltools taglist containing a plotly graph and tow DT datatables
 #'   will only show if printed in a rmarkdown document
 #' @examples
@@ -165,6 +166,15 @@ f_pca = function( data_ls
 #'   f_boxcox() %>%
 #'   f_pca() %>%
 #'   f_pca_plot_components(group = 'cyl')
+=======
+#' @return htmltools taglis containing a plotly graph and tow DT datatables
+#' @examples
+#' \dontrun{
+#' tagls = f_clean_data(mtcars) %>%
+#' f_boxcox() %>%
+#' f_pca() %>%
+#' f_pca_plot_components(group = 'cyl')
+>>>>>>> 264899ae9c9af24e87146302f17800a84ab15d2b
 #' }
 #' @rdname f_pca_plot_components
 #' @export
