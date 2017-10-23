@@ -1,0 +1,20 @@
+---
+title: "test_me"
+output: html_document
+params:
+  taglist: !r lubridate::today()
+  
+---
+
+**Date: `r lubridate::today()`**
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+```
+
+```{r, include = TRUE}
+
+params$taglist
+
+```
+
