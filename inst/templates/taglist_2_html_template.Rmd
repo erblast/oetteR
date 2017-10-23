@@ -2,12 +2,8 @@
 title: "template"
 output: html_document
 params:
-<<<<<<< HEAD
   taglist: !r lubridate::today()
-=======
-  tags: !r lubridate::today()
->>>>>>> 277ce2d08e10ae99f5404133a193038075623b88
-  
+
 ---
 
 **Date: `r lubridate::today()`**
@@ -16,15 +12,9 @@ params:
 knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
 ```
 
-<<<<<<< HEAD
 ```{r, include = TRUE, echo = F}
 
 params$taglist
-=======
-```{r, include = TRUE}
-
-params$tags
->>>>>>> 277ce2d08e10ae99f5404133a193038075623b88
 
 ```
 

@@ -45,17 +45,30 @@ test_that('color scale'
 
             expect_true( length( f_plot_col_vector74() ) == 74 )
 
-          })
+})
 
 
 test_that('taglist_2_html'
           ,{
 
+
   file_name_template = 'taglist_2_html_template.Rmd'
 
-  path_template = file.path( find.package('oetteR')
+  path_template = file.path( system.file(package = 'oetteR')
                              , 'templates'
                              , file_name_template)
+
+  # if package is not installes only loaded all files from ./inst
+  # will not yet have been moved to the parent installation directory
+  if( ! file.exists(path_template) ){
+    path_template = file.path( system.file(package = 'oetteR')
+                               , 'inst'
+                               , 'templates'
+                               , file_name_template)
+  }
+
+  print(getwd())
+  print(path_template)
 
   expect_true( file.exists( path_template ) )
 
@@ -65,7 +78,9 @@ test_that('taglist_2_html'
     f_pca() %>%
     f_pca_plot_components()
 
-  f_taglist_2_html(taglist, 'test_me')
+  f_taglist_2_html(taglist, output_file =  'test_me', title = 'Plots')
+
+  file.remove('test_me.html')
 
 })
 
