@@ -367,6 +367,26 @@ f_plot_time = function(variable
 
 
 
+f_taglist_2_html = function(taglist, output_file, title = 'Plots'){
 
+  file_name_template = 'taglist_2_html_template.Rmd'
+
+  path_template = file.path( find.package('oetteR')
+                             , 'templates'
+                             , file_name_template)
+
+  txt = readr::read_file(path_template) %>%
+    stringr::str_replace('template', title)
+
+  readr::write_file( txt, file_name_template)
+
+  rmarkdown::render( file_name_template
+                     , output_file = paste0( title, '.html')
+                     , params      = list(taglist = taglist)
+                     )
+
+  file.remove( file_name_template)
+
+}
 
 

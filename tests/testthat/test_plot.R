@@ -46,3 +46,29 @@ test_that('color scale'
             expect_true( length( f_plot_col_vector74() ) == 74 )
 
           })
+
+
+test_that('taglist_2_html'
+          ,{
+
+  file_name_template = 'taglist_2_html_template.Rmd'
+
+  path_template = file.path( find.package('oetteR')
+                             , 'templates'
+                             , file_name_template)
+
+  expect_true( file.exists( path_template ) )
+
+  # returns a htmltools::taglist with DT::datatables and plotly plots
+  taglist = f_clean_data(mtcars) %>%
+    f_boxcox() %>%
+    f_pca() %>%
+    f_pca_plot_components()
+
+  f_taglist_2_html(taglist, 'test_me')
+
+})
+
+
+
+
