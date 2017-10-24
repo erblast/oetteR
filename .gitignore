@@ -14,7 +14,7 @@ tests/testthat/Thumbs.db
 .RData
 
 # html files
-.html
+*.html
 
 # Example code in package build process
 *-Ex.R
