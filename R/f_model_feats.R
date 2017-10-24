@@ -149,7 +149,23 @@ f_model_importance_rpart = function(m, ...){
 
   df = tibble( row_names = names(m$variable.importance)
                , value   = m$variable.importance
-               )  %>%
+               )
+
+  # add variables with zero importance
+
+  vars = m$terms %>%
+    as.character() %>%
+    .[3] %>%
+    stringr::str_split(' \\+ ') %>%
+    unlist() %>%
+    .[ ! . %in% df[['row_names']] ]
+
+  vars = tibble( row_names = vars
+                 , value   = rep(0, length(vars) )
+                )
+
+  df = df %>%
+    bind_rows( vars ) %>%
     arrange( desc(value) ) %>%
     mutate( rank = rank( desc(value) ) )
 

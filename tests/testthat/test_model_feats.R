@@ -24,7 +24,6 @@ test_that('model importance regression'
 
 })
 
-
 test_that('model importance classification'
           ,{
 
@@ -74,5 +73,49 @@ test_that('plot importance'
 
 })
 
+test_that('importance: training on only a fraction of the variables'){
+  # calculating importance depending on the model needs to use model specific
+  # predict functions that require the original training dataframe. Sometimes
+  # the dataframe must contain only the data described in the formula.
+
+  #classification
+  data_ls = f_clean_data(mtcars)
+
+  form = as.formula('cyl~hp+disp')
+
+  pl = pipelearner::pipelearner(data_ls$data) %>%
+    pipelearner::learn_models( twidlr::rpart, form ) %>%
+    pipelearner::learn_models( twidlr::randomForest, form ) %>%
+    pipelearner::learn_models( twidlr::svm, form ) %>%
+    pipelearner::learn() %>%
+    mutate( imp = map2(fit, train, f_model_importance) )
+
+  #regression
+
+  pl = pipelearner::pipelearner(mtcars) %>%
+    pipelearner::learn_models( twidlr::rpart, form ) %>%
+    pipelearner::learn_models( twidlr::randomForest, form ) %>%
+    pipelearner::learn_models( twidlr::svm, form ) %>%
+    pipelearner::learn() %>%
+    mutate( imp = map2(fit, train, f_model_importance) )
+}
+
+test_that('importance: return a value for each variable'
+          ,{
+
+  data_ls = f_clean_data(mtcars)
+
+  m_randomForest = twidlr::randomForest(data_ls$data, cyl~.)
+  m_svm = twidlr::svm(data_ls$data, cyl~.)
+  m_rpart = twidlr::rpart(data_ls$data, cyl~.)
 
 
+  expect_equal( nrow(f_model_importance_randomForest(m_randomForest))
+                , nrow(f_model_importance_svm(m_svm, data_ls$data))
+                )
+
+  expect_equal( nrow(f_model_importance_rpart(m_rpart))
+                , nrow(f_model_importance_svm(m_svm, data_ls$data))
+               )
+
+})
