@@ -378,13 +378,13 @@ f_plot_time = function(variable
 #'  #EXAMPLE1
 #'  }
 #' }
-#' @rdname f_taglist_2_html
+#' @rdname f_plot_taglist_2_html
 #' @export
 #' @importFrom readr read_file write_file
 #' @importFrom rmarkdown render
 #' @importFrom stringr str_replace
 #'
-f_taglist_2_html = function(taglist, output_file, title = 'Plots'){
+f_plot_taglist_2_html = function(taglist, output_file, title = 'Plots'){
 
   file_name_template = 'taglist_2_html_template.Rmd'
 
@@ -403,6 +403,8 @@ f_taglist_2_html = function(taglist, output_file, title = 'Plots'){
                      )
 
   file.remove(file_name_template)
+
+  return( file.path( getwd(), output_file) )
 
 }
 

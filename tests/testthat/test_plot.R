@@ -78,7 +78,7 @@ test_that('taglist_2_html'
     f_pca() %>%
     f_pca_plot_components()
 
-  f_taglist_2_html(taglist, output_file =  'test_me', title = 'Plots')
+  f_plot_taglist_2_html(taglist, output_file =  'test_me', title = 'Plots')
 
   file.remove('test_me.html')
 
