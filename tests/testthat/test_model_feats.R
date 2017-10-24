@@ -73,7 +73,8 @@ test_that('plot importance'
 
 })
 
-test_that('importance: training on only a fraction of the variables'){
+test_that('importance: training on only a fraction of the variables'
+          ,{
   # calculating importance depending on the model needs to use model specific
   # predict functions that require the original training dataframe. Sometimes
   # the dataframe must contain only the data described in the formula.
@@ -98,7 +99,7 @@ test_that('importance: training on only a fraction of the variables'){
     pipelearner::learn_models( twidlr::svm, form ) %>%
     pipelearner::learn() %>%
     mutate( imp = map2(fit, train, f_model_importance) )
-}
+})
 
 test_that('importance: return a value for each variable'
           ,{

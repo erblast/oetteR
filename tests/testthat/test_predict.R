@@ -5,7 +5,7 @@ context('test predict functions')
 test_that('add regression predictions to dataframe'
           ,{
 
-  f = mtcars %>%
+  df = mtcars %>%
   mutate(names = row.names(.))
   m = rpart::rpart(disp~., df)
   f_predict_regression_add_predictions(df, m, 'disp', 'names')

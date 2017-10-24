@@ -407,14 +407,6 @@ f_taglist_2_html = function(taglist, output_file, title = 'Plots'){
 }
 
 
-data = tibble( time     = c(0,1,2,3,4,5,6,7,8,9,10)
-               , revenue = - time^2 + time * 12
-               , cost    = revenue * 0.4 * -1
-              )
-
-print( f_plot_profit_lines( data, 'revenue', 'cost', 'time') )
-print( f_plot_profit_lines( data, 'revenue', 'cost', 'time', now = 5) )
-
 
 #' @title plot revenues cost and profit development over time as an area chart.
 #' @description the function can graphically devide the chart into two periods

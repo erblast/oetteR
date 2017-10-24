@@ -38,18 +38,14 @@ f_predict_pl_regression = function( pl, cols_id){
 }
 
 
-#' @title FUNCTION_TITLE
+#' @title summarize prediction by f_predict_pl_regression()
 #' @description FUNCTION_DESCRIPTION
 #' @param pl PARAM_DESCRIPTION
 #' @return OUTPUT_DESCRIPTION
 #' @details DETAILS
 #' @examples
-#' \dontrun{
-#' if(interactive()){
-#'  #EXAMPLE1
-#'  }
-#' }
 #' @rdname f_predict_pl_regression_summarize
+#' @seealso \code{\link{f_predict_pl_regression}}
 #' @export
 f_predict_pl_regression_summarize = function( pl ){
 
