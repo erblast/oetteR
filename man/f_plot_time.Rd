@@ -32,7 +32,7 @@ y variable represents a cumulated sum, Default: F}
 plot
 }
 \description{
-It is difficult to compare two timeserieses when you have more
+It is difficult to compare two timeerieses when you have more
  than one observation per timepoint without reducing all observations to a
  single statistical variable such as average or mean. This visualisation
  plots the median and the upper and lower 25% percentile instead drawing a

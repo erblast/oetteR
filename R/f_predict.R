@@ -43,7 +43,6 @@ f_predict_pl_regression = function( pl, cols_id){
 #' @param pl PARAM_DESCRIPTION
 #' @return OUTPUT_DESCRIPTION
 #' @details DETAILS
-#' @examples
 #' @rdname f_predict_pl_regression_summarize
 #' @seealso \code{\link{f_predict_pl_regression}}
 #' @export
