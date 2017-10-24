@@ -13,6 +13,9 @@ tests/testthat/Thumbs.db
 # Session Data files
 .RData
 
+# html files
+.html
+
 # Example code in package build process
 *-Ex.R
 
