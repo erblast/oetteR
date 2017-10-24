@@ -240,7 +240,7 @@ f_plot_hist = function(variable
 
 
 #'@title plot variable distribution over time as reduced overlapping boxplots
-#'@description It is difficult to compare two timeserieses when you have more
+#'@description It is difficult to compare two timeerieses when you have more
 #'  than one observation per timepoint without reducing all observations to a
 #'  single statistical variable such as average or mean. This visualisation
 #'  plots the median and the upper and lower 25% percentile instead drawing a
@@ -389,4 +389,200 @@ f_taglist_2_html = function(taglist, output_file, title = 'Plots'){
 
 }
 
+
+data = tibble( time     = c(0,1,2,3,4,5,6,7,8,9,10)
+               , revenue = - time^2 + time * 12
+               , cost    = revenue * 0.4 * -1
+              )
+
+print( f_plot_profit_lines( data, 'revenue', 'cost', 'time') )
+print( f_plot_profit_lines( data, 'revenue', 'cost', 'time', now = 5) )
+
+
+#' @title plot revenues cost and profit development over time as an area chart.
+#' @description the function can graphically devide the chart into two periods
+#'   e.g. past and future.
+#' @param data datafram
+#' @param col_revenue character vector denoting revenue column
+#' @param col_cost character vector denoting cost column
+#' @param col_time character vector denoting time column
+#' @param now integer denoting a time which should be regarded as the
+#'   breakpoint, Default: max(data[, col_time])
+#' @param unit_time character vector, will label y-axis, Default: 'years'
+#' @param unit_value character vector, will label x-axis, Default: 'CHF'
+#' @param title character vector, will be title label, Default: ''
+#' @param alpha_past double between 0 and 1 will determine alpha value for fill
+#'   under the curve before the breakpoint, Default: 1
+#' @param alpha_future double between 0 and 1 will determine alpha value for fill
+#'   under the curve after the breakpoint, Default: 0.5
+#' @return plot (is not plotly compatibel)
+#' @details not plotly compatibel
+#' @examples
+#' data = tibble( time     = c(0,1,2,3,4,5,6,7,8,9,10)
+#'               , revenue = - time^2 + time * 12
+#'               , cost    = revenue * 0.4 * -1
+#'              )
+#'
+#' print( f_plot_profit_lines( data, 'revenue', 'cost', 'time') )
+#' print( f_plot_profit_lines( data, 'revenue', 'cost', 'time', now = 5) )
+#'
+#' @rdname f_plot_profit_lines
+#' @export
+f_plot_profit_lines = function( data
+                                , col_revenue
+                                , col_cost
+                                , col_time
+                                , now = max(data[,col_time])
+                                , unit_time = 'years'
+                                , unit_value = 'CHF'
+                                , title = ''
+                                , alpha_past = 1
+                                , alpha_future = 0.5
+                                ){
+
+
+  #calculate profit
+  data = tibble( time      = data[[col_time ]]
+                 , revenue = data[[col_revenue]]
+                 , cost    = data[[col_cost]]
+                 , profit  = revenue + cost
+                )
+
+  data = data %>%
+    gather(key = 'key', value = 'value', - time )
+
+  revenues = data %>%
+    filter( key == 'revenue')
+
+  cost = data %>%
+    filter( key == 'cost')
+
+  profit = data %>%
+    filter( key == 'profit')
+
+  # plot init
+
+  p = ggplot()
+
+  #past-----------------------------------------
+
+  p = p +
+    geom_area( data = revenues
+               , mapping = aes( x = ifelse(time <= now,time, min(data$time)-1 )
+                                , y = value
+                                )
+               , alpha = alpha_past
+               , fill = 'springgreen3'
+               , position = 'identity'
+               ) +
+    geom_area( data = cost
+               , mapping = aes( x = ifelse(time <= now,time, min(data$time)-1 )
+                                , y = value
+                                )
+               , alpha = alpha_past
+               , fill = 'firebrick2'
+               , position = 'identity'
+              ) +
+    geom_area( data = profit
+               , mapping = aes( x = ifelse(time <= now,time, min(data$time)-1 )
+                                , y = value
+                                )
+               , alpha = alpha_past
+               , fill = 'royalblue2'
+               , position = 'identity'
+               )
+
+  #future---------------------------------------
+
+  p = p +
+    geom_area( data = revenues
+               , mapping = aes( x = ifelse(time >= now, time, now)
+                                , y = value
+                                )
+               , alpha = alpha_future
+               , fill = 'springgreen3'
+               , position = 'identity'
+               , show.legend = T
+              ) +
+    geom_area( data = cost
+               , mapping = aes( x = ifelse(time >= now, time, now)
+                                , y = value
+               )
+               , alpha = alpha_future
+               , fill = 'firebrick2'
+               , position = 'identity'
+               ) +
+    geom_area( data = profit
+               , mapping = aes( x = ifelse(time >= now, time, now)
+                                , y = value
+               )
+               , alpha = alpha_future
+               , fill = 'royalblue2'
+               , position = 'identity'
+               )
+
+  # points---------------------------------------
+
+  p = p +
+    geom_point( data = data
+               , mapping = aes( x = time
+                                , y = value
+                                , color = key
+                                )
+               , size  = 4
+               )
+
+  # lines---------------------------------------
+
+  p = p +
+    geom_line( data = revenues
+                , mapping = aes( x = time
+                                 , y = value
+                )
+                , color = 'springgreen4'
+                , size  = 2
+                #, linetype = 3
+                ) +
+    geom_line( data = cost
+                , mapping = aes( x = time
+                                 , y = value
+                )
+                , color = 'firebrick3'
+                , size  = 2
+                #, linetype = 2
+               ) +
+    geom_line( data = profit
+                , mapping = aes( x = time
+                                 , y = value
+                )
+                , color = 'royalblue3'
+                , size  = 2
+                #, linetype = 2
+                )
+
+  # theme--------------------------------------
+
+  p = p +
+    theme_minimal() +
+    theme( legend.position = 'bottom') +
+    xlim( c( min(data$time) , max(data$time) ) )
+
+  # scale--------------------------------------
+
+  p = p +
+    scale_color_manual( values = c('firebrick3', 'royalblue3', 'springgreen4')
+                        , breaks = c('revenue', 'profit', 'cost') ) +
+    #fill = NA removes filled boxes around the points
+    guides( color = guide_legend(override.aes = list(size = 5, fill = NA) ) )
+
+  #labels--------------------------------------
+
+  p = p +
+    labs( title = title
+          , x   = unit_time
+          , y   = c( unit_value )
+          , color = ''
+          )
+
+}
 

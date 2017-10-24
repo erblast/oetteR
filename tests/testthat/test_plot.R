@@ -70,5 +70,17 @@ test_that('taglist_2_html'
 })
 
 
+test_that( 'plot_profit_lines'
+           ,{
+
+  data = tibble( time     = c(0,1,2,3,4,5,6,7,8,9,10)
+                , revenue = - time^2 + time * 12
+                , cost    = revenue * 0.4 * -1
+                )
+
+  print( f_plot_profit_lines( data, 'revenue', 'cost', 'time') )
+  print( f_plot_profit_lines( data, 'revenue', 'cost', 'time', now = 5) )
+
+})
 
 
