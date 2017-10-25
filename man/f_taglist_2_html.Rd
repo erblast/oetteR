@@ -2,7 +2,7 @@
 % Please edit documentation in R/f_plot.R
 \name{f_taglist_2_html}
 \alias{f_taglist_2_html}
-\title{genereate a separate html file from a shiny taglist}
+\title{generate a separate html file from a shiny taglist}
 \usage{
 f_taglist_2_html(taglist, output_file, title = "Plots")
 }
