@@ -71,3 +71,53 @@ f_manip_transpose_tibble = function(tib){
     arrange( row_names )
 }
 
+#' @title
+#' @description FUNCTION_DESCRIPTION
+#' @param data_ls PARAM_DESCRIPTION
+#' @return OUTPUT_DESCRIPTION
+#' @details DETAILS
+#' @examples
+#' \dontrun{
+#' if(interactive()){
+#'  #EXAMPLE1
+#'  }
+#' }
+#' @rdname f_manip_reduce_2_median_and_most_common_factor
+#' @export
+f_manip_summarize_2_median_and_most_common_factor = function(data_ls){
+
+  df_numericals = data_ls$data %>%
+    select( one_of(data_ls$numericals) ) %>%
+    summarize_all( median )
+
+  df_boxcox = data_ls$boxcox_data %>%
+    summarize_all( median )
+
+  df_categoricals = data_ls$data %>%
+    select( one_of(data_ls$categoricals) ) %>%
+    summarize_all( f_manip_get_most_common_level )
+
+  data = df_numericals %>%
+    bind_cols(df_categoricals) %>%
+    select( one_of( names(data_ls$data) ) )
+
+  return( list( data = data
+                , boxcox_data = df_boxcox) )
+
+}
+
+f_manip_get_most_common_level = function(x){
+
+  if( ! is.factor(x) ){
+    stop( 'f_manip_get_most_common_level called on none factor vector' )
+  }
+
+  df = broom::tidy( summary(x) ) %>%
+    arrange( desc(x) ) %>%
+    .$names %>%
+    head(1)
+
+  return(df)
+
+}
+
