@@ -16,21 +16,47 @@ test_that( 'f_manip_summarize_2_median_and_most_common_factor'
   ,{
 
     data_ls = f_clean_data(mtcars) %>%
-      f_boxcox
+      f_boxcox()
 
-    summarized_ls = f_manip_reduce_2_median_and_most_common_factor(data_ls)
-
+    summarized_ls = f_manip_summarize_2_median_and_most_common_factor(data_ls)
 
     expect_equal( median(summarized_ls$data$disp), median(mtcars$disp) )
     expect_equal( median(summarized_ls$boxcox_data$disp_boxcox), median(data_ls$boxcox_data$disp_boxcox))
-    expect_identical( summarized$data$cyl[1],  '8' )
+    expect_identical( summarized_ls$data$cyl[1],  '8' )
 
   })
+
+test_that( 'f_manip_summarize_2_median_and_most_common_factor without boxcox'
+  ,{
+
+   data_ls = f_clean_data(mtcars)
+
+   summarized_ls = f_manip_summarize_2_median_and_most_common_factor(data_ls)
+
+   expect_equal( median(summarized_ls$data$disp), median(mtcars$disp) )
+   expect_identical( summarized_ls$data$cyl[1],  '8' )
+
+ })
 
 
 test_that( 'f_manip_get_most_common_level'
   ,{
     data_ls = f_clean_data(mtcars)
-    expect_identical( f_manip_get_most_common_level( data_ls$data$cyl), '8')
+    x = f_manip_get_most_common_level(data_ls$data$cyl)
+    expect_true('8' == x)
 })
 
+test_that('extract info from formula'
+  ,{
+    f = foo~bar1 + bar2
+
+    vars = f_manip_get_variables_from_formula(f)
+    expect_true( 'bar1' %in% vars)
+    expect_true( 'bar2' %in% vars)
+
+    response_var = f_manip_get_response_variable_from_formula(f)
+    expect_identical( response_var, 'foo')
+
+    f = foo~.
+    expect_error( f_manip_get_variables_from_formula(f) )
+})
