@@ -30,10 +30,8 @@ For a boxcox transformation all values mut be > 0. The function will
   values <= 0
 }
 \examples{
-data_ls = mtcars \%>\%
-   f_clean_data() \%>\%
-   f_boxcox() \%>\%
-   str()
+data_ls = f_clean_data(mtcars)
+f_manip_get_most_common_level( data_ls$data$cyl)
 }
 \seealso{
 \code{\link{f_clean_data}}
