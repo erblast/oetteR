@@ -5,7 +5,7 @@ context('visualize model dependencies')
 test_that('f_model_plot_variable_dependency_regression'
   ,{
 
-    make_plot = function(.f){
+    make_plot = function(.f, log_y = F){
       data_ls             = f_clean_data(mtcars)
       data                = data_ls$data
       formula             = disp~hp+mpg+cyl
@@ -22,12 +22,15 @@ test_that('f_model_plot_variable_dependency_regression'
                                                       , data_ls
                                                       , variable_color_code
                                                       , limit
+                                                      , log_y = log_y
                                                       )
     }
 
     print( make_plot(randomForest::randomForest) )
     print( make_plot(rpart::rpart) )
     print( make_plot(e1071::svm) )
+
+    print( make_plot(randomForest::randomForest) , log_y = T)
 
 
     #pipelearner
@@ -53,6 +56,10 @@ test_that('f_model_plot_variable_dependency_regression'
 
 })
 
+test_that('f_model_data_grid - more variables in formula than important variables'
+  ,{
+
+})
 
 test_that( 'f_model_data_grid'
   ,{
@@ -132,5 +139,5 @@ test_that( 'f_model_seq_range'
 
    col_var = 'cyl'
    range = f_model_seq_range( data_ls, col_var )
-   expect_equal( levels(data_ls$data[[col_var]]), range )
+   expect_equal( levels(data_ls$data[[col_var]]), levels(range) )
 })

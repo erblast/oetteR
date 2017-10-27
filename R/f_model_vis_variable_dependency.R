@@ -175,6 +175,7 @@ f_model_plot_variable_dependency_regression = function( m
                                                        , data_ls
                                                        , variable_color_code
                                                        , limit = 10
+                                                       , log_y = F
                                                        , ...
                                                       ){
 
@@ -186,6 +187,7 @@ f_model_plot_variable_dependency_regression = function( m
   }
 
   response_var = f_manip_get_response_variable_from_formula( formula )
+  response_var_sym = as.name(response_var)
   vars         = f_manip_get_variables_from_formula( formula )
 
   #plot function
@@ -195,7 +197,7 @@ f_model_plot_variable_dependency_regression = function( m
     arrange_( 'rank' ) %>%
     filter( variables %in% vars ) %>%
     head( limit ) %>%
-    left_join( col_vector )
+    left_join( variable_color_code )
 
   grid = vars_and_col %>%
     mutate( grid = map( variables
@@ -209,10 +211,16 @@ f_model_plot_variable_dependency_regression = function( m
     mutate( rwn = 1:nrow(.)
             , x = map2(variables, rwn, function(var,rwn,data) data[[var]][rwn], .)
             , x = unlist(x)
-            #, x = as.numeric(x)
             )
 
-    p = ggplot( grid, aes_string( 'x', response_var, color = 'variables') ) +
+  if( log_y ){
+    grid = grid %>%
+      mutate( !!response_var_sym   := ifelse(!!response_var_sym <= 0, 0.01, !!response_var_sym)
+              , !!response_var_sym := log(!!response_var_sym) )
+
+  }
+
+  p = ggplot( grid, aes_string( 'x', response_var, color = 'variables') ) +
       geom_line( size = 2) +
       facet_wrap(~variables
                  , scales = 'free_x'

@@ -290,7 +290,30 @@ f_model_importance_plot = function( importance
 
 }
 
-f_model_impotance_plot_tableplot = function( data
+#' @title tableplot of important variables
+#' @description takes the most important variables of a model and plots a tabplot::tableplot
+#' @param data dataframe
+#' @param ranked_variables datafram as returned by f_model_importance()
+#' @param response_var character vector denoting response variable
+#' @param limit integer limit the number of variables , Default: 10
+#' @param ... pass kwargs to tabplot::tableplot
+#' @return tabplot::tableplot object
+#' @examples
+#'
+#' data = f_clean_data(mtcars) %>%
+#'   .$data
+#' m = rpart::rpart( disp~., data)
+#' ranked_variables  = f_model_importance(m, data)
+#' response_var = 'disp'
+#'
+#' f_model_importance_plot_tableplot( data, ranked_variables, response_var, limit = 5 )
+#'
+#' @seealso
+#'  \code{\link[tabplot]{tableplot}}
+#' @rdname f_model_importance_plot_tableplot
+#' @export
+#' @importFrom tabplot tableplot
+f_model_importance_plot_tableplot = function( data
                                               , ranked_variables
                                               , response_var
                                               , limit = 10

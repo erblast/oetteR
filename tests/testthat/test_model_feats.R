@@ -121,15 +121,16 @@ test_that('importance: return a value for each variable'
 
 })
 
-test_that('tabplot::tableplot important variables'){
+test_that('tabplot::tableplot important variables'
+          ,{
 
   data = f_clean_data(mtcars) %>%
     .$data
-  m    = rpart::rpart( disp~., data)
+  m = rpart::rpart( disp~., data)
   ranked_variables  = f_model_importance(m, data)
   response_var = 'disp'
 
-  f_model_impotance_plot_tableplot( data, ranked_variables, response_var, limit = 5 )
+  f_model_importance_plot_tableplot( data, ranked_variables, response_var, limit = 5 )
 
-}
+})
 

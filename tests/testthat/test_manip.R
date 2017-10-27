@@ -71,4 +71,4 @@ test_that( 'f_manip_factor_2_numeric'
     expect_identical( f_manip_factor_2_numeric( fac_num ), c(1,3,8) )
     expect_identical( f_manip_factor_2_numeric( fac_chr ), c(2,1) )
     expect_identical( f_manip_factor_2_numeric( fac_chr_ordered ), c(1,2,3) )
-  })
+})

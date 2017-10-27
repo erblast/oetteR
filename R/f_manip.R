@@ -93,10 +93,12 @@ f_manip_summarize_2_median_and_most_common_factor = function(data_ls){
 
   df_numericals = data_ls$data %>%
     select( one_of(data_ls$numericals) ) %>%
+    select_if( is.numeric ) %>%
     summarize_all( median )
 
   df_categoricals = data_ls$data %>%
     select( one_of(data_ls$categoricals) ) %>%
+    select_if( is.factor ) %>%
     summarize_all( f_manip_get_most_common_level )
 
   data = df_numericals %>%
@@ -106,6 +108,8 @@ f_manip_summarize_2_median_and_most_common_factor = function(data_ls){
   if( 'boxcox_data' %in% names(data_ls) ){
 
   df_boxcox = data_ls$boxcox_data %>%
+    select( one_of(data_ls$boxcox_names) ) %>%
+    select_if( is.numeric ) %>%
     summarize_all( median )
 
   return( list( data = data
@@ -171,7 +175,9 @@ f_manip_get_variables_from_formula = function( formula ) {
     as.character() %>%
     .[[3]] %>%
     stringr::str_split( ' \\+ ') %>%
-    unlist()
+    unlist() %>%
+    stringr::str_trim() %>% ## for long formulas as.character
+    unlist()                ## will add some whitespace to some variables
 
   if( vars[1] == '.'){
     stop('cannot extract variables from formula if formula was constructed with "~." ')
