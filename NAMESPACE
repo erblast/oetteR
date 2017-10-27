@@ -3,6 +3,7 @@
 export(f_boxcox)
 export(f_clean_data)
 export(f_manip_matrix_2_tibble)
+export(f_manip_summarize_2_median_and_most_common_factor)
 export(f_manip_transpose_tibble)
 export(f_model_importance)
 export(f_model_importance_plot)
