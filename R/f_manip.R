@@ -122,7 +122,6 @@ f_manip_summarize_2_median_and_most_common_factor = function(data_ls){
 #' @param x factor vector
 #' @return character vector
 #' @examples
-#' \dontrun{
 #' data_ls = f_clean_data(mtcars)
 #' f_manip_get_most_common_level( data_ls$data$cyl)
 #' @seealso
@@ -185,7 +184,6 @@ f_manip_get_variables_from_formula = function( formula ) {
 #' @title get response variable from formula
 #' @param formula formula
 #' @return character vector
-#' @examples
 #' @seealso
 #'  \code{\link{f_manip_get_variables_from_formula}}
 #' @rdname f_manip_get_response_variable_from_formula
