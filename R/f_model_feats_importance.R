@@ -289,3 +289,21 @@ f_model_importance_plot = function( importance
   plotly::ggplotly(p)
 
 }
+
+f_model_impotance_plot_tableplot = function( data
+                                              , ranked_variables
+                                              , response_var
+                                              , limit = 10
+                                              ,  ... ){
+
+  vars = ranked_variables %>%
+    arrange_('rank') %>%
+    head(limit) %>%
+    .[['row_names']]
+
+  p = as.data.frame(data) %>%
+    select( one_of( response_var, vars) ) %>%
+    tabplot::tableplot(...)
+
+}
+
