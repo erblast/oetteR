@@ -201,3 +201,39 @@ f_manip_get_response_variable_from_formula = function( formula ) {
 
   return(var)
 }
+
+#' @title converts factor to numeric preserving numeric levels and order in character levels
+#' @param vec vector
+#' @return vector
+#' @examples
+#' fac_num = factor( c(1,3,8) )
+#' fac_chr = factor( c('foo','bar') )
+#' fac_chr_ordered = factor( c('a','b','c'), ordered = T )
+#'
+#' f_manip_factor_2_numeric( fac_num )
+#' f_manip_factor_2_numeric( fac_chr )
+#' f_manip_factor_2_numeric( fac_chr_ordered )
+#' @seealso
+#'  \code{\link[stringr]{str_detect}}
+#' @rdname f_manip_factor_2_numeric
+#' @export
+#' @importFrom stringr str_detect
+f_manip_factor_2_numeric = function(vec){
+
+  bool = as.character(vec) %>%
+    stringr::str_detect('^\\d+$' ) %>%
+    all()
+
+  if( bool ){
+
+    vec = vec %>%
+      as.character %>%
+      as.numeric()
+
+  } else{
+    vec = as.numeric(vec)
+  }
+
+  return(vec)
+}
+

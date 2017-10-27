@@ -22,7 +22,7 @@ test_that( 'f_manip_summarize_2_median_and_most_common_factor'
 
     expect_equal( median(summarized_ls$data$disp), median(mtcars$disp) )
     expect_equal( median(summarized_ls$boxcox_data$disp_boxcox), median(data_ls$boxcox_data$disp_boxcox))
-    expect_identical( summarized_ls$data$cyl[1],  '8' )
+    expect_true( summarized_ls$data$cyl[1] == '8' )
 
   })
 
@@ -34,7 +34,7 @@ test_that( 'f_manip_summarize_2_median_and_most_common_factor without boxcox'
    summarized_ls = f_manip_summarize_2_median_and_most_common_factor(data_ls)
 
    expect_equal( median(summarized_ls$data$disp), median(mtcars$disp) )
-   expect_identical( summarized_ls$data$cyl[1],  '8' )
+   expect_true( summarized_ls$data$cyl[1] == '8' )
 
  })
 
@@ -60,3 +60,15 @@ test_that('extract info from formula'
     f = foo~.
     expect_error( f_manip_get_variables_from_formula(f) )
 })
+
+test_that( 'f_manip_factor_2_numeric'
+  ,{
+
+    fac_num = factor( c(1,3,8) )
+    fac_chr = factor( c('foo','bar') )
+    fac_chr_ordered = factor( c('a','b','c'), ordered = T )
+
+    expect_identical( f_manip_factor_2_numeric( fac_num ), c(1,3,8) )
+    expect_identical( f_manip_factor_2_numeric( fac_chr ), c(2,1) )
+    expect_identical( f_manip_factor_2_numeric( fac_chr_ordered ), c(1,2,3) )
+  })

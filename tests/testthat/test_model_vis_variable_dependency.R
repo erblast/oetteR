@@ -6,20 +6,21 @@ test_that('f_model_plot_variable_dependency_regression'
   ,{
 
     make_plot = function(.f){
-      data_ls          = f_clean_data(mtcars)
-      data             = data_ls$data
-      formula          = disp~cyl+mpg+hp
-      m                = .f(formula, data_ls$data)
-      ranked_variables = f_model_importance( m, data_ls$data)
-      col_vector       = f_plot_color_code_variables(data_ls)
-      limit            = 10
+      data_ls             = f_clean_data(mtcars)
+      data                = data_ls$data
+      formula             = disp~hp+mpg+cyl
+      m                   = .f(formula, data)
+      ranked_variables    = f_model_importance( m, data)
+      variable_color_code = f_plot_color_code_variables(data_ls)
+      limit               = 10
 
       p = f_model_plot_variable_dependency_regression( m
                                                       , ranked_variables
+                                                      , title = unlist( stringr::str_split( class(m)[1], '\\.') )[1]
                                                       , data
                                                       , formula
                                                       , data_ls
-                                                      , col_vector
+                                                      , variable_color_code
                                                       , limit
                                                       )
     }
@@ -28,7 +29,29 @@ test_that('f_model_plot_variable_dependency_regression'
     print( make_plot(rpart::rpart) )
     print( make_plot(e1071::svm) )
 
-  })
+
+    #pipelearner
+    data_ls = f_clean_data(mtcars)
+    form = as.formula('disp~hp+cyl+wt')
+    variable_color_code = f_plot_color_code_variables(data_ls)
+    limit            = 10
+
+    pl = pipelearner::pipelearner( data_ls$data ) %>%
+      pipelearner::learn_models( rpart::rpart, form ) %>%
+      pipelearner::learn_models( randomForest::randomForest, form ) %>%
+      pipelearner::learn_models( e1071::svm, form ) %>%
+      pipelearner::learn() %>%
+      mutate( imp   = map2(fit, train, f_model_importance)
+              ,plot = pmap( list( m = fit, ranked_variables = imp, title = model, data = train)
+                            , .f = f_model_plot_variable_dependency_regression
+                            , formula = form
+                            , data_ls = data_ls
+                            , variable_color_code = variable_color_code
+                            , limit = limit
+                            )
+              )
+
+})
 
 
 test_that( 'f_model_data_grid'
@@ -53,7 +76,7 @@ test_that( 'f_model_data_grid'
 test_that('f_model_add_predictions_2_grid_regression'
   ,{
 
-  make_grid = function( formula, .f){
+  make_grid = function( formula, .f, var){
 
     data_ls = f_clean_data(mtcars)
     m = .f(formula, data_ls$data)
@@ -62,21 +85,33 @@ test_that('f_model_add_predictions_2_grid_regression'
       f_model_add_predictions_2_grid_regression( m, 'disp')
 
   }
-  #only numericals
 
-  grid = make_grid( disp~hp+mpg, lm)
-  grid = make_grid( disp~hp+mpg, rpart::rpart)
-  grid = make_grid( disp~hp+mpg, randomForest::randomForest)
-  grid = make_grid( disp~hp+mpg, e1071::svm)
+  # for numerical variable
+
+  #response: numeric, predictors: numeric, range variable: numeric
+
+  grid = make_grid( disp~hp+mpg, lm, 'hp')
+  grid = make_grid( disp~hp+mpg, rpart::rpart, 'hp')
+  grid = make_grid( disp~hp+mpg, randomForest::randomForest, 'hp')
+  grid = make_grid( disp~hp+mpg, e1071::svm, 'hp')
 
   expect_true('disp' %in% names(grid) )
 
-  #predict numeric with mixed numeric and categoric
+  #response: numeric, predictors: mixed, range variable: numeric
 
-  grid = make_grid( disp~hp+mpg+cyl, lm)
-  grid = make_grid( disp~hp+mpg+cyl, rpart::rpart)
-  grid = make_grid( disp~hp+mpg+cyl, randomForest::randomForest)
-  grid = make_grid( disp~hp+mpg+cyl, e1071::svm)
+  grid = make_grid( disp~hp+mpg+cyl, lm, 'hp')
+  grid = make_grid( disp~hp+mpg+cyl, rpart::rpart, 'hp')
+  grid = make_grid( disp~hp+mpg+cyl, randomForest::randomForest, 'hp')
+  grid = make_grid( disp~hp+mpg+cyl, e1071::svm, 'hp')
+
+  expect_true('disp' %in% names(grid) )
+
+  #response: numeric, predictors: mixed, range variable: categoric
+
+  grid = make_grid( disp~hp+mpg+cyl, lm, 'cyl')
+  grid = make_grid( disp~hp+mpg+cyl, rpart::rpart, 'cyl')
+  grid = make_grid( disp~hp+mpg+cyl, randomForest::randomForest, 'cyl')
+  grid = make_grid( disp~hp+mpg+cyl, e1071::svm, 'cyl')
 
   expect_true('disp' %in% names(grid) )
 
