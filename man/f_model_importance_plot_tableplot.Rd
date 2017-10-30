@@ -34,6 +34,23 @@ response_var = 'disp'
 
 f_model_importance_plot_tableplot( data, ranked_variables, response_var, limit = 5 )
 
+#pipe
+form = as.formula('disp~cyl+mpg+hp')
+pl = pipelearner::pipelearner(mtcars) \%>\%
+ pipelearner::learn_models( twidlr::rpart, form ) \%>\%
+ pipelearner::learn_models( twidlr::randomForest, form ) \%>\%
+ pipelearner::learn_models( twidlr::svm, form ) \%>\%
+ pipelearner::learn() \%>\%
+ mutate( imp = map2(fit, train, f_model_importance)
+         , tabplot = pmap( list( data = train
+                                 , ranked_variables = imp
+                                 , response_var = target
+                                 , title = model
+         )
+         , f_model_importance_plot_tableplot
+         , limit = 5
+         )
+  )
 }
 \seealso{
 \code{\link[tabplot]{tableplot}}

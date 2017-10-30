@@ -67,9 +67,9 @@ test_that('plot importance'
   m = twidlr::rpart(mtcars, disp~.)
   imp = f_model_importance_rpart(m)
   f_model_importance_plot(imp
-                          , model_name = 'rpart'
+                          , title = 'rpart'
                           , variable_color_code = variable_color_code
-                          , 'example')
+                          )
 
 })
 
@@ -133,4 +133,32 @@ test_that('tabplot::tableplot important variables'
   f_model_importance_plot_tableplot( data, ranked_variables, response_var, limit = 5 )
 
 })
+
+test_that('f_model_pl_add_plots_regression'
+  ,{
+
+    data_ls = f_clean_data(mtcars)
+    form = disp~cyl+mpg+hp
+    variable_color_code = f_plot_color_code_variables(data_ls)
+
+    pl = pipelearner::pipelearner(data_ls$data) %>%
+      pipelearner::learn_models( twidlr::rpart, form ) %>%
+      pipelearner::learn_models( twidlr::randomForest, form ) %>%
+      pipelearner::learn_models( twidlr::svm, form ) %>%
+      pipelearner::learn() %>%
+      mutate( imp = map2(fit, train, f_model_importance)
+              , title = paste(model, models.id, train_p) ) %>%
+      f_model_importance_pl_add_plots_regression(  data                  = train
+                                                   , m                   = fit
+                                                   , ranked_variables    = imp
+                                                   , title               = title
+                                                   , response_var        = target
+                                                   , variable_color_code = variable_color_code
+                                                   , formula             = form
+                                                   , data_ls             = data_ls
+                                                   , var_dep_limit       = 10
+                                                   , var_dep_log_y       = T
+                                                   , tabplot_limit       = 12)
+
+  })
 

@@ -2,19 +2,22 @@
 title: "template"
 output: html_document
 params:
-  obj_list: !r lubridate::today()
+  obj_list: !r list()
   aspect_ratio: !r 1.4
+
 ---
 
 **Date: `r lubridate::today()`**
 
-```{r setup, include=FALSE}
+```{r, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
 ```
 
 ```{r, include = TRUE, echo = F, fig.asp = params$aspect_ratio }
 
-params$obj_list
+
+params$obj_list %>%
+  walk( print )
 
 ```
 

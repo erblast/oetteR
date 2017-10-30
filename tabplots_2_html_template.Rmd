@@ -1,0 +1,31 @@
+---
+title: "Plots"
+output: html_document
+params:
+  obj_list: !r list()
+  titles: !r vector()
+
+---
+
+**Date: `r lubridate::today()`**
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+```
+
+```{r, include = TRUE, echo = F}
+
+
+plot_tabplot = function( tabplot, title){
+  
+  tabplot:::plot.tabplot(tabplot, title = title)
+  
+}
+
+tibble( tabplot = params$obj_list
+        , title = params$titles   ) %>%
+  mutate( plot = walk2( tabplot, title, plot_tabplot ) 
+  )
+
+```
+

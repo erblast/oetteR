@@ -1,0 +1,38 @@
+---
+title: "test changing plot size"
+author: "OEB"
+date: "August 21, 2017"
+output: html_document
+runtime: shiny
+---
+
+```{r}
+require(tidyverse)
+require(shiny)
+
+data = mtcars
+
+shiny::numericInput('height'
+                    , 'height'
+                    , min = 100
+                    , max = 2000
+                    , value = 300)
+
+f = function(data){
+  
+  
+  renderPlot( height = function(){
+      input$height
+    } , expr = {
+    
+    ggplot(data) +
+      geom_point( aes(x = disp, y = cyl))
+    
+  })
+  
+}
+
+f(data)
+
+```
+

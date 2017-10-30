@@ -4,11 +4,12 @@
 \alias{f_model_importance_plot}
 \title{plot model importance}
 \usage{
-f_model_importance_plot(importance, model_name, models.id = NULL,
-  cv_pairs.id = NULL, train_p = NULL, variable_color_code = NULL, ...)
+f_model_importance_plot(importance, title, variable_color_code = NULL)
 }
 \arguments{
 \item{importance}{dataframe importance created by f_model_importance()}
+
+\item{variable_color_code}{dataframe created by f_plot_color_code_variables()}
 
 \item{model_name}{character vector (model column in pipelearner dataframe)
 will be pasted for plot title}
@@ -18,8 +19,6 @@ will be pasted for plot title}
 \item{cv_pairs.id}{character vector will be pasted for plot title}
 
 \item{train_p}{character vector will be pasted for plot title}
-
-\item{variable_color_code}{dataframe created by f_plot_color_code_variables()}
 
 \item{...}{additional character vectors to be pasted to plot title}
 }
@@ -36,9 +35,9 @@ variable_color_code = f_plot_color_code_variables(data_ls)
 m = twidlr::rpart(mtcars, disp~.)
 imp = f_model_importance_rpart(m)
 f_model_importance_plot(imp
-                        , model_name = 'rpart'
+                        , title = 'rpart'
                         , variable_color_code = variable_color_code
-                        , 'example')
+                        )
 #pipelearner
 pl = pipelearner::pipelearner(data_ls$data) \%>\%
   pipelearner::learn_models( twidlr::rpart, disp~. ) \%>\%
@@ -46,10 +45,11 @@ pl = pipelearner::pipelearner(data_ls$data) \%>\%
   pipelearner::learn_models( twidlr::svm, disp~. ) \%>\%
   pipelearner::learn() \%>\%
   mutate( imp = map2(fit, train, f_model_importance)
-         , plot = pmap( list(imp, model, models.id, cv_pairs.id, train_p)
+         , title = paste( model, models.id, cv_pairs.id, train_p )
+         , plot = map2( imp
+                       , title
                        , f_model_importance_plot
                        , variable_color_code = variable_color_code
-                       , 'pipelearner'
                        )
          )
 htmltools::tagList(pl$plot)

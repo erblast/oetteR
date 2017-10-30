@@ -79,17 +79,16 @@ f_model_importance_svm = function(m, data){
   data = as.data.frame(data)
   data = as.data.frame(data)
 
-  response_var = m$terms %>%
-    as.character() %>%
-    .[2]
-
-  response_var_sym = as.name(response_var)
-
+  # terms to formula
   formula = m$terms %>%
     as.character()
 
   formula = paste0( formula[2], formula[1], formula[3] ) %>%
     as.formula()
+
+  vars = f_manip_get_variables_from_formula(formula)
+  response_var = f_manip_get_response_variable_from_formula(formula)
+  response_var_sym = as.name(response_var)
 
   if( is.factor(data[[response_var]]) ){
 
@@ -113,7 +112,8 @@ f_model_importance_svm = function(m, data){
                , value   = imp$imp
                , rank    = rank( desc(value) )) %>%
     filter( row_names != response_var ) %>%
-    arrange( desc(value) )
+    arrange( desc(value) ) %>%
+    head( length(vars) ) # make sure to return only variables that are in formula
 
   return(df)
 
@@ -225,9 +225,9 @@ f_model_importance = function(m, data){
 #' m = twidlr::rpart(mtcars, disp~.)
 #' imp = f_model_importance_rpart(m)
 #' f_model_importance_plot(imp
-#'                         , model_name = 'rpart'
+#'                         , title = 'rpart'
 #'                         , variable_color_code = variable_color_code
-#'                         , 'example')
+#'                         )
 #' #pipelearner
 #' pl = pipelearner::pipelearner(data_ls$data) %>%
 #'   pipelearner::learn_models( twidlr::rpart, disp~. ) %>%
@@ -235,10 +235,11 @@ f_model_importance = function(m, data){
 #'   pipelearner::learn_models( twidlr::svm, disp~. ) %>%
 #'   pipelearner::learn() %>%
 #'   mutate( imp = map2(fit, train, f_model_importance)
-#'          , plot = pmap( list(imp, model, models.id, cv_pairs.id, train_p)
+#'          , title = paste( model, models.id, cv_pairs.id, train_p )
+#'          , plot = map2( imp
+#'                        , title
 #'                        , f_model_importance_plot
 #'                        , variable_color_code = variable_color_code
-#'                        , 'pipelearner'
 #'                        )
 #'          )
 #' htmltools::tagList(pl$plot)
@@ -247,19 +248,14 @@ f_model_importance = function(m, data){
 #' @importFrom forcats fct_reorder
 #' @importFrom plotly ggplotly
 f_model_importance_plot = function( importance
-                                    , model_name
-                                    , models.id = NULL
-                                    , cv_pairs.id = NULL
-                                    , train_p = NULL
+                                    , title
                                     , variable_color_code = NULL
-                                    , ...
                                     ){
 
   importance = importance %>%
     mutate( row_names = forcats::fct_reorder(row_names, value) )%>%
     rename( variables = row_names)
 
-  title = paste( model_name, models.id, cv_pairs.id, train_p, ... )
 
   if( ! is.null(variable_color_code) ){
 
@@ -308,6 +304,23 @@ f_model_importance_plot = function( importance
 #'
 #' f_model_importance_plot_tableplot( data, ranked_variables, response_var, limit = 5 )
 #'
+#'#pipe
+#'form = as.formula('disp~cyl+mpg+hp')
+#'pl = pipelearner::pipelearner(mtcars) %>%
+#'  pipelearner::learn_models( twidlr::rpart, form ) %>%
+#'  pipelearner::learn_models( twidlr::randomForest, form ) %>%
+#'  pipelearner::learn_models( twidlr::svm, form ) %>%
+#'  pipelearner::learn() %>%
+#'  mutate( imp = map2(fit, train, f_model_importance)
+#'          , tabplot = pmap( list( data = train
+#'                                  , ranked_variables = imp
+#'                                  , response_var = target
+#'                                  , title = model
+#'          )
+#'          , f_model_importance_plot_tableplot
+#'          , limit = 5
+#'          )
+#'   )
 #' @seealso
 #'  \code{\link[tabplot]{tableplot}}
 #' @rdname f_model_importance_plot_tableplot
@@ -326,7 +339,116 @@ f_model_importance_plot_tableplot = function( data
 
   p = as.data.frame(data) %>%
     select( one_of( response_var, vars) ) %>%
-    tabplot::tableplot(...)
+    tabplot::tableplot( plot = F, ...)
 
 }
 
+#' @title add plots based on variable importance to pipelearner dataframe
+#' @description adds a bar plot of the ranked variables, a tabplot sorted by the
+#'   target variable and a dependency plot (response variable vs the sequential
+#'   range of one of the predictor variables while all other predictors are kept
+#'   constant at mean values).
+#' @param pl a dataframe containing the columns for data, m, ranked_variables, response_var and title
+#' @param data symbol (unquoted name) of data column in pl
+#' @param m symbol (unquoted name) of data column in pl
+#' @param ranked_variables symbol (unquoted name) of data column in pl
+#' @param response_var symbol (unquoted name) of data column in pl
+#' @param title symbol (unquoted name) of data column in pl
+#' @param variable_color_code dataframe created by f_plot_color_code_variables()
+#' @param formula fomula that was used to construct model
+#' @param data_ls data_ls list object wontaining the whole of the original data
+#' @param var_dep_limit number of variables to be plotted on dependency plot
+#' @param var_dep_log_y should y axis of dependency plot be logarithmic
+#' @param tabplot_limit number of variables to be plotted on tabplot
+#' @return dataframe
+#' @examples
+#'
+#' data_ls = f_clean_data(mtcars)
+#' form = disp~cyl+mpg+hp
+#' variable_color_code = f_plot_color_code_variables(data_ls)
+#'
+#' pl = pipelearner::pipelearner(data_ls$data) %>%
+#'   pipelearner::learn_models( twidlr::rpart, form ) %>%
+#'   pipelearner::learn_models( twidlr::randomForest, form ) %>%
+#'   pipelearner::learn_models( twidlr::svm, form ) %>%
+#'   pipelearner::learn() %>%
+#'   mutate( imp = map2(fit, train, f_model_importance)
+#'           , title = paste(model, models.id, train_p) ) %>%
+#'   f_model_importance_pl_add_plots_regression(  data                  = train
+#'                                                , m                   = fit
+#'                                                , ranked_variables    = imp
+#'                                                , title               = title
+#'                                                , response_var        = target
+#'                                                , variable_color_code = variable_color_code
+#'                                                , formula             = form
+#'                                                , data_ls             = data_ls
+#'                                                , var_dep_limit       = 10
+#'                                                , var_dep_log_y       = T
+#'                                                , tabplot_limit       = 12 )
+#'
+#' @rdname f_model_importance_pl_add_plots_regression
+#' @seealso \code{\link{f_model_importance_plot}}
+#' \code{\link{f_model_importance_plot_tableplot}}
+#' \code{\link{f_model_plot_variable_dependency_regression}}
+#' @export
+f_model_importance_pl_add_plots_regression = function( pl
+                                                     , data
+                                                     , m
+                                                     , ranked_variables
+                                                     , response_var
+                                                     , title
+                                                     , variable_color_code
+                                                     , formula
+                                                     , data_ls
+                                                     , var_dep_limit = 10
+                                                     , var_dep_log_y = F
+                                                     , tabplot_limit = 12
+                                                     ){
+
+  data_enquo             = enquo(data)
+  ranked_variables_enquo = enquo(ranked_variables)
+  response_var_enquo     = enquo(response_var)
+  title_enquo            = enquo(title)
+  m_enquo                = enquo(m)
+
+  # tabplot --------------------------------------------------------------
+  pl = pl %>%
+    mutate( imp_tabplot = pmap( list( data               = !! data_enquo
+                                 , ranked_variables = !! ranked_variables_enquo
+                                 , response_var     = !! response_var_enquo
+                                 , title            = !! title_enquo
+                                 )
+                           , f_model_importance_plot_tableplot
+                           , limit = tabplot_limit
+    )
+           )
+
+  # plots---------------------------------------------------------------
+
+  pl = pl %>%
+    mutate( imp_plot = pmap( list(  importance = !! ranked_variables_enquo
+                                 , title       = !! title_enquo
+                                )
+                           , f_model_importance_plot
+                           , variable_color_code = variable_color_code
+                          )
+          )
+
+  # variable dependency-------------------------------------------------
+
+  pl = pl %>%
+    mutate( imp_plot_dep = pmap( list(  m         = !! m_enquo
+                               , ranked_variables = !! ranked_variables_enquo
+                               , title            = !! title_enquo
+                               , data             = !! data_enquo
+                               )
+                        , f_model_plot_variable_dependency_regression
+                        , variable_color_code = variable_color_code
+                        , formula             = formula
+                        , data_ls             = data_ls
+                        , limit               = var_dep_limit
+                        , log_y               = var_dep_log_y
+                      )
+          )
+
+}
