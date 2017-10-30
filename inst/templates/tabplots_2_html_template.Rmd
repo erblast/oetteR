@@ -2,7 +2,7 @@
 title: "template"
 output: html_document
 params:
-  obj_list: !r lubridate::today()
+  obj_list: !r list()
 
 ---
 
@@ -14,7 +14,8 @@ knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
 
 ```{r, include = TRUE, echo = F}
 
-params$obj_list
+params$obj_list %>%
+  walk( tabplot:::plot.tabplot )
 
 ```
 

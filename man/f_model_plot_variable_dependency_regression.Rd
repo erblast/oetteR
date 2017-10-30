@@ -6,7 +6,7 @@
 \usage{
 f_model_plot_variable_dependency_regression(m, ranked_variables,
   title = unlist(stringr::str_split(class(m)[1], "\\\\."))[1], data = NULL,
-  formula, data_ls, variable_color_code, limit = 10, ...)
+  formula, data_ls, variable_color_code, limit = 10, log_y = F, ...)
 }
 \arguments{
 \item{m}{a regression model}

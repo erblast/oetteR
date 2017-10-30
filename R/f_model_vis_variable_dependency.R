@@ -187,7 +187,6 @@ f_model_plot_variable_dependency_regression = function( m
   }
 
   response_var = f_manip_get_response_variable_from_formula( formula )
-  response_var_sym = as.name(response_var)
   vars         = f_manip_get_variables_from_formula( formula )
 
   #plot function
@@ -214,9 +213,9 @@ f_model_plot_variable_dependency_regression = function( m
             )
 
   if( log_y ){
-    grid = grid %>%
-      mutate( !!response_var_sym   := ifelse(!!response_var_sym <= 0, 0.01, !!response_var_sym)
-              , !!response_var_sym := log(!!response_var_sym) )
+
+    grid[, response_var][ grid[, response_var] <= 0] = 0.01
+    grid[, response_var] = log( grid[, response_var] )
 
   }
 

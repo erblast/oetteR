@@ -30,7 +30,7 @@ test_that('f_model_plot_variable_dependency_regression'
     print( make_plot(rpart::rpart) )
     print( make_plot(e1071::svm) )
 
-    print( make_plot(randomForest::randomForest) , log_y = T)
+    print( make_plot(randomForest::randomForest, log_y = T) )
 
 
     #pipelearner

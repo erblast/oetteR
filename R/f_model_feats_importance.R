@@ -79,17 +79,16 @@ f_model_importance_svm = function(m, data){
   data = as.data.frame(data)
   data = as.data.frame(data)
 
-  response_var = m$terms %>%
-    as.character() %>%
-    .[2]
-
-  response_var_sym = as.name(response_var)
-
+  # terms to formula
   formula = m$terms %>%
     as.character()
 
   formula = paste0( formula[2], formula[1], formula[3] ) %>%
     as.formula()
+
+  vars = f_manip_get_variables_from_formula(formula)
+  response_var = f_manip_get_response_variable_from_formula(formula)
+  response_var_sym = as.name(response_var)
 
   if( is.factor(data[[response_var]]) ){
 
@@ -113,7 +112,8 @@ f_model_importance_svm = function(m, data){
                , value   = imp$imp
                , rank    = rank( desc(value) )) %>%
     filter( row_names != response_var ) %>%
-    arrange( desc(value) )
+    arrange( desc(value) ) %>%
+    head( length(vars) ) # make sure to return only variables that are in formula
 
   return(df)
 
@@ -308,6 +308,23 @@ f_model_importance_plot = function( importance
 #'
 #' f_model_importance_plot_tableplot( data, ranked_variables, response_var, limit = 5 )
 #'
+#'#pipe
+#'form = as.formula('disp~cyl+mpg+hp')
+#'pl = pipelearner::pipelearner(mtcars) %>%
+#'  pipelearner::learn_models( twidlr::rpart, form ) %>%
+#'  pipelearner::learn_models( twidlr::randomForest, form ) %>%
+#'  pipelearner::learn_models( twidlr::svm, form ) %>%
+#'  pipelearner::learn() %>%
+#'  mutate( imp = map2(fit, train, f_model_importance)
+#'          , tabplot = pmap( list( data = train
+#'                                  , ranked_variables = imp
+#'                                  , response_var = target
+#'                                  , title = model
+#'          )
+#'          , f_model_importance_plot_tableplot
+#'          , limit = 5
+#'          )
+#'   )
 #' @seealso
 #'  \code{\link[tabplot]{tableplot}}
 #' @rdname f_model_importance_plot_tableplot
