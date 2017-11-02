@@ -134,7 +134,7 @@ test_that('tabplot::tableplot important variables'
 
 })
 
-test_that('f_model_pl_add_plots_regression'
+test_that('f_model_pl_add_plots_regression, f_model_importance_pl_plots_as_html '
   ,{
 
     data_ls = f_clean_data(mtcars)
@@ -158,7 +158,13 @@ test_that('f_model_pl_add_plots_regression'
                                                    , data_ls             = data_ls
                                                    , var_dep_limit       = 10
                                                    , var_dep_log_y       = T
-                                                   , tabplot_limit       = 12)
+                                                   , tabplot_limit       = 12) %>%
+      f_model_importance_pl_plots_as_html( prefix = 'test_oetteR_html_')
+
+      files = dir() %>%
+        .[ startsWith(., 'test_oetteR_html_') ]
+
+      file.remove( files )
 
   })
 

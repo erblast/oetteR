@@ -413,7 +413,7 @@ f_model_importance_pl_add_plots_regression = function( pl
 
   # tabplot --------------------------------------------------------------
   pl = pl %>%
-    mutate( imp_tabplot = pmap( list( data               = !! data_enquo
+    mutate( imp_tabplot = pmap( list( data          = !! data_enquo
                                  , ranked_variables = !! ranked_variables_enquo
                                  , response_var     = !! response_var_enquo
                                  , title            = !! title_enquo
@@ -450,5 +450,81 @@ f_model_importance_pl_add_plots_regression = function( pl
                         , log_y               = var_dep_log_y
                       )
           )
+
+}
+
+
+#' @title print plots of variable importance in modelling dataframe to html
+#' @description should execute f_model_importance_pl_add_plots_regression() on
+#'   modelling dataframe first
+#' @param pl modelling dataframe containing the following columns 'imp_plot', 'imp_plot_dep', 'imp_tabplot', 'title'
+#' @param prefix character vector file name prefix for html files, Default: NULL
+#' @return html files in working directory
+#' @examples
+#' \dontrun{
+#'     data_ls = f_clean_data(mtcars)
+#'form = disp~cyl+mpg+hp
+#'variable_color_code = f_plot_color_code_variables(data_ls)
+#'
+#'pl = pipelearner::pipelearner(data_ls$data) %>%
+#'  pipelearner::learn_models( twidlr::rpart, form ) %>%
+#'  pipelearner::learn_models( twidlr::randomForest, form ) %>%
+#'  pipelearner::learn_models( twidlr::svm, form ) %>%
+#'  pipelearner::learn() %>%
+#'  mutate( imp = map2(fit, train, f_model_importance)
+#'          , title = paste(model, models.id, train_p) ) %>%
+#'  f_model_importance_pl_add_plots_regression(  data                  = train
+#'                                               , m                   = fit
+#'                                               , ranked_variables    = imp
+#'                                               , title               = title
+#'                                               , response_var        = target
+#'                                               , variable_color_code = variable_color_code
+#'                                               , formula             = form
+#'                                               , data_ls             = data_ls
+#'                                               , var_dep_limit       = 10
+#'                                               , var_dep_log_y       = T
+#'                                               , tabplot_limit       = 12) %>%
+#'  f_model_importance_pl_plots_as_html( prefix = 'test_oetteR_html_')
+#'
+#'files = dir() %>%
+#'  .[ startsWith(., 'test_oetteR_html_') ]
+#'
+#'file.remove( files )
+#'
+#'
+#' }
+#' @seealso \code{\link[htmltools]{tagList}}
+#' @rdname f_model_importance_pl_plots_as_html
+#' @export
+#' @importFrom htmltools tagList
+f_model_importance_pl_plots_as_html = function(pl, prefix = NULL){
+
+  bool = c('imp_plot', 'imp_plot_dep', 'imp_tabplot', 'title') %in% names(pl)
+
+  if( ! all(bool)  ){
+    stop(" one of the following columns was not found in pl: 'imp_plot', 'imp_plot_dep', 'imp_tabplot', 'title' ")
+  }
+
+  taglist = pl$imp_plot %>%
+    htmltools::tagList()
+
+  f_plot_obj_2_html( taglist
+                     , type = 'taglist'
+                     , output_file = paste0(prefix,'importance_plots')
+                     , title = 'Variable Importance'
+                     )
+
+  f_plot_obj_2_html( pl$imp_plot_dep
+                     , type = 'plots'
+                     , output_file = paste0(prefix,'importance_variable_dependencies')
+                     , title = 'Variable dependecies'
+                    )
+
+  f_plot_obj_2_html( pl$imp_tabplot
+                     , type = 'tabplots'
+                     , output_file = paste0(prefix,'importance_tabplots')
+                     , titles = pl$title
+                     , title = 'Tabplots'
+                   )
 
 }

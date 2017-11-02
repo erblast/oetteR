@@ -3,7 +3,7 @@ title: "template"
 output: html_document
 params:
   obj_list: !r list()
-  titles: !r vector()
+  titles: !r NA
 
 ---
 
@@ -16,10 +16,10 @@ knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
 ```{r, include = TRUE, echo = F}
 
 
+
 plot_tabplot = function( tabplot, title){
   
-  tabplot:::plot.tabplot(tabplot, title = title)
-  
+    tabplot:::plot.tabplot(tabplot, title = title)
 }
 
 tibble( tabplot = params$obj_list
