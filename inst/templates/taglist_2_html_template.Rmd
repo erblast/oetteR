@@ -3,7 +3,7 @@ title: "template"
 output: html_document
 params:
   obj_list: !r lubridate::today()
-  aspect_ratio: !r 1.4
+
 ---
 
 **Date: `r lubridate::today()`**

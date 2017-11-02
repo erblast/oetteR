@@ -84,7 +84,7 @@ test_that('taglist_2_html'
 
   # list( tabplot::tableplot ) ---------------------------------------
   form = as.formula('disp~cyl+mpg+hp')
-  pl = pipelearner::pipelearner(mtcars) %>%
+  pipelearner::pipelearner(mtcars) %>%
     pipelearner::learn_models( twidlr::rpart, form ) %>%
     pipelearner::learn_models( twidlr::randomForest, form ) %>%
     pipelearner::learn_models( twidlr::svm, form ) %>%
@@ -93,51 +93,42 @@ test_that('taglist_2_html'
             , tabplot = pmap( list( data = train
                                    , ranked_variables = imp
                                    , response_var = target
+                                   , title = model
                                    )
                            , f_model_importance_plot_tableplot
                            , limit = 5
                            )
-            , titles = model
-    )
-
-  # the tabplot object, does not save the title
-  obj_list = pl$tabplot
-  titles =   pl$titles
-
-  f_plot_obj_2_html( obj_list = obj_list
-                     , type = "tabplots"
-                     , output_file =  'test_me'
-                     , title = 'Plots'
-                     , titles = titles)
-
-
-  file.remove('test_me.html')
-
-
-  #list(ggplot2)---------------------------------------------------
-  data_ls = f_clean_data(mtcars)
-  form = as.formula('disp~cyl+mpg+hp')
-  variable_color_code = f_plot_color_code_variables(data_ls)
-
-  obj_list = pipelearner::pipelearner(data_ls$data) %>%
-    pipelearner::learn_models( twidlr::rpart, form ) %>%
-    pipelearner::learn_models( twidlr::randomForest, form ) %>%
-    pipelearner::learn_models( twidlr::svm, form ) %>%
-    pipelearner::learn() %>%
-    mutate( imp = map2(fit, train, f_model_importance)
-            , plot = pmap( list( m = fit
-                                    , ranked_variables = imp
-                                    , title = model
-                                    )
-                              , f_model_plot_variable_dependency_regression
-                              , formula = form
-                              , data_ls = data_ls
-                              , variable_color_code = variable_color_code
-            )
     )  %>%
-    .$plot
+    .$tabplot %>%
+    f_plot_obj_2_html( type = "tabplots", output_file =  'test_me', title = 'Plots')
 
-    f_plot_obj_2_html( obj_list = obj_list, type = "plots", output_file =  'test_me', title = 'Plots', aspect_ratio = 1)
+
+    file.remove('test_me.html')
+
+
+    #list(ggplot2)---------------------------------------------------
+    data_ls = f_clean_data(mtcars)
+    form = as.formula('disp~cyl+mpg+hp')
+    variable_color_code = f_plot_color_code_variables(data_ls)
+
+    pipelearner::pipelearner(data_ls$data) %>%
+      pipelearner::learn_models( twidlr::rpart, form ) %>%
+      pipelearner::learn_models( twidlr::randomForest, form ) %>%
+      pipelearner::learn_models( twidlr::svm, form ) %>%
+      pipelearner::learn() %>%
+      mutate( imp = map2(fit, train, f_model_importance)
+              , tabplot = pmap( list( m = fit
+                                      , ranked_variables = imp
+                                      , title = model
+                                      )
+                                , f_model_plot_variable_dependency_regression
+                                , formula = form
+                                , data_ls = data_ls
+                                , variable_color_code = variable_color_code
+              )
+      )  %>%
+      .$tabplot %>%
+      f_plot_obj_2_html( type = "plots", output_file =  'test_me', title = 'Plots', aspect_ratio = 1)
 
 
     file.remove('test_me.html')

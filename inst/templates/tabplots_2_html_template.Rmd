@@ -15,17 +15,18 @@ knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
 
 ```{r, include = TRUE, echo = F}
 
-
-
-plot_tabplot = function( tabplot, title){
+plot_tabplots = function(p, title){
   
-    tabplot:::plot.tabplot(tabplot, title = title)
+  tabplot:::plot.tabplot( x = p, title = title)
+  
 }
 
-tibble( tabplot = params$obj_list
-        , title = params$titles   ) %>%
-  mutate( plot = walk2( tabplot, title, plot_tabplot ) 
-  )
+tibble( p = params$obj_list, title = params$titles ) %>%
+  mutate( print = walk2( p, title, plot_tabplots) )
+
+
+# tibble( p = pl$imp_tabplot, title = pl$title ) %>%
+#   mutate( print = walk2( p, title, plot_tabplots) )
 
 ```
 
