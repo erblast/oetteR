@@ -416,3 +416,92 @@ f_plot_obj_2_html = function(obj_list, type, output_file, title = 'Plots', ...){
 }
 
 
+#' @title plot prettier dot plot
+#' @description color is contineoulsy scaled based on PC1 values and alpha
+#'   values depend on point density.
+#' @param df datafram containing x,y pairs
+#' @param col_x character vector denoting x axis values
+#' @param col_y character vector denoting y axis values
+#' @param col_facet character vector denoting facetting column
+#' @param size size of points, Default: 4
+#' @param ... arguments passed to labs()
+#' @return plot
+#' @details Code adapted from \url{https://drsimonj.svbtle.com/pretty-scatter-plots-with-ggplot2}
+#' @examples
+#' df = ggplot2::diamonds %>%
+#'   sample_n(2500)
+#' col_x = 'carat'
+#' col_y = 'price'
+#'
+#' f_plot_pretty_points(df, col_x, col_y, title = 'price of diamonds by carat')
+#' @seealso \code{\link[fields]{interp.surface}} \code{\link[MASS]{kde2d}}
+#' @rdname f_plot_pretty_points
+#' @export
+#' @importFrom fields interp.surface
+#' @importFrom MASS kde2d
+f_plot_pretty_points = function(df, col_x, col_y, col_facet = NULL,  size = 4, title = NULL, ...){
+
+
+  sym_x = as.name( col_x )
+  sym_y = as.name( col_y )
+  sym_facet = as.name( col_facet )
+
+  #functions do not support tibble
+  df = as.data.frame(df)
+
+
+  #add first principle component
+
+  form = as.formula( paste0('~',col_x,'+', col_y) )
+
+  df$PC1 = predict( prcomp( form, df ) )[,1]
+
+  # add density for each point no facet
+
+  df$density = fields::interp.surface( MASS::kde2d( df[[col_x]]
+                                                   , df[[col_y]]
+                                                   )
+                                       , select( df, one_of( col_x, col_y) )
+                                       )
+
+  # add density  for facet
+
+  if ( ! is.null(col_facet) ){
+
+    df = df %>%
+      group_by( !! sym_facet )
+
+
+  }
+
+
+  df = df %>%
+    mutate( density = list(fields::interp.surface( MASS::kde2d( !! sym_x
+                                                                , !! sym_y
+                                                                )
+                                                  , data.frame( !! sym_x, !! sym_y )
+                                                  )
+                            )
+            , row_number = row_number()
+            , density = unlist(density2)[row_number]
+    )
+
+
+  p = ggplot(df, aes_string( col_x, col_y, color = 'PC1') ) +
+    geom_point( aes( alpha = 1/density ), size = size ) +
+    scale_color_viridis_c() +
+    theme_minimal() +
+    theme( legend.position = 'None') +
+    labs( title = title, ... )
+
+  if ( ! is.null(col_facet) ){
+
+    form = as.formula( paste0( '~',col_facet) )
+
+    p = p +
+      facet_wrap( form )
+
+  }
+
+  return(p)
+}

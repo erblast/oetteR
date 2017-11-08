@@ -3,18 +3,19 @@
 \name{f_predict_regression_add_predictions}
 \alias{f_predict_regression_add_predictions}
 \title{adds predictions, residuals, abolute residuals, squared residuals and
-  absolute percent error to a dataframe}
+  absolute percent error to a dataframe.}
 \usage{
-f_predict_regression_add_predictions(df, m, col_target, cols_id)
+f_predict_regression_add_predictions(df, m, col_target, cols_id = NULL)
 }
 \arguments{
 \item{df}{dataframe}
 
 \item{m}{regression model}
 
-\item{col_target}{character vector naming targtet/response variable}
+\item{col_target}{character vector naming target/response variable}
 
-\item{cols_id}{character vector naming id columns}
+\item{cols_id}{character vector naming id columns, if specified non_id
+columns will be dropped from dataframe, in order to be more memory efficient.}
 }
 \value{
 dataframe
@@ -26,7 +27,8 @@ absolute percent error = (abs(resid/pred)*100 )
 df = mtcars \%>\%
 mutate(names = row.names(.))
 m = rpart::rpart(disp~., df)
-f_predict_regression_add_predictions(df, m, 'disp', 'names')
+pred = f_predict_regression_add_predictions(df, m, 'disp', 'names')
+pred
 }
 \seealso{
 \code{\link[modelr]{add_predictions}},\code{\link[modelr]{add_residuals}}

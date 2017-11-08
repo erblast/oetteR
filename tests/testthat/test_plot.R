@@ -149,4 +149,16 @@ test_that( 'plot_profit_lines'
 
 })
 
+test_that( 'pretty points'
+           ,{
+
+  df = ggplot2::diamonds %>%
+    sample_n(2500)
+  col_x = 'carat'
+  col_y = 'price'
+
+  f_plot_pretty_points(df, col_x, col_y)
+
+
+})
 
