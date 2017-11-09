@@ -5,17 +5,19 @@
 \title{adds predictions, residuals, abolute residuals, squared residuals and
   absolute percent error to a dataframe.}
 \usage{
-f_predict_regression_add_predictions(df, m, col_target, cols_id = NULL)
+f_predict_regression_add_predictions(data, m, col_target, cols_id = NULL)
 }
 \arguments{
-\item{df}{dataframe}
-
 \item{m}{regression model}
 
 \item{col_target}{character vector naming target/response variable}
 
 \item{cols_id}{character vector naming id columns, if specified non_id
-columns will be dropped from dataframe, in order to be more memory efficient.}
+columns will be dropped from dataframe, in order to be more memory
+efficient.}
+
+\item{df}{dataframe containing data to be used as the basis for prediction.
+Can also be a modelR resample object}
 }
 \value{
 dataframe

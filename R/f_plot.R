@@ -1,4 +1,4 @@
-
+#'@import nycflights13
 #'@import ggplot2
 #'@import RColorBrewer
 #'@importFrom stringr str_extract_all
@@ -424,7 +424,7 @@ f_plot_obj_2_html = function(obj_list, type, output_file, title = 'Plots', ...){
 #' @param col_y character vector denoting y axis values
 #' @param col_facet character vector denoting facetting column
 #' @param size size of points, Default: 4
-#' @param ... arguments passed to labs()
+#' @param ... arguments passed to facet_wrap()
 #' @return plot
 #' @details Code adapted from \url{https://drsimonj.svbtle.com/pretty-scatter-plots-with-ggplot2}
 #' @examples
@@ -432,19 +432,30 @@ f_plot_obj_2_html = function(obj_list, type, output_file, title = 'Plots', ...){
 #'   sample_n(2500)
 #' col_x = 'carat'
 #' col_y = 'price'
+#' col_facet = 'cut'
 #'
-#' f_plot_pretty_points(df, col_x, col_y, title = 'price of diamonds by carat')
+#' f_plot_pretty_points(df, col_x, col_y, col_facet, title = 'price of diamonds by carat')
 #' @seealso \code{\link[fields]{interp.surface}} \code{\link[MASS]{kde2d}}
 #' @rdname f_plot_pretty_points
 #' @export
 #' @importFrom fields interp.surface
 #' @importFrom MASS kde2d
-f_plot_pretty_points = function(df, col_x, col_y, col_facet = NULL,  size = 4, title = NULL, ...){
+f_plot_pretty_points = function(df
+                                , col_x
+                                , col_y
+                                , col_facet = NULL
+                                , size = 4
+                                , title = NULL
+                                , x_title = col_x
+                                , y_title = col_y
+                                , ...){
 
 
   sym_x = as.name( col_x )
   sym_y = as.name( col_y )
   sym_facet = as.name( col_facet )
+
+  df = select(df, one_of(col_x, col_y, col_facet) )
 
   #functions do not support tibble
   df = as.data.frame(df)
@@ -452,17 +463,10 @@ f_plot_pretty_points = function(df, col_x, col_y, col_facet = NULL,  size = 4, t
 
   #add first principle component
 
-  form = as.formula( paste0('~',col_x,'+', col_y) )
+  pca_ls = f_pca( f_boxcox( f_clean_data( df ) ), include_ordered_categoricals = F )
 
-  df$PC1 = predict( prcomp( form, df ) )[,1]
+  df$PC1 = pca_ls$pca$x[['PC1']]
 
-  # add density for each point no facet
-
-  df$density = fields::interp.surface( MASS::kde2d( df[[col_x]]
-                                                   , df[[col_y]]
-                                                   )
-                                       , select( df, one_of( col_x, col_y) )
-                                       )
 
   # add density  for facet
 
@@ -483,7 +487,7 @@ f_plot_pretty_points = function(df, col_x, col_y, col_facet = NULL,  size = 4, t
                                                   )
                             )
             , row_number = row_number()
-            , density = unlist(density2)[row_number]
+            , density = unlist(density)[row_number]
     )
 
 
@@ -492,16 +496,18 @@ f_plot_pretty_points = function(df, col_x, col_y, col_facet = NULL,  size = 4, t
     scale_color_viridis_c() +
     theme_minimal() +
     theme( legend.position = 'None') +
-    labs( title = title, ... )
+    labs( title = title, x = x_title, y = y_title )
 
   if ( ! is.null(col_facet) ){
 
     form = as.formula( paste0( '~',col_facet) )
 
     p = p +
-      facet_wrap( form )
+      facet_wrap( form, ... )
 
   }
+
+  p
 
   return(p)
 }

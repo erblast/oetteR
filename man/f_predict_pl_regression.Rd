@@ -27,3 +27,6 @@ pl = mtcars \%>\%
   f_predict_pl_regression( 'names' ) \%>\%
   f_predict_pl_regression_summarize()
 }
+\seealso{
+\code{\link{f_predict_regression_add_predictions}}
+}
