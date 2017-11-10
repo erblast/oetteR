@@ -330,6 +330,7 @@ f_model_importance_plot_tableplot = function( data
                                               , ranked_variables
                                               , response_var
                                               , limit = 10
+                                              , print = F
                                               ,  ... ){
 
   vars = ranked_variables %>%
@@ -340,6 +341,11 @@ f_model_importance_plot_tableplot = function( data
   p = as.data.frame(data) %>%
     select( one_of( response_var, vars) ) %>%
     tabplot::tableplot( plot = F, ...)
+
+  if(print == T){
+    tabplot:::plot.tabplot(p)
+  }
+
 
 }
 
@@ -397,7 +403,7 @@ f_model_importance_pl_add_plots_regression = function( pl
                                                      , ranked_variables
                                                      , response_var
                                                      , title
-                                                     , variable_color_code
+                                                     , variable_color_code = f_plot_color_code_variables(data_ls)
                                                      , formula
                                                      , data_ls
                                                      , var_dep_limit = 10

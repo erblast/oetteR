@@ -30,18 +30,11 @@ test_that( 'pca function'
 })
 
 
-test_that( 'pca function on diamond dataset'
+test_that( 'pca function on dataset with no orderer categorcial vars and no boxcox'
            ,{
 
-   data_ls = f_clean_data(ggplot2::diamonds[1:500,]) %>%
-     f_boxcox()
-
-   # run the options
-   # first two options should not throw errors
+   data_ls = f_clean_data(ggplot2::diamonds[1:500,])
    f_pca(data_ls)
-   f_pca(data_ls, use_boxcox_tansformed_vars = F)
-   f_pca(data_ls, include_ordered_categoricals = F)
-
 
 })
 

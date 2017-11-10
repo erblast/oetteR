@@ -54,12 +54,12 @@ f_pca = function( data_ls
    all_variables        = data_ls$all_variables
    numericals           = data_ls$numericals
 
-   if(is_empty(numericals) |
-      ( is_empty(boxcox) & use_boxcox_tansformed_vars == T ) ){
-     stop('Either numerical or boxcox transformed variables missing')
+   if( is_empty(numericals) ){
+     stop('Numerical variables missing')
    }
 
-   if(use_boxcox_tansformed_vars) {
+   if(use_boxcox_tansformed_vars
+      & ! is.null(boxcox) ) {
 
      data = boxcox
 
@@ -69,7 +69,8 @@ f_pca = function( data_ls
        select( one_of(numericals) )
    }
 
-   if( include_ordered_categoricals == T ){
+   if( include_ordered_categoricals == T
+       & ! is.null(data_ls$categoricals_ordered) ){
 
      data = data %>%
        bind_cols( data_ls$data[, categoricals_ordered] ) %>%
@@ -202,7 +203,7 @@ f_pca_plot_components = function(pca_ls
 #' @export
 #' @importFrom forcats fct_reorder
 f_pca_plot_variance_explained = function(pca_ls
-                                             , threshold_vae_for_pc_perc = 2.5){
+                                         , threshold_vae_for_pc_perc = 2.5){
 
   pca = pca_ls$pca
 

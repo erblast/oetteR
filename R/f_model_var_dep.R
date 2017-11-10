@@ -173,7 +173,7 @@ f_model_plot_variable_dependency_regression = function( m
                                                        , data = NULL
                                                        , formula
                                                        , data_ls
-                                                       , variable_color_code
+                                                       , variable_color_code = f_plot_color_code_variables(data_ls)
                                                        , limit = 10
                                                        , log_y = F
                                                        , ...
@@ -210,6 +210,7 @@ f_model_plot_variable_dependency_regression = function( m
     mutate( rwn = 1:nrow(.)
             , x = map2(variables, rwn, function(var,rwn,data) data[[var]][rwn], .)
             , x = unlist(x)
+            , variables = forcats::as_factor( variables ) # creates a factor by order of appearance
             )
 
   if( log_y ){

@@ -130,7 +130,7 @@ test_that('tabplot::tableplot important variables'
   ranked_variables  = f_model_importance(m, data)
   response_var = 'disp'
 
-  f_model_importance_plot_tableplot( data, ranked_variables, response_var, limit = 5 )
+  f_model_importance_plot_tableplot( data, ranked_variables, response_var, limit = 5, title = 'test')
 
 })
 
