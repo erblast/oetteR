@@ -72,3 +72,12 @@ test_that( 'f_manip_factor_2_numeric'
     expect_identical( f_manip_factor_2_numeric( fac_chr ), c(2,1) )
     expect_identical( f_manip_factor_2_numeric( fac_chr_ordered ), c(1,2,3) )
 })
+
+
+testthat('f_stat_bring_to_pos_range'
+  ,{
+    vec = c( -2,0,2,4,6)
+    vec = f_manip_bring_to_pos_range( vec )
+
+    expect_true( min(vec) >= 0 )
+})

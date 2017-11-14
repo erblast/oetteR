@@ -243,3 +243,18 @@ f_manip_factor_2_numeric = function(vec){
   return(vec)
 }
 
+#' @title bring vector to positice range
+#' @description if min < 0, add abs(min) to all values
+#' @param vec numeric vector
+#' @return vector
+#' @examples
+#' vec = c( -2,0,2,4,6)
+#' vec = f_manip_bring_to_pos_range( vec )
+#' vec
+#' @rdname f_manip_bring_to_pos_range
+#' @export
+f_manip_bring_to_pos_range = function(vec){
+
+  if( min(vec)< 0) vec = vec + abs(min(vec))
+  return(vec)
+}

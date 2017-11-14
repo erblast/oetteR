@@ -92,6 +92,8 @@ f_plot_color_code_variables = function(data_ls
 #'@param n_breaks integer , Default: 30
 #'@param x_min double, requires aut_range == F, Default: 0
 #'@param x_max double, requires aut_range == F,  Default: 100
+#'@param title character vector plot title
+#'@param ... additional arguments passed to labs()
 #'@return plot object
 #'@details DETAILS
 #' @examples
@@ -100,7 +102,8 @@ f_plot_color_code_variables = function(data_ls
 #' #plot single variable
 #' data_ls = f_clean_data(mtcars)
 #' f_plot_hist('disp', data_ls)
-#' f_plot_hist('disp', data_ls, graph_type = 'violin', group = 'cyl')
+#' f_plot_hist('disp', data_ls, graph_type = 'violin', group = 'cyl'
+#'              , caption ='caption', title = 'title', subtitle = 'subtitle')
 #'
 #'#plot all variables
 #'vars = c(data_ls$categorical, data_ls$numericals) %>%
@@ -118,7 +121,10 @@ f_plot_hist = function(variable
                        , auto_range = T
                        , n_breaks = 30
                        , x_min = 0
-                       , x_max = 100 ){
+                       , x_max = 100
+                       , title = ''
+                       , ...
+                       ){
 
   data          = data_ls$data
   categoricals  = data_ls$categoricals
@@ -233,6 +239,8 @@ f_plot_hist = function(variable
     unlist()%>%
     stringr::str_c(collapse = '')
 
+  p = p +
+    labs( title = title, ...)
 
   return(p)
 
