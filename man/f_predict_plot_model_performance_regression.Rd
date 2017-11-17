@@ -29,7 +29,7 @@ ISLR::Auto \%>\%
  unnest(preds) \%>\%
  mutate( bins = cut(target1, breaks = 3 , dig.lab = 4)
          , title = paste(models.id, cv_pairs.id, train_p, target, model) ) \%>\%
- f_predict_plot_model_performance() \%>\%
+ f_predict_plot_model_performance_regression() \%>\%
  f_plot_obj_2_html(type = 'taglist', 'test_me', title = 'Model Performance')
 
 file.remove('test_me.html')

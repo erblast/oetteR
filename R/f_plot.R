@@ -394,6 +394,7 @@ f_plot_time = function(variable
 #' @importFrom readr read_file write_file
 #' @importFrom rmarkdown render
 #' @importFrom stringr str_replace
+#' @import tabplot
 #'
 f_plot_obj_2_html = function(obj_list, type, output_file, title = 'Plots', ...){
 

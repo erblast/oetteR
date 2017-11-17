@@ -13,9 +13,10 @@ list( data = <dataframe>, numericals = < vector with column names of
 numerical columns>)}
 }
 \value{
-list\describe{
-  \item({data}{summarized data as dataframe})
-  \item({data_boxcox}{summarized boxcox data as dataframe})
+list
+\describe{
+  \item{data}{summarized data as dataframe}
+  \item{data_boxcox}{summarized boxcox data as dataframe}
 }
 }
 \examples{

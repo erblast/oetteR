@@ -48,7 +48,7 @@ test_that('color scale'
 })
 
 
-test_that('taglist_2_html'
+test_that('f_plot_obj_2_html'
           ,{
 
 
@@ -67,8 +67,8 @@ test_that('taglist_2_html'
                                , file_name_template)
   }
 
-  print(getwd())
-  print(path_template)
+  # print(getwd())
+  # print(path_template)
 
   expect_true( file.exists( path_template ) )
 
@@ -89,7 +89,7 @@ test_that('taglist_2_html'
     pipelearner::learn_models( twidlr::randomForest, form ) %>%
     pipelearner::learn_models( twidlr::svm, form ) %>%
     pipelearner::learn() %>%
-    mutate( imp = map2(fit, train, f_model_importance)
+    dplyr::mutate( imp = map2(fit, train, f_model_importance)
             , tabplot = pmap( list( data = train
                                    , ranked_variables = imp
                                    , response_var = target
@@ -116,7 +116,7 @@ test_that('taglist_2_html'
       pipelearner::learn_models( twidlr::randomForest, form ) %>%
       pipelearner::learn_models( twidlr::svm, form ) %>%
       pipelearner::learn() %>%
-      mutate( imp = map2(fit, train, f_model_importance)
+      dplyr::mutate( imp = map2(fit, train, f_model_importance)
               , tabplot = pmap( list( m = fit
                                       , ranked_variables = imp
                                       , title = model

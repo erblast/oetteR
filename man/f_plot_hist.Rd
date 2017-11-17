@@ -6,7 +6,7 @@
 \usage{
 f_plot_hist(variable, data_ls, group = "None", graph_type = c("violin",
   "bar", "line"), y_axis = c("count", "density"), auto_range = T,
-  n_breaks = 30, x_min = 0, x_max = 100)
+  n_breaks = 30, x_min = 0, x_max = 100, title = "", ...)
 }
 \arguments{
 \item{variable}{character vector naming the variable to be plotted}
@@ -28,6 +28,10 @@ numerical columns>)}
 \item{x_min}{double, requires aut_range == F, Default: 0}
 
 \item{x_max}{double, requires aut_range == F,  Default: 100}
+
+\item{title}{character vector plot title}
+
+\item{...}{additional arguments passed to labs()}
 }
 \value{
 plot object
@@ -50,7 +54,8 @@ DETAILS
 #plot single variable
 data_ls = f_clean_data(mtcars)
 f_plot_hist('disp', data_ls)
-f_plot_hist('disp', data_ls, graph_type = 'violin', group = 'cyl')
+f_plot_hist('disp', data_ls, graph_type = 'violin', group = 'cyl'
+             , caption ='caption', title = 'title', subtitle = 'subtitle')
 
 #plot all variables
 vars = c(data_ls$categorical, data_ls$numericals) \%>\%

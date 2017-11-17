@@ -2,7 +2,7 @@
 
 context('stat functions')
 
-testthat('f_stat of different means'
+test_that('f_stat of different means'
   ,{
 
     set.seed(1)
@@ -21,7 +21,7 @@ testthat('f_stat of different means'
 })
 
 
-testthat('f_stat_anova'
+test_that('f_stat_anova'
   ,{
     #regular dataset
     df_anova = data_ls = f_clean_data(mtcars) %>%
@@ -44,17 +44,16 @@ testthat('f_stat_anova'
     df_anova = f_clean_data(df, min_number_of_levels_nums = 1) %>%
       f_stat_anova('fct')
 
-  })
+})
 
 
-testthat('f_stat_max_diff_of_freq'
+test_that('f_stat_max_diff_of_freq'
   ,{
 
   data_ls = f_clean_data(mtcars)
   df = f_stat_max_diff_of_freq(data_ls$data, 'cyl', 'gear')
-  df
 
-  })
+})
 
 
 testthat('f_stat_chi_square'
@@ -62,16 +61,39 @@ testthat('f_stat_chi_square'
 
   data_ls = f_clean_data(mtcars)
   df_chi_squ = f_stat_chi_square(data_ls, 'cyl')
-  df_chi_squ
 })
 
-testthat('f_stat_group_ana_taglist'
+test_that('f_stat_chi_square'
+         ,{
+
+   data_ls = f_clean_data(mtcars)
+   df_chi_squ = f_stat_chi_square(data_ls, 'cyl')
+   df_anova = f_stat_anova(data_ls, 'cyl')
+   df_comb1 = f_stat_combine_anova_with_chi_square(df_anova, df_chi_squ)
+   df_comb2 = f_stat_combine_anova_with_chi_square(df_anova)
+   df_comb3 = f_stat_combine_anova_with_chi_square(df_chi_square = df_chi_squ)
+
+   expect_equal( nrow(df_comb1), nrow(df_comb2) + nrow(df_comb3) )
+
+})
+
+
+test_that('f_stat_group_ana_taglist'
   ,{
+    #numerical and categorcial variables
     data_ls = f_clean_data(mtcars)
     taglist = f_stat_group_ana_taglist(data_ls, 'cyl')
-    f_plot_obj_2_html(taglist, type = "taglist", output_file = 'test_me', title = 'Plots')
-    file.remove('test_me.html')
-  })
+
+    #categrocals only
+    data_ls = f_clean_data(mtcars, min_number_of_levels_nums = 99999)
+    taglist = f_stat_group_ana_taglist(data_ls, 'cyl')
+
+})
 
 
-
+test_that( 'stat group means, medians, counts and percentages'
+  ,{
+    data_ls = f_clean_data(mtcars)
+    f_stat_group_mean_medians(data_ls, 'cyl')
+    f_stat_group_counts_percentages( data_ls, 'cylc')
+})

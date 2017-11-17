@@ -330,7 +330,6 @@ f_model_importance_plot_tableplot = function( data
                                               , ranked_variables
                                               , response_var
                                               , limit = 10
-                                              , print = F
                                               ,  ... ){
 
   vars = ranked_variables %>%
@@ -341,12 +340,6 @@ f_model_importance_plot_tableplot = function( data
   p = as.data.frame(data) %>%
     select( one_of( response_var, vars) ) %>%
     tabplot::tableplot( plot = F, ...)
-
-  if(print == T){
-    tabplot:::plot.tabplot(p)
-  }
-
-  return(p)
 
 }
 
@@ -363,7 +356,7 @@ f_model_importance_plot_tableplot = function( data
 #' @param title symbol (unquoted name) of data column in pl
 #' @param variable_color_code dataframe created by f_plot_color_code_variables()
 #' @param formula fomula that was used to construct model
-#' @param data_ls data_ls list object containing the whole of the original data
+#' @param data_ls data_ls list object wontaining the whole of the original data
 #' @param var_dep_limit number of variables to be plotted on dependency plot
 #' @param var_dep_log_y should y axis of dependency plot be logarithmic
 #' @param tabplot_limit number of variables to be plotted on tabplot
@@ -404,7 +397,7 @@ f_model_importance_pl_add_plots_regression = function( pl
                                                      , ranked_variables
                                                      , response_var
                                                      , title
-                                                     , variable_color_code = f_plot_color_code_variables(data_ls)
+                                                     , variable_color_code
                                                      , formula
                                                      , data_ls
                                                      , var_dep_limit = 10
