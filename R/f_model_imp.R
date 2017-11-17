@@ -346,6 +346,7 @@ f_model_importance_plot_tableplot = function( data
     tabplot:::plot.tabplot(p)
   }
 
+  return(p)
 
 }
 
