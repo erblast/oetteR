@@ -74,10 +74,20 @@ test_that( 'f_manip_factor_2_numeric'
 })
 
 
-testthat('f_stat_bring_to_pos_range'
+test_that('f_stat_bring_to_pos_range'
   ,{
     vec = c( -2,0,2,4,6)
     vec = f_manip_bring_to_pos_range( vec )
 
     expect_true( min(vec) >= 0 )
 })
+
+test_that('f_manip_append_2_list'
+         ,{
+   l = list('a', 'b')
+   l = f_manip_append_2_list(l, 'c')
+   str(l)
+
+   expect_true( length(l) == 3 )
+})
+

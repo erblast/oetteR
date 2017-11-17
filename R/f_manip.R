@@ -258,3 +258,23 @@ f_manip_bring_to_pos_range = function(vec){
   if( min(vec)< 0) vec = vec + abs(min(vec))
   return(vec)
 }
+
+#' @title append object to list
+#' @description convenience function to replace  l[[length(l)+1]] = x
+#' @param l list
+#' @param x object
+#' @return list
+#' @examples
+#' l = list('a', 'b')
+#' l = f_manip_append_2_list(l, 'c')
+#' str(l)
+#' @rdname f_manip_append_2_list
+#' @export
+f_manip_append_2_list = function(l, x){
+
+  len = length(l)
+  l[[len+1]] = x
+
+  return(l)
+
+}
