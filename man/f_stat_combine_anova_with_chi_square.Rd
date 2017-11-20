@@ -16,7 +16,7 @@ OUTPUT_DESCRIPTION
 }
 \description{
 keeps wither the anova or the kruskal p value depending on the
-  results of the shapiro test (shapiro_stat >= 0.9 p_val <= 0.05) and keeps
+  results of the shapiro test (shapiro_stat > 0.9 p_val > 0.05) and keeps
   the difference of percent of the mean. Still works if one of the input
   dataframes is NULL
 }

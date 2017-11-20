@@ -32,17 +32,18 @@ test_that('f_stat_anova'
     #one constant, one continueous and one variable where all variance of one
     #variable can be explained by the difference in variance between groups
 
-    set.seed(1)
-    df = tibble( fct = c( rep(LETTERS[1], 5), rep(LETTERS[2],5) )
-                 , v1  = 1
-                 , v2  = rnorm(10, 4)
-                 , v3  = c( rep(3, 5), rep(8,5) )
+
+    size = 10000
+    test_df = tibble( fct = as.factor( c( rep('a', size), rep('b', size), rep('c', size) ) )
+                      , var1 = c( rep( 1, size), rep( 2, size), rep( 3, size) )
+                      , var2 = c( rep( 1, 3 * size) )
+                      , var3 = c( 1: (3 * size) )
+                      , var4 = c( rep(1,size), rep(1,size), rep(1, size-3 ), rep(6, 3) )
+                      , var5 = c( rep(1,size), rep(8,size), rep(1, size-3 ), rep(6, 3) )
     )
 
-    col_group = 'fct'
 
-    df_anova = f_clean_data(df, min_number_of_levels_nums = 1) %>%
-      f_stat_anova('fct')
+    f_stat_anova( f_clean_data(test_df, min_number_of_levels_nums = 1), 'fct' )
 
 })
 
@@ -97,3 +98,17 @@ test_that( 'stat group means, medians, counts and percentages'
     f_stat_group_mean_medians(data_ls, 'cyl')
     f_stat_group_counts_percentages( data_ls, 'cylc')
 })
+
+
+test_that('shapiro'
+  ,{
+
+    f_stat_shapiro( rnorm(1000, 10, 1) )
+    f_stat_shapiro( runif(1000, 1, 10) )
+    m = f_stat_shapiro( rep(5, 100) )
+
+    expect_true( is.na(m$statistic) )
+    expect_true( is.na(m$p.value) )
+
+})
+

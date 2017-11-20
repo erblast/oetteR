@@ -104,8 +104,7 @@ f_stat_anova = function(data_ls, col_group, boxcox = F) {
                                              , function(x) x[1])
             , model_kruskal = purrr::map( data, ~kruskal.test(formula, data = .) )
             , kruskal_pval  = purrr::map_dbl(model_kruskal, 'p.value')
-            , model_shapiro = purrr::map(data
-                                         , function(x) shapiro.test(sample(x$value, 5000, replace = T) ) )
+            , model_shapiro = purrr::map(data, function(x) f_stat_shapiro( x$value ) )
             , shapiro_stat  = purrr::map_dbl(model_shapiro,'statistic')
             , shapiro_pval  = purrr::map_dbl(model_shapiro,'p.value')
             , diff_df       = purrr::map( data, f_stat_diff_of_means_medians, col_group = col_group, col_variable = 'value') ) %>%
@@ -202,7 +201,7 @@ f_stat_chi_square = function(data_ls, col_group) {
 
 #' @title combines anova with chi square results into single dataframe
 #' @description keeps wither the anova or the kruskal p value depending on the
-#'   results of the shapiro test (shapiro_stat >= 0.9 p_val <= 0.05) and keeps
+#'   results of the shapiro test (shapiro_stat > 0.9 p_val > 0.05) and keeps
 #'   the difference of percent of the mean. Still works if one of the input
 #'   dataframes is NULL
 #' @param df_anova dataframe created with f_stat_anova, Default: NULL
@@ -226,7 +225,7 @@ f_stat_combine_anova_with_chi_square = function(df_anova = NULL, df_chi_square =
 
   if( ! is_empty(df_anova) | ! is.null(df_anova) ) {
     df_anova = df_anova %>%
-      mutate( final_p_value = ifelse(shapiro_stat >= 0.9 & shapiro_pval <= 0.05
+      mutate( final_p_value = ifelse(shapiro_stat > 0.9 & shapiro_pval > 0.05
                                      , anova_pval, kruskal_pval) ) %>%
       select(variable, p_value = final_p_value , diff_perc = diff_of_means_perc)
   }
@@ -482,4 +481,32 @@ f_stat_stars = function(p_value){
 }
 
 
+#' @title wrapper for shapiro.test()
+#' @description shapiro.test i slimited to <5000 sample size and raises an error
+#'   if sd(x) == 0. Wrapper samples from input vector and returns a list object
+#'   with NA parameters if sd(x) == 0.
+#' @param vec numeric vector
+#' @return shapiro.test object or list( statistic = NA, p.value = NA )
+#' @examples
+#' f_stat_shapiro( rnorm(1000, 10, 1) )
+#' f_stat_shapiro( runif(1000, 1, 10) )
+#' @rdname f_stat_shapiro
+#' @export
+f_stat_shapiro = function(vec){
+
+  if( length(vec) > 5000 ){
+    vec = sample( vec, 5000, replace = F)
+  }
+
+  if( sd(vec) == 0 ){
+
+    m = list( statistic = NA, p.value = NA )
+
+  }else{
+
+    m = shapiro.test(vec)
+  }
+
+  return(m)
+}
 
