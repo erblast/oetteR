@@ -196,7 +196,10 @@ f_model_plot_variable_dependency_regression = function( m
     arrange_( 'rank' ) %>%
     filter( variables %in% vars ) %>%
     head( limit ) %>%
-    left_join( variable_color_code )
+    left_join( variable_color_code ) %>%
+    arrange( variables )
+
+  col_vector = vars_and_col[['color']]
 
   grid = vars_and_col %>%
     mutate( grid = map( variables
@@ -210,7 +213,7 @@ f_model_plot_variable_dependency_regression = function( m
     mutate( rwn = 1:nrow(.)
             , x = map2(variables, rwn, function(var,rwn,data) data[[var]][rwn], .)
             , x = unlist(x)
-            , variables = forcats::as_factor( variables ) # creates a factor by order of appearance
+            #, variables = forcats::fct_reorder(variables, desc(value) )
             )
 
   if( log_y ){
@@ -230,7 +233,7 @@ f_model_plot_variable_dependency_regression = function( m
             , y = response_var
             , title = title
             ) +
-      scale_color_manual( values = vars_and_col$color )
+      scale_color_manual( name = 'variables', values = vars_and_col$color , limits = levels(grid$variables) )
 
     return(p)
 

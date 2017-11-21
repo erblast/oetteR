@@ -48,6 +48,18 @@ test_that('color scale'
 })
 
 
+test_that( 'f_plot_color_code_variables',{
+
+  data_ls = f_clean_data(mtcars)
+
+  col1 = f_plot_color_code_variables( data_ls )
+  col2 = f_plot_color_code_variables( data_ls )
+
+  expect_identical(col1, col2)
+
+})
+
+
 test_that('f_plot_obj_2_html'
           ,{
 
