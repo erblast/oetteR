@@ -187,7 +187,8 @@ f_predict_plot_model_performance_regression = function(data){
     geom_pointrange( aes( ymin = me - sem, ymax = me + sem)  ) +
     geom_line() +
     facet_wrap(~measure, scales = 'free') +
-    scale_x_continuous( breaks = c(1:3), labels = levels(data_sum1$bins) ) +
+    scale_x_continuous( breaks = c(1:length( levels(data_sum1$bins) ) )
+                        , labels = levels(data_sum1$bins) ) +
     theme(axis.text.x = element_text(angle = 90)
           , legend.position = 'bottom') +
     labs( y = 'mean + SEM', x = 'Target Variable', color = '') +

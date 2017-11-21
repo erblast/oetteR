@@ -213,8 +213,14 @@ f_model_plot_variable_dependency_regression = function( m
     mutate( rwn = 1:nrow(.)
             , x = map2(variables, rwn, function(var,rwn,data) data[[var]][rwn], .)
             , x = unlist(x)
-            #, variables = forcats::fct_reorder(variables, desc(value) )
+            , variables = forcats::fct_reorder(variables, desc(value) )
             )
+
+  # bring colors into same order as the factor variable
+  vars_and_col = vars_and_col %>%
+    mutate( variables = forcats::fct_reorder(variables, desc(value) ) ) %>%
+    arrange(variables)
+
 
   if( log_y ){
 
