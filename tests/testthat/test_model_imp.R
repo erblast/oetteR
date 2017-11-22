@@ -169,5 +169,46 @@ test_that('f_model_pl_add_plots_regression, f_model_importance_pl_plots_as_html 
   })
 
 
+test_that('f_model_pl_add_plots_regression, formula in pl'
+  ,{
+
+    data_ls = f_clean_data(mtcars)
+    form = disp~cyl+mpg+hp
+    variable_color_code = f_plot_color_code_variables(data_ls)
+
+    wr_lean_model = function( data, formula, .f ){
+
+      pipelearner::learn_models( data, .f, formula )
+
+    }
+
+    tib = tibble( data = list( data_ls$data )
+                  , formula = list(form) ) %>%
+      mutate( pipe = map(data, pipelearner::pipelearner)
+              , pipe = map2( pipe, formula, wr_lean_model, randomForest::randomForest )
+              , pipe = map2( pipe, formula, wr_lean_model, e1071::svm )
+              , pipe = map2( pipe, formula, wr_lean_model, rpart::rpart )
+              , pipe = map( pipe, pipelearner::learn )
+      ) %>%
+      unnest( pipe, .drop = F ) %>%
+      mutate( title = model
+              , imp = map2(fit, train, f_model_importance) ) %>%
+      f_model_importance_pl_add_plots_regression(  data                  = train
+                                                   , m                   = fit
+                                                   , ranked_variables    = imp
+                                                   , title               = title
+                                                   , formula             = formula
+                                                   , response_var        = target
+                                                   , variable_color_code = variable_color_code
+                                                   , data_ls             = data_ls
+                                                   , var_dep_limit       = 12
+                                                   , var_dep_log_y       = T
+                                                   , tabplot_limit       = 12
+                                                   , formula_in_pl       = T
+                                                   )
+  })
+
+
+
 
 
