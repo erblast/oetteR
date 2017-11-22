@@ -367,6 +367,7 @@ f_model_importance_plot_tableplot = function( data
 #' @param var_dep_limit number of variables to be plotted on dependency plot
 #' @param var_dep_log_y should y axis of dependency plot be logarithmic
 #' @param tabplot_limit number of variables to be plotted on tabplot
+#' @param formula_in_pl boolean if formula is a column in pl?
 #' @return dataframe
 #' @examples
 #'
@@ -410,6 +411,7 @@ f_model_importance_pl_add_plots_regression = function( pl
                                                      , var_dep_limit = 10
                                                      , var_dep_log_y = F
                                                      , tabplot_limit = 12
+                                                     , formula_in_pl = F
                                                      ){
 
   data_enquo             = enquo(data)
@@ -417,6 +419,10 @@ f_model_importance_pl_add_plots_regression = function( pl
   response_var_enquo     = enquo(response_var)
   title_enquo            = enquo(title)
   m_enquo                = enquo(m)
+
+  if(formula_in_pl == T){
+    formula_enquo = enquo(formula)
+  }
 
   # tabplot --------------------------------------------------------------
   pl = pl %>%
@@ -443,20 +449,37 @@ f_model_importance_pl_add_plots_regression = function( pl
 
   # variable dependency-------------------------------------------------
 
-  pl = pl %>%
-    mutate( imp_plot_dep = pmap( list(  m         = !! m_enquo
-                               , ranked_variables = !! ranked_variables_enquo
-                               , title            = !! title_enquo
-                               , data             = !! data_enquo
-                               )
-                        , f_model_plot_variable_dependency_regression
-                        , variable_color_code = variable_color_code
-                        , formula             = formula
-                        , data_ls             = data_ls
-                        , limit               = var_dep_limit
-                        , log_y               = var_dep_log_y
-                      )
-          )
+  if( formula_in_pl == F ){
+    pl = pl %>%
+      mutate( imp_plot_dep = pmap( list(  m         = !! m_enquo
+                                 , ranked_variables = !! ranked_variables_enquo
+                                 , title            = !! title_enquo
+                                 , data             = !! data_enquo
+                                 )
+                          , f_model_plot_variable_dependency_regression
+                          , variable_color_code = variable_color_code
+                          , formula             = formula
+                          , data_ls             = data_ls
+                          , limit               = var_dep_limit
+                          , log_y               = var_dep_log_y
+                        )
+            )
+  }else{
+    pl = pl %>%
+      mutate( imp_plot_dep = pmap( list(  m         = !! m_enquo
+                                          , ranked_variables = !! ranked_variables_enquo
+                                          , title            = !! title_enquo
+                                          , data             = !! data_enquo
+                                          , formula          = !! formula_enquo
+                                          )
+                          , f_model_plot_variable_dependency_regression
+                          , variable_color_code = variable_color_code
+                          , data_ls             = data_ls
+                          , limit               = var_dep_limit
+                          , log_y               = var_dep_log_y
+                        )
+            )
+  }
 
 }
 
