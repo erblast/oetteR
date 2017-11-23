@@ -273,7 +273,9 @@ f_stat_group_ana_taglist = function(data_ls, col_group, tresh_p_val = 0.05, thre
 
   df_anova = f_stat_anova( data_ls, col_group )
   df_chi   = f_stat_chi_square( data_ls, col_group )
-  df_comb  = f_stat_combine_anova_with_chi_square( df_anova, df_chi )
+  df_comb  = f_stat_combine_anova_with_chi_square( df_anova, df_chi ) %>%
+    mutate( stars = f_stat_stars(p_value) ) %>%
+    select( variable, stars, p_value, diff_perc )
 
   df_means = f_stat_group_mean_medians(data_ls, col_group)
   df_perc  = f_stat_group_counts_percentages(data_ls, col_group)
@@ -316,7 +318,7 @@ f_stat_group_ana_taglist = function(data_ls, col_group, tresh_p_val = 0.05, thre
   }
 
   plots = df_comb %>%
-    filter( p_value <= thresh_diff_perc, diff_perc >= thresh_diff_perc) %>%
+    filter( p_value <= tresh_p_val & diff_perc >= thresh_diff_perc) %>%
     mutate( stars = f_stat_stars( p_value )
             ,title = paste( variable, stars)
             , plot = map2( variable, title, f_plot, col_group, data_ls )

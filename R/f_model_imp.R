@@ -367,6 +367,7 @@ f_model_importance_plot_tableplot = function( data
 #' @param var_dep_limit number of variables to be plotted on dependency plot
 #' @param var_dep_log_y should y axis of dependency plot be logarithmic
 #' @param tabplot_limit number of variables to be plotted on tabplot
+#' @param formula_in_pl boolean if formula is a column in pl?
 #' @return dataframe
 #' @examples
 #'
