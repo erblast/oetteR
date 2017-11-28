@@ -497,7 +497,6 @@ f_plot_pretty_points = function(df
                             )
             , row_number = row_number()
             , density = unlist(density)[row_number]
-            , density = ifelse(density < 1e-25, 1e-25, density) ## ggplot cannot handle extreme values
     )
 
 
@@ -505,7 +504,7 @@ f_plot_pretty_points = function(df
     geom_point( aes( alpha = 1/density ), size = size ) +
     scale_color_viridis_c() +
     theme_minimal() +
-    theme( legend.position = 'none') +
+    theme( legend.position = 'None') +
     labs( title = title, x = x_title, y = y_title )
 
   if ( ! is.null(col_facet) ){

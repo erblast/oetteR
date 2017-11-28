@@ -127,72 +127,49 @@ f_predict_pl_regression_summarize = function( pl ){
 #' @importFrom DT datatable
 f_predict_plot_model_performance_regression = function(data){
 
-
   if( ! all( c('title'
                , 'bins'
                , 'resid_abs'
                , 'resid_squ'
                , 'ape'
-  )
-  %in% names(data) )
+               )
+             %in% names(data) )
   ){
     stop('unnest predictions and add bins and title first')
   }
 
-  nrows = data %>%
-    group_by( as.character(title) ) %>%
-    count() %>%
-    nrow()
-
-  nrows = ceiling( nrows/2 )
 
   taglist = htmltools::tagList()
 
-  p = f_plot_pretty_points(data
-                           , 'target1'
-                           , 'resid'
-                           , col_facet = 'title'
-                           , y_title = 'Residuals'
-                           , x_title = 'Target Variable'
-                           , ncol = 2 ) +
-    geom_hline( yintercept = 0, size = 1)
+  p = f_plot_pretty_points(data, 'target1', 'resid', col_facet = 'title'
+                       , y_title = 'Residuals', x_title = 'Target Variable') +
+    geom_hline( yintercept = 0, size = 2)
 
-  taglist[[1]] = plotly::ggplotly(p,  height = nrows * 200 , dynamicTicks = TRUE)
+  taglist[[1]] = plotly::ggplotly(p)
 
   p = ggplot( data, aes(bins, resid)) +
-    geom_boxplot( aes(fill=title)
-                  , show.legend = F ) +
-    facet_wrap(~title, ncol = 2 ) +
-    geom_hline( yintercept = 0, size = 1) +
-    theme( axis.text.x = element_text(angle = 90)
-           , legend.position = 'none')+
-    scale_fill_brewer(palette = f_plot_col_vector74() ) +
+    geom_boxplot( aes(fill=title) ) +
+    facet_wrap(~title) +
+    geom_hline( yintercept = 0, size = 2) +
+    theme( axis.text.x = element_text(angle = 90))+
+    scale_fill_brewer(palette = 'Dark2') +
     labs(y = 'Residuals', x = 'Target Variable')
 
+  taglist[[2]] = plotly::ggplotly(p)
 
-  taglist[[2]] = plotly::ggplotly(p,  height = nrows * 200 )
+  p = f_plot_pretty_points(data, 'target1', 'ape', col_facet = 'title'
+                       , y_title = 'APE of Predictions', x_title = 'Target Variable')
 
-  p = f_plot_pretty_points(data
-                           , 'target1'
-                           , 'ape'
-                           , col_facet = 'title'
-                           , y_title = 'APE of Predictions'
-                           , x_title = 'Target Variable'
-                           , ncol = 2 ) +
-    coord_cartesian( ylim = c(500,0) )
-
-  taglist[[3]] = plotly::ggplotly(p,  height = nrows * 200)
+  taglist[[3]] = plotly::ggplotly(p)
 
   p = ggplot( data, aes(bins, ape)) +
     geom_boxplot( aes(fill=title) ) +
-    facet_wrap(~title, ncol = 2 )+
-    theme( axis.text.x = element_text(angle = 90)
-           , legend.position = 'none') +
-    scale_fill_brewer(palette = f_plot_col_vector74()) +
-    labs(y = 'APE of Predictions', x = 'Target Variable') +
-    coord_cartesian( ylim = c(200,0) )
+    facet_wrap(~title)+
+    theme( axis.text.x = element_text(angle = 90)) +
+    scale_fill_brewer(palette = 'Dark2') +
+    labs(y = 'APE of Predictions', x = 'Target Variable')
 
-  taglist[[4]] = plotly::ggplotly(p,  height = nrows * 200)
+  taglist[[4]] = plotly::ggplotly(p)
 
   data_sum1 = data %>%
     group_by( title, bins )  %>%
@@ -215,9 +192,9 @@ f_predict_plot_model_performance_regression = function(data){
     theme(axis.text.x = element_text(angle = 90)
           , legend.position = 'bottom') +
     labs( y = 'mean + SEM', x = 'Target Variable', color = '') +
-    scale_color_brewer(palette = f_plot_col_vector74())
+    scale_color_brewer(palette = 'Dark2')
 
-  taglist[[5]] = plotly::ggplotly( p )
+  taglist[[5]] = plotly::ggplotly(p)
 
   taglist[[6]] = DT::datatable( data_sum1 )
 
@@ -238,9 +215,9 @@ f_predict_plot_model_performance_regression = function(data){
           , axis.ticks.x = element_blank()
           , legend.position = 'bottom') +
     labs( y = 'mean + SEM', x = '', color = '') +
-    scale_color_brewer(palette = f_plot_col_vector74())
+    scale_color_brewer(palette = 'Dark2')
 
-  taglist[[7]] = plotly::ggplotly( p )
+  taglist[[7]] = plotly::ggplotly(p)
 
   p = ggplot(data_sum2, aes( x = title, y = me, color = title) ) +
     geom_pointrange( aes( ymin = me - ci95, ymax = me + ci95)  ) +
@@ -249,13 +226,12 @@ f_predict_plot_model_performance_regression = function(data){
           , axis.ticks.x = element_blank()
           , legend.position = 'bottom') +
     labs( y = 'mean + CI95', x = '', color = '') +
-    scale_color_brewer(palette = f_plot_col_vector74())
+    scale_color_brewer(palette = 'Dark2')
 
   taglist[[8]] = plotly::ggplotly(p)
   taglist[[9]] = DT::datatable(data_sum2)
 
   return(taglist)
-
 
 }
 
