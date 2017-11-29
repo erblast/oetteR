@@ -23,6 +23,7 @@
 #'   pipelearner::learn_models( models = c( call_cont$make_call )
 #'                              , formulas = c(disp~.)
 #'                              , .f = c( randomForest::randomForest )
+#'                              , function_name = 'randomForest'
 #'                              , print_call = c(T)
 #'                            ) %>%
 #'   pipelearner::learn_cvpairs( pipelearner::crossv_kfold, k = 5 ) %>%
@@ -42,12 +43,18 @@ make_container_for_function_calls = function(){
   counter    = 1
   time_start = NULL
   time_end   = NULL
+  function_names = vector()
 
   #methods -------------------------------
 
   set_total = function(total){
 
-    total <<- total
+    total          <<- total
+    calls          <<- list()
+    counter        <<- 1
+    time_start     <<- NULL
+    time_end       <<- NULL
+    function_names <<- vector()
 
   }
 
@@ -61,6 +68,7 @@ make_container_for_function_calls = function(){
   }
 
   make_call = function( .f
+                        , function_name = ''
                         , print_progress = T
                         , print_call = F
                         , ... ){
@@ -76,6 +84,7 @@ make_container_for_function_calls = function(){
     }
 
     calls <<- f_manip_append_2_list( calls, call )
+    function_names <<- c( function_names, function_name )
 
     if( print_call ) print( call )
 
@@ -113,9 +122,11 @@ make_container_for_function_calls = function(){
   }
 
   get_run_time = function(){
-
     return( time_start - time_end )
+  }
 
+  get_function_names = function(){
+    return( function_names )
   }
 
 
@@ -126,6 +137,7 @@ make_container_for_function_calls = function(){
                 , get_total = get_total
                 , get_calls = get_calls
                 , get_counter = get_counter
+                , get_function_names = get_function_names
                )
          )
 

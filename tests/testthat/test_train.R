@@ -18,9 +18,6 @@ test_that('call container'
   set.seed(1)
   m_wr3 = call_cont$make_call( .f = .f, print_call = T, formula = mpg~., data = mtcars )
 
-  set.seed(1)
-  m_wr4 = call_cont$make_call( .f = .f, print_model_call = T, formula = mpg~., data = mtcars )
-
   call_cont$get_calls()
 
   set.seed(1)
@@ -45,10 +42,20 @@ test_that('test call container with pipelearner'
     pipelearner::learn_models( models = c( call_cont$make_call )
                                , formulas = c(disp~.)
                                , .f = c( randomForest::randomForest )
-                               #, print_call = c(T)
-                               #, n_trees = c(1:10)
+                               , function_name = 'randomForest'
                                 ) %>%
-    pipelearner::learn_cvpairs( pipelearner::crossv_kfold, k = 10 ) %>%
+    pipelearner::learn_models( models = c( call_cont$make_call )
+                               , formulas = c(disp~.)
+                               , .f = c( rpart::rpart )
+                               , function_name = 'rpart'
+    ) %>%
+    pipelearner::learn_cvpairs( pipelearner::crossv_kfold, k = 5 ) %>%
     pipelearner::learn()
+
+  function_names = pl %>%
+    mutate( function_names = map_chr(params, 'function_name') ) %>%
+    .$function_names
+
+  expect_identical( sort(function_names), sort(call_cont$get_function_names() ) )
 
 })
