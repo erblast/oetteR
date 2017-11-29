@@ -9,11 +9,11 @@ params:
 
 **Date: `r lubridate::today()`**
 
-```{r setup, include=FALSE}
+```{r tabplots_2_html_chunk1, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
 ```
 
-```{r, include = TRUE, echo = F}
+```{r plots_2_html_chunk2, include = TRUE, echo = F}
 
 plot_tabplots = function(p, title){
   

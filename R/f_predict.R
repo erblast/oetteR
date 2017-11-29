@@ -47,7 +47,7 @@ f_predict_pl_regression = function( pl, cols_id){
 #' @rdname f_predict_pl_regression_summarize
 #' @seealso \code{\link{f_predict_pl_regression}}
 #' @examples
-#'   form = as.formula( 'disp~cyl+mpg')
+#' form = as.formula( 'disp~cyl+mpg')
 #'
 #' pl = mtcars %>%
 #'   mutate(names = row.names(.)) %>%
@@ -57,33 +57,36 @@ f_predict_pl_regression = function( pl, cols_id){
 #'   pipelearner::learn_models( twidlr::svm, form ) %>%
 #'   pipelearner::learn() %>%
 #'   f_predict_pl_regression( 'names' ) %>%
+#'   unnest( preds , .drop = FALSE ) %>%
+#'   mutate( title = model ) %>%
 #'   f_predict_pl_regression_summarize()
+#'
+#' pl
 #'
 #' @export
 f_predict_pl_regression_summarize = function( pl ){
 
-  if( ! all( c('models.id'
-               , 'cv_pairs.id'
-               , 'train_p'
-               , 'target'
-               , 'model'
-               , 'preds')
-             %in% names(pl) )
+  if( ! all( c('title'
+               , 'target1'
+               , 'resid'
+               , 'resid_abs'
+               , 'resid_squ'
+               , 'ape'
+  )
+  %in% names(pl) )
   ){
-    stop('run f_predict_pl_regression on learned pipelearner dataframe first')
+    stop('unnest predictions and add title first')
   }
 
 
   pl = pl %>%
-    select( - target ) %>%
-    group_by( models.id, cv_pairs.id, train_p, model)  %>%
-    unnest( preds ) %>%
-    summarize( mean_target  = mean(target)
+    group_by( title )  %>%
+    summarize( mean_target  = mean(target1)
                , mean_pred  = mean(pred)
                , mae        = mean(resid_abs)
                , rtmse      = sqrt( mean(resid_squ) )
                , mape       = mean(ape)
-               , med_target = median(target)
+               , med_target = median(target1)
                , med_pred   = median(pred)
                , med_ae     = median(resid_abs)
                , rt_med_mse = sqrt( median(resid_squ) )
@@ -127,49 +130,80 @@ f_predict_pl_regression_summarize = function( pl ){
 #' @importFrom DT datatable
 f_predict_plot_model_performance_regression = function(data){
 
+
   if( ! all( c('title'
                , 'bins'
+               , 'resid'
                , 'resid_abs'
                , 'resid_squ'
                , 'ape'
-               )
-             %in% names(data) )
+  )
+  %in% names(data) )
   ){
     stop('unnest predictions and add bins and title first')
   }
 
+  nrows = data %>%
+    group_by( as.character(title) ) %>%
+    count() %>%
+    nrow()
+
+  nrows = ceiling( nrows/2 )
 
   taglist = htmltools::tagList()
 
-  p = f_plot_pretty_points(data, 'target1', 'resid', col_facet = 'title'
-                       , y_title = 'Residuals', x_title = 'Target Variable') +
-    geom_hline( yintercept = 0, size = 2)
+  p = f_plot_pretty_points(data
+                           , 'target1'
+                           , 'resid'
+                           , col_facet = 'title'
+                           , y_title = 'Residuals'
+                           , x_title = 'Target Variable'
+                           , ncol = 2
+                           , size = 2) +
+    geom_hline( yintercept = 0, size = 1)
 
-  taglist[[1]] = plotly::ggplotly(p)
+  p = plotly::ggplotly(p,  height = nrows * 200 , dynamicTicks = TRUE)
+
+  taglist[[1]] = f_html_padding(p, pad_before = 3, title = 'Residuals Scatterplot')
 
   p = ggplot( data, aes(bins, resid)) +
-    geom_boxplot( aes(fill=title) ) +
-    facet_wrap(~title) +
-    geom_hline( yintercept = 0, size = 2) +
-    theme( axis.text.x = element_text(angle = 90))+
-    scale_fill_brewer(palette = 'Dark2') +
+    geom_boxplot( aes(fill=title)
+                  , show.legend = F ) +
+    facet_wrap(~title, ncol = 2 ) +
+    geom_hline( yintercept = 0, size = 1) +
+    theme( axis.text.x = element_text(angle = 90)
+           , legend.position = 'none')+
+    scale_fill_manual( values =  f_plot_col_vector74() )
     labs(y = 'Residuals', x = 'Target Variable')
 
-  taglist[[2]] = plotly::ggplotly(p)
 
-  p = f_plot_pretty_points(data, 'target1', 'ape', col_facet = 'title'
-                       , y_title = 'APE of Predictions', x_title = 'Target Variable')
+  p = plotly::ggplotly(p,  height = nrows * 200 )
+  taglist[[2]] = f_html_padding(p, pad_before = 3, title = 'Residuals Boxplot')
 
-  taglist[[3]] = plotly::ggplotly(p)
+  p = f_plot_pretty_points(data
+                           , 'target1'
+                           , 'ape'
+                           , col_facet = 'title'
+                           , y_title = 'APE of Predictions'
+                           , x_title = 'Target Variable'
+                           , ncol = 2
+                           , size = 2) +
+    coord_cartesian( ylim = c(500,0) )
+
+  p = plotly::ggplotly(p,  height = nrows * 200)
+  taglist[[3]] =  f_html_padding(p, pad_before = 3, title = 'APE Scatterplot')
 
   p = ggplot( data, aes(bins, ape)) +
     geom_boxplot( aes(fill=title) ) +
-    facet_wrap(~title)+
-    theme( axis.text.x = element_text(angle = 90)) +
-    scale_fill_brewer(palette = 'Dark2') +
-    labs(y = 'APE of Predictions', x = 'Target Variable')
+    facet_wrap(~title, ncol = 2 )+
+    theme( axis.text.x = element_text(angle = 90)
+           , legend.position = 'none') +
+    scale_fill_manual(values = f_plot_col_vector74()) +
+    labs(y = 'APE of Predictions', x = 'Target Variable') +
+    coord_cartesian( ylim = c(200,0) )
 
-  taglist[[4]] = plotly::ggplotly(p)
+  p = plotly::ggplotly(p,  height = nrows * 200)
+  taglist[[4]] = f_html_padding(p, pad_before = 3, title = 'APE Boxplot')
 
   data_sum1 = data %>%
     group_by( title, bins )  %>%
@@ -186,17 +220,17 @@ f_predict_plot_model_performance_regression = function(data){
   p = ggplot(data_sum1, aes( x = seq, y = me, color = title) ) +
     geom_pointrange( aes( ymin = me - sem, ymax = me + sem)  ) +
     geom_line() +
-    facet_wrap(~measure, scales = 'free') +
+    facet_wrap(~measure, scales = 'free', ncol = 1) +
     scale_x_continuous( breaks = c(1:length( levels(data_sum1$bins) ) )
                         , labels = levels(data_sum1$bins) ) +
-    theme(axis.text.x = element_text(angle = 90)
-          , legend.position = 'bottom') +
+    # theme(axis.text.x = element_text(angle = 90)
+    #       , legend.position = 'bottom') +
     labs( y = 'mean + SEM', x = 'Target Variable', color = '') +
-    scale_color_brewer(palette = 'Dark2')
+    scale_color_manual(values = f_plot_col_vector74() )
 
-  taglist[[5]] = plotly::ggplotly(p)
+  p = plotly::ggplotly( p, height = 600 )
+  taglist[[5]] = f_html_padding(p, pad_before = 3, title = 'Performance Measures Binning')
 
-  taglist[[6]] = DT::datatable( data_sum1 )
 
   data_sum2 = data %>%
     group_by( title )  %>%
@@ -210,26 +244,37 @@ f_predict_plot_model_performance_regression = function(data){
 
   p = ggplot(data_sum2, aes( x = title, y = me, color = title) ) +
     geom_pointrange( aes( ymin = me - sem, ymax = me + sem)  ) +
-    facet_wrap(~measure, scales = 'free') +
+    facet_wrap(~measure, scales = 'free', ncol = 1) +
     theme(axis.text.x = element_blank()
           , axis.ticks.x = element_blank()
           , legend.position = 'bottom') +
     labs( y = 'mean + SEM', x = '', color = '') +
-    scale_color_brewer(palette = 'Dark2')
+    scale_color_manual(values = f_plot_col_vector74() )
 
-  taglist[[7]] = plotly::ggplotly(p)
+  taglist[[6]] = f_html_padding(htmltools::h3('Performance Measures Summary'), pad_before = 3)
+
+  p = plotly::ggplotly( p, height = 600 )
+  taglist[[7]] = f_html_padding(p, pad_before = 3, title = 'SEM')
 
   p = ggplot(data_sum2, aes( x = title, y = me, color = title) ) +
     geom_pointrange( aes( ymin = me - ci95, ymax = me + ci95)  ) +
-    facet_wrap(~measure, scales = 'free') +
+    facet_wrap(~measure, scales = 'free', ncol = 1) +
     theme(axis.text.x = element_blank()
           , axis.ticks.x = element_blank()
           , legend.position = 'bottom') +
     labs( y = 'mean + CI95', x = '', color = '') +
-    scale_color_brewer(palette = 'Dark2')
+    scale_color_manual(values = f_plot_col_vector74() )
 
-  taglist[[8]] = plotly::ggplotly(p)
-  taglist[[9]] = DT::datatable(data_sum2)
+  p = plotly::ggplotly(p, height = 600)
+  taglist[[8]] = f_html_padding(p, pad_before = 3, title = 'CI95')
+
+  taglist[[9]] = f_html_padding(htmltools::h2('Summary Tables'), pad_before = 3)
+
+  t = f_datatable_universal(data_sum2, round_other_nums = 2)
+  taglist[[10]] = f_html_padding(t, pad_before = 3, title = 'Performance Measures Summary')
+
+  t = f_datatable_universal( data_sum1, round_other_nums = 2 )
+  taglist[[11]] = f_html_padding(t, pad_before = 3, title = 'Performance Measures Binning')
 
   return(taglist)
 

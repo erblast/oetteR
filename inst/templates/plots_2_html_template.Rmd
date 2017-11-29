@@ -9,11 +9,11 @@ params:
 
 **Date: `r lubridate::today()`**
 
-```{r setup, include=FALSE}
+```{r plots_2_html_chunk1, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
 ```
 
-```{r, include = TRUE, echo = F}
+```{r plots_2_html_chunk2, include = TRUE, echo = F}
 
 
 print_plot = function(p, aspect_ratio){

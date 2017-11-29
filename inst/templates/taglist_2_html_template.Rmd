@@ -8,11 +8,11 @@ params:
 
 **Date: `r lubridate::today()`**
 
-```{r setup, include=FALSE}
+```{r taglist_2_html_chunk1, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
 ```
 
-```{r, include = TRUE, echo = F, fig.asp = params$aspect_ratio }
+```{r taglist_2_html_chunk2, include = TRUE, echo = F, fig.asp = params$aspect_ratio }
 
 params$obj_list
 
