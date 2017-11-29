@@ -1,0 +1,29 @@
+---
+title: "template"
+output: html_document
+params:
+  obj_list: !r list()
+  height: !r 30
+
+---
+
+**Date: `r lubridate::today()`**
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+```
+
+```{r, include = TRUE, echo = F, fig.height=params$height }
+
+
+print_plot = function(g){
+
+ gridExtra::grid.arrange(g)   
+
+}
+
+params$obj_list %>%
+  walk(print_plot)
+
+```
+

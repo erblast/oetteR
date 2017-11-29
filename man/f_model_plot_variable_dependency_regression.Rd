@@ -7,8 +7,8 @@
 f_model_plot_variable_dependency_regression(m, ranked_variables,
   title = unlist(stringr::str_split(class(m)[1], "\\\\."))[1], data = NULL,
   formula, data_ls,
-  variable_color_code = f_plot_color_code_variables(data_ls), limit = 10,
-  log_y = F, ...)
+  variable_color_code = f_plot_color_code_variables(data_ls), limit = 12,
+  log_y = F, set_manual = list(), ...)
 }
 \arguments{
 \item{m}{a regression model}
@@ -28,7 +28,11 @@ numerical columns>)}
 
 \item{variable_color_code}{dataframe created by f_plot_color_code_variables()}
 
-\item{limit}{integer limit the number of variables to be plotted, Default: 10}
+\item{limit}{integer limit the number of variables to be plotted, Default: 12}
+
+\item{set_manual}{named list, set some variables manually instead of
+defaulting to median or most common factor. !! Values need to be of the same
+variable type as in the original data.}
 
 \item{...}{arguments passed to facet_wrap e.g. usefull for nrow, ncol}
 }
@@ -50,7 +54,7 @@ formula             = disp~hp+mpg+cyl
 m                   = randomForest::randomForest(formula, data)
 ranked_variables    = f_model_importance( m, data)
 variable_color_code = f_plot_color_code_variables(data_ls)
-limit               = 10
+limit               = 12
 f_model_plot_variable_dependency_regression( m
                                              , ranked_variables
                                              , title = unlist( stringr::str_split( class(m)[1], '\\\\.') )[1]

@@ -145,6 +145,39 @@ test_that('f_plot_obj_2_html'
 
     file.remove('test_me.html')
 
+    #list(grids)---------------------------------------------------
+
+    data_ls = f_clean_data(mtcars)
+    form = as.formula('disp~cyl+mpg+hp+am+gear+drat+wt+vs+carb')
+    variable_color_code = f_plot_color_code_variables(data_ls)
+
+    grids = pipelearner::pipelearner(data_ls$data) %>%
+      pipelearner::learn_models( twidlr::rpart, form ) %>%
+      pipelearner::learn_models( twidlr::randomForest, form ) %>%
+      pipelearner::learn_models( twidlr::svm, form ) %>%
+      pipelearner::learn() %>%
+      dplyr::mutate( imp = map2(fit, train, f_model_importance)
+                     , range_var = map_chr(imp, function(x) head(x,1)$row_names )
+                     , grid = pmap( list( m = fit
+                                         , title = model
+                                         , variables = imp
+                                         , range_variable = range_var
+                                         , data = test
+                                         )
+                                 , f_model_plot_var_dep_over_spec_var_range
+                                 , formula = form
+                                 , data_ls = data_ls
+                                 , variable_color_code = variable_color_code
+                                 , log_y = F
+                                 , limit = 12
+                                 )
+      )  %>%
+      .$grid
+
+      f_plot_obj_2_html( grids,  type = "grids", output_file =  'test_me', title = 'Grids', height = 30 )
+
+    file.remove('test_me.html')
+
 })
 
 

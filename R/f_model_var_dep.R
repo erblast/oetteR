@@ -44,14 +44,19 @@ f_model_seq_range = function( data_ls, col_var, n = 500 ){
 #'   list( data = <dataframe>, numericals = < vector with column names of
 #'   numerical columns>)
 #' @param formula formula
+#' @param n integer, length of grid, datapoints in between range of col_var
+#' @param set_manual named list, set some variables manually instead of
+#'   defaulting to median or most common factor. !! Values need to be of the same
+#'   variable type as in the original data.
 #' @return dataframe
 #' @examples
 #' data_ls = f_clean_data(mtcars)
 #' formula = disp~cyl+mpg+hp
 #' f_model_data_grid( 'mpg', data_ls, formula,  10 )
+#' f_model_data_grid( 'mpg', data_ls, formula,  10 , set_manual = list( cyl = min(data_ls$data$cyl) ) )
 #' @rdname f_model_data_grid
 #' @export
-f_model_data_grid = function( col_var, data_ls, formula, n = 500 ){
+f_model_data_grid = function( col_var, data_ls, formula, n = 500, set_manual = list() ){
 
   vars         = f_manip_get_variables_from_formula(formula)
 
@@ -70,6 +75,26 @@ f_model_data_grid = function( col_var, data_ls, formula, n = 500 ){
     mutate( !!response_var_sym := list( response_var_sym = range ) ) %>%
     unnest( !!response_var_sym , .drop = F) %>%
     select( one_of(col_var), everything() )
+
+
+  #implement manually set values
+
+  if( ! all(names(set_manual) %in% data_ls$all_variables ) ){
+    stop('variables to be set manually for grid have not been found')
+  }
+
+  if( col_var %in% names(set_manual) ){
+    set_manual = set_manual[ names(set_manual) != col_var ]
+  }
+
+  if( ! is_empty( set_manual ) ){
+
+    tib = as_tibble( set_manual ) %>%
+      sample_n( nrow(grid), T )
+
+    grid = grid[, ! names(grid) %in% names(tib) ] %>%
+      bind_cols(tib)
+  }
 
   return(grid)
 
@@ -118,7 +143,10 @@ f_model_add_predictions_2_grid_regression = function( grid, m, var){
 #'   list( data = <dataframe>, numericals = < vector with column names of
 #'   numerical columns>)
 #' @param variable_color_code dataframe created by f_plot_color_code_variables()
-#' @param limit integer limit the number of variables to be plotted, Default: 10
+#' @param limit integer limit the number of variables to be plotted, Default: 12
+#' @param set_manual named list, set some variables manually instead of
+#'   defaulting to median or most common factor. !! Values need to be of the same
+#'   variable type as in the original data.
 #' @param ... arguments passed to facet_wrap e.g. usefull for nrow, ncol
 #' @return plot
 #' @examples
@@ -130,7 +158,7 @@ f_model_add_predictions_2_grid_regression = function( grid, m, var){
 #' m                   = randomForest::randomForest(formula, data)
 #' ranked_variables    = f_model_importance( m, data)
 #' variable_color_code = f_plot_color_code_variables(data_ls)
-#' limit               = 10
+#' limit               = 12
 #' f_model_plot_variable_dependency_regression( m
 #'                                              , ranked_variables
 #'                                              , title = unlist( stringr::str_split( class(m)[1], '\\.') )[1]
@@ -174,8 +202,9 @@ f_model_plot_variable_dependency_regression = function( m
                                                        , formula
                                                        , data_ls
                                                        , variable_color_code = f_plot_color_code_variables(data_ls)
-                                                       , limit = 10
+                                                       , limit = 12
                                                        , log_y = F
+                                                       , set_manual = list()
                                                        , ...
                                                       ){
 
@@ -205,7 +234,8 @@ f_model_plot_variable_dependency_regression = function( m
     mutate( grid = map( variables
                         , f_model_data_grid
                         , data_ls
-                        , formula)
+                        , formula
+                        , set_manual = set_manual )
             ,grid = map( grid, f_model_add_predictions_2_grid_regression, m, response_var)
             ) %>%
     unnest(grid, .drop = F) %>%
@@ -244,3 +274,300 @@ f_model_plot_variable_dependency_regression = function( m
     return(p)
 
 }
+
+
+#' @title plot vmodel varaible dependency over the range of a specified variable
+#' @description Some models are able to capture relative dependencies. In order
+#'   to visualise them the dataset is split into three parts. 0-25,25-75,75-100
+#'   percentile or the three most common factors.Then variable dependencies for
+#'   each of the three splits are plotted. In the mtcars example below we can
+#'   see that the model predicts an increase in disp if drat increases for cars
+#'   with 8 cylinders, while the opposite is true for cars with only 6
+#'   cylinders.
+#' @param m a model
+#' @param title model title
+#' @param variables character vector with variable names, or ranked variables as
+#'   returned by f_model_importance()
+#' @param range_variable character vector denoting range variable
+#' @param data dataset
+#' @param formula formula
+#' @param data_ls data_ls object generated by f_clean_data(), or a named list
+#'   list( data = <dataframe>, numericals = < vector with column names of
+#'   numerical columns>)
+#' @param variable_color_code dataframe created by f_plot_color_code_variables()
+#' @param limit integer limit the number of variables to be plotted, Default: 12
+#' @param data_ls PARAM_DESCRIPTION
+#' @param log_y boolean log_scale for y axis
+#' @return grid can be printed with gridExtra::grid.arrange()
+#' @examples
+#' \dontrun{
+#'
+#'  # single output example ---------------------------------------
+#'   .f                  = randomForest::randomForest
+#' data_ls             = f_clean_data(mtcars)
+#' data                = data_ls$data
+#' formula             = disp~mpg+cyl+am+hp+drat+qsec+vs+gear+carb
+#' m                   = .f(formula, data)
+#' variables           = f_model_importance( m, data)
+#' title               = unlist( stringr::str_split( class(m)[1], '\\.') )[1]
+#' variable_color_code = f_plot_color_code_variables(data_ls)
+#' limit               = 10
+#' log_y               = F
+#'
+#' range_variable_num  = data_ls$numericals[1]
+#' range_variable_cat  = data_ls$categoricals[1]
+#'
+#' grid_num = f_model_plot_var_dep_over_spec_var_range(m
+#'                                                     , title
+#'                                                     , variables
+#'                                                     , range_variable_num
+#'                                                     , data
+#'                                                     , formula
+#'                                                     , data_ls
+#'                                                     , variable_color_code
+#'                                                     , log_y
+#'                                                     , limit  )
+#' grid.arrange(grid_num)
+#'
+#' # pipe example ------------------------------------------------
+#'
+#' data_ls = f_clean_data(mtcars)
+#' form = as.formula('disp~cyl+mpg+hp+am+gear+drat+wt+vs+carb')
+#' variable_color_code = f_plot_color_code_variables(data_ls)
+#'
+#' grids = pipelearner::pipelearner(data_ls$data) %>%
+#'   pipelearner::learn_models( twidlr::rpart, form ) %>%
+#'   pipelearner::learn_models( twidlr::randomForest, form ) %>%
+#'   pipelearner::learn_models( twidlr::svm, form ) %>%
+#'   pipelearner::learn() %>%
+#'   dplyr::mutate( imp = map2(fit, train, f_model_importance)
+#'                  , range_var = map_chr(imp, function(x) head(x,1)$row_names )
+#'                  , grid = pmap( list( m = fit
+#'                                       , title = model
+#'                                       , variables = imp
+#'                                       , range_variable = range_var
+#'                                       , data = test
+#'                  )
+#'                  , f_model_plot_var_dep_over_spec_var_range
+#'                  , formula = form
+#'                  , data_ls = data_ls
+#'                  , variable_color_code = variable_color_code
+#'                  , log_y = F
+#'                  , limit = 12
+#'                  )
+#'   )  %>%
+#'   .$grid
+#'
+#' f_plot_obj_2_html( grids,  type = "grids", output_file =  'test_me', title = 'Grids', height = 30 )
+#'
+#' file.remove('test_me.html')
+#' }
+#' @seealso \code{\link[gridExtra]{arrangeGrob}}
+#' @rdname f_model_plot_var_dep_over_spec_var_range
+#' @export
+#' @importFrom gridExtra arrangeGrob
+f_model_plot_var_dep_over_spec_var_range = function( m
+                                                    , title
+                                                    , variables
+                                                    , range_variable
+                                                    , data
+                                                    , formula
+                                                    , data_ls
+                                                    , variable_color_code
+                                                    , log_y = F
+                                                    , limit = 12) {
+
+  if( ! range_variable %in% data_ls$all_variables ){
+    stop( 'range_var not found in data_ls' )
+  }
+
+  if( ! is.data.frame(variables) | ! is_tibble(variables) ){
+
+    variables = tibble( row_names = variables
+                        ,rank = 1:length(variables) )
+
+  }
+
+  if( ! all(variables$row_names %in% data_ls$all_variables) ){
+    stop('not all variables can be found in data')
+  }
+
+  # symbol
+
+  sym_range_variable = as.name(range_variable)
+
+  # resample object to dataframe
+
+  data = data %>%
+    as.data.frame() %>%
+    as_tibble()
+
+  #in case data is only a subset of data_ls
+  data_ls$data = data
+
+
+  # ranges -------------------------------------------------------
+
+  if( range_variable %in% data_ls$numericals ){
+    stats = boxplot.stats( data[[range_variable]] )$stats
+  }else{
+    stats = data_ls$data %>%
+      group_by( !! sym_range_variable ) %>%
+      count() %>%
+      arrange( desc(n) ) %>%
+      .[[1]]
+      head(3)
+  }
+
+
+
+  # plot function -------------------------------------------------
+
+  caption = 'Graphs show model response to changes in selected input variables,
+           while all other input variables are kept constant at median values.'
+
+  f_plot = function( filtered_data, title_seg, subtitle_seg, caption = '', ... ){
+
+    p = f_model_plot_variable_dependency_regression( m = m
+                                                 , title = title_seg
+                                                 , ranked_variables = variables
+                                                 , data = filtered_data
+                                                 , formula = formula
+                                                 , data_ls = data_ls
+                                                 , variable_color_code = variable_color_code
+                                                 , limit = limit
+                                                 , log_y = log_y
+                                                 , ncol = 3
+                                                 , ...
+                                                ) +
+      labs(title = title_seg
+           , subtitle = subtitle_seg
+           , caption =  caption)
+  }
+
+  #All  ---------------------------------------------------------
+
+  title_all    = paste('Variable Dependency', title)
+  subtitle_all = paste( 'Unfiltered')
+
+  data_all = data_ls$data
+
+  p_all = f_plot( filtered_data    = data_all
+                    , title_seg    = title_all
+                    , subtitle_seg = subtitle_all
+                    , caption = caption )
+
+
+  #Histogram ------------------------------------------------------
+
+  if(range_variable %in% data_ls$numericals){
+
+    data_ls_hist = data_ls
+    data_ls_hist$data = data_ls_hist$data %>%
+      mutate( hist_color = ifelse(    between( !! sym_range_variable, stats[1], stats[2] ), '0-25 perc.'
+                           , ifelse(  between( !! sym_range_variable, stats[2], stats[4] ), '25-75 perc.'
+                           , ifelse(  between( !! sym_range_variable, stats[4], stats[5] ), '75-100 perc.'
+                           , 'outlier') ) )
+      )
+
+    data_ls_hist$categoricals = c( data_ls_hist$categoricals, 'hist_color' )
+
+    p_hist = f_plot_hist( range_variable, data_ls_hist, graph_type = 'bar', group = 'hist_color') +
+      labs( title = paste('Histogram', range_variable )
+            , fill = '') +
+      theme( legend.position = 'bottom' ) +
+      scale_fill_brewer( palette = 'Dark2')
+
+  } else{
+
+    data_ls_hist = data_ls
+    data_ls_hist$data = data_ls_hist$data %>%
+      mutate( hist_color = ifelse( UQ(sym_range_variable) %in% stats, 'three most common levels', 'minor level'  )
+      )
+
+    data_ls_hist$categoricals = c( data_ls_hist$categoricals, 'hist_color' )
+
+    p_hist = f_plot_hist( range_variable, data_ls_hist, graph_type = 'bar', group = 'hist_color' ) +
+      labs( title = paste('Histogram', range_variable )
+            , fill = '') +
+      theme( legend.position = 'bottom' ) +
+      scale_fill_brewer( palette = 'Dark2')
+
+  }
+
+  #plot1 ---------------------------------------------------------
+
+  title1    = paste('Variable Dependency', title)
+
+  if( range_variable %in% data_ls$numericals ){
+    subtitle1 = paste( range_variable, 'in 0-25 percentile of', range_variable)
+
+    data1 = data_ls$data %>%
+      filter( between( !! sym_range_variable, stats[1], stats[2] ) )
+
+  }else{
+    subtitle1 = paste( range_variable, '=', stats[1] )
+
+    data1 = data_ls$data %>%
+      filter( UQ(sym_range_variable) == stats[1] ) ## for TRUE FaLSE expressions we have to use  UQ() instead of !!
+
+  }
+
+  p1 = f_plot( filtered_data  = data1
+               , title_seg    = title1
+               , subtitle_seg = subtitle1)
+  #plot2 ---------------------------------------------------------
+
+  title2    = ''
+
+  if( range_variable %in% data_ls$numericals ){
+    subtitle2 = paste( range_variable, 'in 25-75 percentile of', range_variable)
+
+    data2 = data_ls$data %>%
+      filter( between( !! sym_range_variable, stats[2], stats[4] ) )
+
+  }else{
+    subtitle2 = paste( range_variable, '=', stats[2] )
+
+    data2 = data_ls$data %>%
+      filter( UQ(sym_range_variable) == stats[2] ) # for TRUE FaLSE expressions we have to use  UQ() instead of !!
+
+  }
+
+  p2 = f_plot( filtered_data  = data2
+               , title_seg    = title2
+               , subtitle_seg = subtitle2)
+
+  #plot3 ---------------------------------------------------------
+
+
+  title3    = ''
+
+  if( range_variable %in% data_ls$numericals ){
+    subtitle3 = paste( range_variable, 'in 75-100 percentile of', range_variable)
+
+    data3 = data_ls$data %>%
+      filter( between( !! sym_range_variable, stats[4], stats[5] ) )
+
+  }else{
+    subtitle3 = paste( range_variable, '=', stats[3] )
+
+    data3 = data_ls$data %>%
+      filter( UQ(sym_range_variable) == stats[2] ) # for TRUE FaLSE expressions we have to use  UQ() instead of !!
+
+  }
+
+  p3 = f_plot( filtered_data  = data3
+               , title_seg    = title3
+               , subtitle_seg = subtitle3
+               , caption      = caption )
+  # arrange ---------------------------------------------------------
+
+  nrow = ifelse( nrow(variables) > limit, limit, nrow(variables) )
+  nrow = ceiling( nrow/3 )
+
+  g = gridExtra::arrangeGrob( p_all, p_hist, p1, p2, p3, ncol = 1 )
+
+}
+
+

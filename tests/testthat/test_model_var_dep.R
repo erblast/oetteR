@@ -80,6 +80,22 @@ test_that( 'f_model_data_grid'
 
 })
 
+test_that('f_model_data_grid set_manual parameter'
+  ,{
+
+  data_ls = f_clean_data(mtcars)
+  formula = disp~cyl+mpg+hp
+  col_var = 'mpg'
+  n = 10
+
+  tib = f_model_data_grid( col_var, data_ls, formula,  n, set_manual = list( mpg = 20)  )
+  expect_true( sd(tib$mpg) > 0 )
+
+  tib = f_model_data_grid( col_var, data_ls, formula,  n, set_manual = list( hp = 20)  )
+  expect_true( mean(tib$hp) == 20 )
+
+})
+
 test_that('f_model_add_predictions_2_grid_regression'
   ,{
 
@@ -141,3 +157,54 @@ test_that( 'f_model_seq_range'
    range = f_model_seq_range( data_ls, col_var )
    expect_equal( levels(data_ls$data[[col_var]]), levels(range) )
 })
+
+test_that('f_model_plot_var_dep_over_spec_var_range'
+  ,{
+
+  .f                  = randomForest::randomForest
+  data_ls             = f_clean_data(mtcars)
+  data                = data_ls$data
+  formula             = disp~mpg+cyl+am+hp+drat+qsec+vs+gear+carb
+  m                   = .f(formula, data)
+  variables           = f_model_importance( m, data)
+  title               = unlist( stringr::str_split( class(m)[1], '\\.') )[1]
+  variable_color_code = f_plot_color_code_variables(data_ls)
+  limit               = 10
+  log_y               = F
+
+  range_variable_num  = data_ls$numericals[1]
+  range_variable_cat  = data_ls$categoricals[1]
+
+  grid_num = f_model_plot_var_dep_over_spec_var_range(m
+                                                     , title
+                                                     , variables
+                                                     , range_variable_num
+                                                     , data
+                                                     , formula
+                                                     , data_ls
+                                                     , variable_color_code
+                                                     , log_y
+                                                     , limit  )
+
+  grid_cat = f_model_plot_var_dep_over_spec_var_range(m
+                                                    , title
+                                                    , variables
+                                                    , range_variable_cat
+                                                    , data
+                                                    , formula
+                                                    , data_ls
+                                                    , variable_color_code
+                                                    , log_y
+                                                    , limit  )
+
+  grid.arrange(grid_num)
+  grid.arrange(grid_cat)
+
+})
+
+
+
+
+
+
+
