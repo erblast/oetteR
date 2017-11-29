@@ -197,8 +197,8 @@ test_that('f_model_plot_var_dep_over_spec_var_range'
                                                     , log_y
                                                     , limit  )
 
-  grid.arrange(grid_num)
-  grid.arrange(grid_cat)
+  gridExtra::grid.arrange(grid_num)
+  gridExtra::grid.arrange(grid_cat)
 
 })
 

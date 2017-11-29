@@ -365,7 +365,7 @@ f_model_plot_variable_dependency_regression = function( m
 #' @seealso \code{\link[gridExtra]{arrangeGrob}}
 #' @rdname f_model_plot_var_dep_over_spec_var_range
 #' @export
-#' @importFrom gridExtra arrangeGrob
+#' @importFrom gridExtra arrangeGrob grid.arrange
 f_model_plot_var_dep_over_spec_var_range = function( m
                                                     , title
                                                     , variables
