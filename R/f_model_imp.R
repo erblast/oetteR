@@ -147,6 +147,11 @@ f_model_importance_rpart = function(m, ...){
     return(NULL)
   }
 
+  if( ! 'variable.importance' %in% names(m) ){
+    warning('no nodes in rpart tree returning NULL')
+    return(NULL)
+  }
+
   df = tibble( row_names = names(m$variable.importance)
                , value   = m$variable.importance
                )
