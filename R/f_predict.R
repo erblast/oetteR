@@ -41,7 +41,8 @@ f_predict_pl_regression = function( pl, cols_id){
 
 
 #' @title summarize prediction by f_predict_pl_regression()
-#' @description use this function to get a quick summary of pipelearner dataframe with unnested predictions
+#' @description use this function to get a quick summary of pipelearner
+#'   dataframe with unnested predictions. Will group by title
 #' @param pl pipelearner dataframe with nested predictions
 #' @return dataframe with mape, mea, rtmse and median versions
 #' @rdname f_predict_pl_regression_summarize
@@ -92,6 +93,7 @@ f_predict_pl_regression_summarize = function( pl ){
                , rt_med_mse = sqrt( median(resid_squ) )
                , med_ape    = median(ape)
                )
+  return(pl)
 
 }
 
@@ -173,7 +175,7 @@ f_predict_plot_model_performance_regression = function(data){
     geom_hline( yintercept = 0, size = 1) +
     theme( axis.text.x = element_text(angle = 90)
            , legend.position = 'none')+
-    scale_fill_manual( values =  f_plot_col_vector74() )
+    scale_fill_manual( values =  f_plot_col_vector74() ) +
     labs(y = 'Residuals', x = 'Target Variable')
 
 
@@ -323,7 +325,8 @@ f_predict_regression_add_predictions = function(data, m, col_target, cols_id = N
       mutate( resid_abs   = abs(resid)
               , resid_squ = resid^2
               , ape       = abs(resid/pred) * 100
-             )
+              , ape       = ifelse( is.na(ape), 0, ape )
+      )
 
   return(df)
 }
