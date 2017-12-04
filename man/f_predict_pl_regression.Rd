@@ -4,7 +4,7 @@
 \alias{f_predict_pl_regression}
 \title{adds predictions to learned pipelearner dataframe}
 \usage{
-f_predict_pl_regression(pl, cols_id)
+f_predict_pl_regression(pl, cols_id = NULL)
 }
 \arguments{
 \item{pl}{learned pipelearner dataframe}

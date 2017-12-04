@@ -21,7 +21,7 @@
 #' @export
 #' @seealso
 #' \code{\link{f_predict_regression_add_predictions}}
-f_predict_pl_regression = function( pl, cols_id){
+f_predict_pl_regression = function( pl, cols_id = NULL){
 
   if( ! all( c('models.id'
                , 'cv_pairs.id'
@@ -304,12 +304,32 @@ f_predict_plot_model_performance_regression = function(data){
 #' @rdname f_predict_regression_add_predictions
 #' @export
 #' @importFrom modelr add_predictions add_residuals
-f_predict_regression_add_predictions = function(data, m, col_target, cols_id = NULL){
+f_predict_regression_add_predictions = function(data, m, col_target, cols_id = NULL, formula = NULL){
+
 
   col_target_sym = as.name(col_target)
 
+  data = as.tibble(data)
+
+  if( inherits(m, what = 'HDtweedie') ){
+
+
+    if( is.null(formula) ){
+      stop('need formula to make predictions for HDtweedie model')
+    }
+
+    x = model.matrix(formula, data)[,-1]
+
+    pred = predict( m, newx = x)
+
+    data = data %>%
+      mutate( pred = pred
+             , resid = !! col_target_sym - pred)
+
+
+  }
+
   df = data %>%
-    as.tibble() %>%
     modelr::add_predictions(m) %>%
     modelr::add_residuals(m) %>%
     mutate( target = !!col_target_sym )

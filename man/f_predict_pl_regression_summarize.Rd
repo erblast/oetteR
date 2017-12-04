@@ -13,10 +13,11 @@ f_predict_pl_regression_summarize(pl)
 dataframe with mape, mea, rtmse and median versions
 }
 \description{
-use this function to get a quick summary of pipelearner dataframe with unnested predictions
+use this function to get a quick summary of pipelearner
+  dataframe with unnested predictions. Will group by title
 }
 \examples{
-  form = as.formula( 'disp~cyl+mpg')
+form = as.formula( 'disp~cyl+mpg')
 
 pl = mtcars \%>\%
   mutate(names = row.names(.)) \%>\%
@@ -26,7 +27,11 @@ pl = mtcars \%>\%
   pipelearner::learn_models( twidlr::svm, form ) \%>\%
   pipelearner::learn() \%>\%
   f_predict_pl_regression( 'names' ) \%>\%
+  unnest( preds , .drop = FALSE ) \%>\%
+  mutate( title = model ) \%>\%
   f_predict_pl_regression_summarize()
+
+pl
 
 }
 \seealso{

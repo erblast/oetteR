@@ -7,7 +7,8 @@
 f_model_importance_pl_add_plots_regression(pl, data, m, ranked_variables,
   response_var, title,
   variable_color_code = f_plot_color_code_variables(data_ls), formula,
-  data_ls, var_dep_limit = 10, var_dep_log_y = F, tabplot_limit = 12)
+  data_ls, var_dep_limit = 10, var_dep_log_y = F, tabplot_limit = 12,
+  formula_in_pl = F)
 }
 \arguments{
 \item{pl}{a dataframe containing the columns for data, m, ranked_variables, response_var and title}
@@ -33,6 +34,8 @@ f_model_importance_pl_add_plots_regression(pl, data, m, ranked_variables,
 \item{var_dep_log_y}{should y axis of dependency plot be logarithmic}
 
 \item{tabplot_limit}{number of variables to be plotted on tabplot}
+
+\item{formula_in_pl}{boolean if formula is a column in pl?}
 }
 \value{
 dataframe

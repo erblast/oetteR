@@ -13,7 +13,7 @@ data_ls = f_clean_data(data, id_cols = 'ID') %>%
 
 rename_leves = function(x){
 
-  levels(x) = c('LL', 'LM', 'M', 'HM', 'HH' )
+  levels(x) = c('L','M','H' )
 
   return(x)
 
@@ -35,22 +35,53 @@ df_stat = f_stat_anova(data_ls, col_group = 'Gender') %>%
 
 step1= data_ls$boxcox_data %>%
   as_tibble() %>%
-  bind_cols( data_ls$data[,data_ls$ids] ) %>%
-  mutate_if( is.numeric, cut, breaks = 5 ) %>%
+  mutate_if( is.numeric, cut, breaks = 3 ) %>%
   mutate_if( is.factor, rename_leves ) %>%
+  bind_cols( data_ls$data[,data_ls$ids] ) %>%
   gather( key ='key', value = 'value',- ID) %>%
   mutate( key = stringr::str_replace(key, 'boxcox', value))
 
 
 # combine gender with income and check for new impact on credit rating
+
+m = lm(Rating~Income, data_ls$data)
+
 step2 = step1 %>%
   left_join(data_ls$data) %>%
   filter( startsWith(key, 'Income') ) %>%
-  arrange(cylinders) %>%
-  group_by( key, cylinders) %>%
-  mutate_if( is.numeric,  function(x) ifelse( is.na(x), 0, x ) ) %>%
-  summarize( mean_disp = mean(displacement)
-             , n = n() ) %>%
-  complete(key, cylinders)
+  complete(key, Gender) %>%
+  mutate( new_factor     = paste0(key, '_', Gender) )%>%
+  modelr::add_residuals( m, 'rating_resid') %>%
+  select( new_factor, rating_resid, Rating, Gender, value, Income )
+
+
+data_ls_step2 = f_clean_data(step2)
+
+f_stat_anova( data_ls_step2, col_group = 'new_factor')
+
+f_stat_group_mean_medians( data_ls_step2, 'new_factor' )
+
+# We find that after deducting the confounding effects of income from
+# rating the combination of income and gender still does not have an effect
+
+# Similarily we do not find an effect of Gender on Student, however we might
+# find that potentially we might find something if we throw the income variable
+# into the mix
+
+
+step3 = step1 %>%
+  left_join(data_ls$data) %>%
+  filter( startsWith(key, 'Income') )
+
+chi = chisq.test( table(select(step3, key, Student) ), p = c(0.5,0.5,0.5,0.5,0.5,0.5,0.5,'')  )
+
+
+  %>%
+  complete(key, Gender)
+
+  %>%
+  mutate( new_factor     = paste0(key, '_', Gender) )%>%
+  modelr::add_residuals( m, 'rating_resid') %>%
+  select( new_factor, rating_resid, Rating, Gender, value, Income )
 
 
