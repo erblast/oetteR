@@ -21,7 +21,7 @@
 #' @export
 #' @seealso
 #' \code{\link{f_predict_regression_add_predictions}}
-f_predict_pl_regression = function( pl, cols_id = NULL){
+f_predict_pl_regression = function( pl, cols_id = NULL, formula = NULL){
 
   if( ! all( c('models.id'
                , 'cv_pairs.id'
@@ -36,7 +36,8 @@ f_predict_pl_regression = function( pl, cols_id = NULL){
   pl = pl %>%
     mutate( preds = pmap( list( test, fit, target)
                           , f_predict_regression_add_predictions
-                          , cols_id) )
+                          , cols_id
+                          , formula ) )
 }
 
 
@@ -299,6 +300,7 @@ f_predict_plot_model_performance_regression = function(data){
 #' m = rpart::rpart(disp~., df)
 #' pred = f_predict_regression_add_predictions(df, m, 'disp', 'names')
 #' pred
+#' @details works with HDtweedie, randomForest, rpart, e1071::svm
 #' @seealso
 #' \code{\link[modelr]{add_predictions}},\code{\link[modelr]{add_residuals}}
 #' @rdname f_predict_regression_add_predictions
@@ -311,42 +313,45 @@ f_predict_regression_add_predictions = function(data, m, col_target, cols_id = N
 
   data = as.tibble(data)
 
-  if( inherits(m, what = 'HDtweedie') ){
+  if( inherits(m, what = 'HDtweedie') |
+      inherits(m, what = 'glmnet')
+      ){
 
 
     if( is.null(formula) ){
-      stop('need formula to make predictions for HDtweedie model')
+      stop('need formula to make predictions for glmnet/HDtweedie model')
     }
 
     x = model.matrix(formula, data)[,-1]
 
-    pred = predict( m, newx = x)
+    if( inherits(m, what = 'HDtweedie') ){
+      pred = predict( m, newx = x)
+    }
 
-    data = data %>%
+    if( inherits(m, what = 'glmnet') ){
+      pred = predict( m, newx = x, type = 'response')
+    }
+
+    df = data %>%
       mutate( pred = pred
-             , resid = !! col_target_sym - pred)
+             , resid = (!! col_target_sym) - pred)
 
 
-  }
+  }else{
 
   df = data %>%
     modelr::add_predictions(m) %>%
-    modelr::add_residuals(m) %>%
-    mutate( target = !!col_target_sym )
+    modelr::add_residuals(m)
+  }
 
-    if ( ! is.null( cols_id ) ){
-
-      df = df %>%
-      select( one_of( c(cols_id, 'target', 'pred', 'resid') ) )
-
-    }
-
-    df = df %>%
-      mutate( resid_abs   = abs(resid)
-              , resid_squ = resid^2
-              , ape       = abs(resid/pred) * 100
-              , ape       = ifelse( is.na(ape), 0, ape )
-      )
+  df = df %>%
+  mutate( target = !!col_target_sym ) %>%
+  select( one_of( c( cols_id, 'target', 'pred', 'resid') ) ) %>%
+  mutate( resid_abs   = abs(resid)
+            , resid_squ = resid^2
+            , ape       = abs(resid/pred) * 100
+            , ape       = ifelse( is.na(ape), 0, ape )
+  )
 
   return(df)
 }
