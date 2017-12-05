@@ -309,7 +309,6 @@ f_predict_plot_model_performance_regression = function(data){
 #' @importFrom modelr add_predictions add_residuals
 f_predict_regression_add_predictions = function(data, m, col_target, cols_id = NULL, formula = NULL){
 
-
   col_target_sym = as.name(col_target)
 
   data = as.tibble(data)
@@ -318,17 +317,14 @@ f_predict_regression_add_predictions = function(data, m, col_target, cols_id = N
       inherits(m, what = 'glmnet')
       ){
 
-
     if( is.null(formula) ){
       stop('need formula to make predictions for glmnet/HDtweedie model')
     }
 
-    print(data)
-
     x = model.matrix(formula, data)[,-1]
 
     if( inherits(m, what = 'HDtweedie') ){
-      pred = predict( m, newx = x)
+      pred = predict( m, newx = x )
     }
 
     if( inherits(m, what = 'glmnet') ){
@@ -338,7 +334,6 @@ f_predict_regression_add_predictions = function(data, m, col_target, cols_id = N
     df = data %>%
       mutate( pred = pred
              , resid = (!! col_target_sym) - pred)
-
 
   }else{
 

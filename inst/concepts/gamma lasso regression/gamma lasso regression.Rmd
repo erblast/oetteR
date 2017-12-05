@@ -3,6 +3,8 @@ title: "Untitled"
 author: "OEB"
 date: "December 5, 2017"
 output: html_document
+editor_options: 
+  chunk_output_type: console
 ---
 
 ```{r setup, include=FALSE}
@@ -50,6 +52,7 @@ hist( scale(rgamma(146,0.2,2.65), center = T ) )
 ## Quine Data
 
 ```{r}
+
 require(oetteR)
 require(pipelearner)
 require(tidyverse)
@@ -60,80 +63,226 @@ data = MASS::quine %>%
 
 formula = Days~.
 
-grid = 10^seq(10,-4,length= 10)
+grid = 10^seq(4,-4,length= 100)
 
 call_cont = make_container_for_function_calls()
 call_cont$set_total(600)
 
-wr_tweedie = function(data, formula, lambda, p_fact ){
+lasso = function( data, formula, grid, call_cont){
 
-  response_var = f_manip_get_response_variable_from_formula(formula)
+  wr_tweedie = function(data, formula, lambda, p_fact ){
+  
+    response_var = f_manip_get_response_variable_from_formula(formula)
+  
+    y = data[[response_var]]
+    x = model.matrix(formula, data)[,-1]
+  
+    m = HDtweedie::HDtweedie(x,y, lambda = lambda, p = p_fact, alpha = 1 )
+  
+  }
+  
+  wr_glmnet = function(data, formula, lambda ){
+  
+    response_var = f_manip_get_response_variable_from_formula(formula)
+  
+    y = data[[response_var]]
+    x = model.matrix(formula, data)[,-1]
+  
+    m =glmnet::glmnet(x,y, lambda = lambda, alpha = 1 )
+  
+  }
+  
+  
+  pl = pipelearner(data) %>%
+    learn_models(models = c(call_cont$make_call)
+                 , formulas = c(formula)
+                 , .f = c(wr_tweedie)
+                 , function_name = c('tweedie')
+                 , lambda = grid
+                 , p_fact = c(1,1.5,2)
+                 ) %>%
+    learn_models(models = c(call_cont$make_call)
+                 , formulas = c(formula)
+                 , .f = c(wr_glmnet)
+                 , function_name = c('glmnet')
+                 , lambda = grid
+    ) %>%
+    learn_cvpairs( crossv_mc, n = 1, test = 0.01 ) %>%
+    learn()
+  
+  pl = pl %>%
+    mutate(  lambda = map_dbl(params, 'lambda')
+            , function_name = map_chr(params, 'function_name')
+            )
+  
+  pl_glm = pl %>%
+    filter( function_name == 'glmnet') %>%
+    mutate( p = -1
+            , coef = map(fit, coef )
+            , coef = map(coef, as.matrix )
+            , coef = map(coef, as.data.frame )
+            , coef = map(coef, function(x) mutate(x, coef = row.names(x))  )
+    )
+  
+  pl_tweedie = pl %>%
+    filter( function_name == 'tweedie') %>%
+    mutate( p = map_dbl(params, 'p_fact')
+            , coef = map(fit, coef )
+            , coef = map(coef, as.matrix )
+            , coef = map(coef, as.data.frame )
+            , coef = map(coef, function(x) mutate(x, coef = row.names(x))  )
+    )
+  
+  pl_all = pl_glm %>%
+    bind_rows(pl_tweedie) %>%
+    mutate( title = paste(function_name, lambda, p))
+  
+  return(pl_all)
+  
+}
 
-  y = data[[response_var]]
-  x = model.matrix(formula, data)[,-1]
 
-  m = HDtweedie::HDtweedie(x,y, lambda = lambda, p = p_fact )
+plot_rtmse = function( pl_all, newdata = 'train'){
+
+  pl_pred = pl_all %>%
+    f_predict_pl_regression(  formula = formula, newdata = newdata) %>%
+    unnest(preds, .drop = F)
+  
+  pl_lab = pl_pred %>%
+    group_by(title, lambda, p, models.id) %>%
+    summarize()
+  
+  pl_sum = pl_pred %>%
+    f_predict_pl_regression_summarize() %>%
+    left_join( pl_lab )
+  
+  p = ggplot(pl_sum, aes( log(lambda)
+                      , rtmse
+                      , fill = as.factor(p)
+                      , color = as.factor(p)
+                      )
+         )+
+    geom_line() +
+    scale_fill_manual( values = f_plot_col_vector74() )+
+    scale_color_manual( values = f_plot_col_vector74())
+  
+  
+  return( plotly::ggplotly(p) )
 
 }
 
-wr_glmnet = function(data, formula, lambda ){
+# pl_all = lasso(data, formula, grid, call_cont)
+# 
+# plot_rtmse(pl_all)
 
-  response_var = f_manip_get_response_variable_from_formula(formula)
-
-  y = data[[response_var]]
-  x = model.matrix(formula, data)[,-1]
-
-  m =glmnet::glmnet(x,y, lambda = lambda, alpha = 1 )
-
-}
+```
 
 
-pl = pipelearner(data) %>%
-  learn_models(models = c(call_cont$make_call)
-               , formulas = c(formula)
-               , .f = c(wr_tweedie)
-               , function_name = c('tweedie')
-               , lambda = grid
-               , p_fact = seq(1,2,0.1)
-               ) %>%
-  learn_models(models = c(call_cont$make_call)
-               , formulas = c(formula)
-               , .f = c(wr_glmnet)
-               , function_name = c('glmnet')
-               , lambda = grid
-  ) %>%
-  learn_cvpairs( crossv_mc, n = 1, test = 0.01 ) %>%
-  learn()
+Because the Data Set is quite small we are calculating rtmse against the training Data. Which is likely to overfit.
 
-pl = pl %>%
-  mutate(  lambda = map_dbl(params, 'lambda')
-          , function_name = map_chr(params, 'function_name')
+### Coefficients
+
+```{r}
+
+p_coef = pl_all %>%
+  unnest(coef, .drop = F ) %>%
+  group_by(coef, p, lambda) %>%
+  summarize( s0 = mean(s0) )
+
+
+p_coef %>%
+  filter( p == -1 ) %>%
+  ggplot( aes(x = log(lambda), y = s0, color = coef) ) +
+  geom_line()+
+  geom_point()
+
+p_coef %>%
+  filter( p == 1 ) %>%
+  ggplot( aes(x = log(lambda), y = s0, color = coef) ) +
+  geom_line()+
+  geom_point()
+
+p_coef %>%
+  filter( p == 1.5 ) %>%
+  ggplot( aes(x = log(lambda), y = s0, color = coef) ) +
+  geom_line()+
+  geom_point()
+
+
+
+```
+
+
+# Simulated Data
+
+```{r}
+
+data = tibble( resp = rgamma(5000,1) ) %>%
+  mutate( exp1 = rnorm(5000, 50,5)
+          , exp2 = resp +500 /3 * 22 
+          , exp3 = runif(5000,1,100)
+          , exp4 = resp * rnorm(5000)
           )
 
-pl_glm = pl %>%
-  filter( function_name == 'glmnet') %>%
-  mutate( p = -1
-          , coef = map(fit, coef )
-          , coef = map(coef, as.matrix )
-          , coef = map(coef, as.data.frame )
-          , coef = map(coef, function(x) mutate(x, coef = row.names(x))  )
-  )
+data_res = select(data, resp)
+data_exp = select(data, -resp) %>%
+  mutate_all(scale, center = T)
 
-pl_tweedie = pl %>%
-  filter( function_name == 'tweedie') %>%
-  mutate( p = map_dbl(params, 'p_fact')
-          , coef = map(fit, coef )
-          , coef = map(coef, as.matrix )
-          , coef = map(coef, as.data.frame )
-          , coef = map(coef, function(x) mutate(x, coef = row.names(x))  )
-  )
+data_scales = data_res %>%
+  bind_cols(data_exp)
 
-pl_all = pl_glm %>%
-  bind_rows(pl_tweedie) %>%
-  mutate( title = paste(function_name, lambda, p))
+formula = resp~.
+
+
+pl_all = lasso(data_scales, formula, grid, call_cont)
+
+plot_rtmse(pl_all, newdata = 'test')
+
+
+
+```
+
+## Coefficients
+
+```{r}
+
+p_coef = pl_all %>%
+  unnest(coef, .drop = F ) %>%
+  group_by(coef, p, lambda) %>%
+  summarize( s0 = mean(s0) )
+
+
+p = p_coef %>%
+  filter( p == -1 ) %>%
+  ggplot( aes(x = log(lambda), y = s0, color = coef) ) +
+  geom_line()+
+  geom_point()
+
+plotly::ggplotly(p)
+
+p_coef %>%
+  filter( p == 1.5 ) %>%
+  ggplot( aes(x = log(lambda), y = s0, color = coef) ) +
+  geom_line()+
+  geom_point()
+
+p_coef %>%
+  filter( p == 2 ) %>%
+  ggplot( aes(x = log(lambda), y = s0, color = coef) ) +
+  geom_line()+
+  geom_point()
+
+```
+
+
+For some reason the `glmnet` algorithm discards the variables exp1,exp3,exp4 to begin with and thus builds a better modell since exp2 seems to be the strongests predictor variable. There does not seem to be any obvious advantage of using tweedie distributions so far.
+
+## get minimum for lambda
+
+```{r}
 
 pl_pred = pl_all %>%
-  f_predict_pl_regression(  formula = formula, newdata = 'train')%>%
+  f_predict_pl_regression(  formula = formula, newdata = 'test') %>%
   unnest(preds, .drop = F)
 
 pl_lab = pl_pred %>%
@@ -142,21 +291,35 @@ pl_lab = pl_pred %>%
 
 pl_sum = pl_pred %>%
   f_predict_pl_regression_summarize() %>%
-  left_join( pl_lab )
+  left_join( pl_lab ) %>%
+  group_by(p) %>%
+  filter( rtmse == min(rtmse) ) %>%
+  select(p, lambda)
 
-p = ggplot(pl_sum, aes( log(lambda)
-                    , rtmse
-                    , fill = as.factor(p)
-                    , color = as.factor(p)
-                    )
-       )+
-  geom_line() +
-  geom_point() +
-  scale_fill_manual( values = f_plot_col_vector74() )+
-  scale_color_manual( values = f_plot_col_vector74())
+pl_min_lambda = pl_sum %>%
+  left_join(p_coef)
 
+```
 
-plotly::ggplotly(p)
+## fit models
+
+```{r}
+
+p_mod = pl_min_lambda %>%
+  filter( coef != '(Intercept)', s0 > 0 ) %>%
+  group_by( p ) %>%
+  summarise( formula = paste(coef, collapse = '+') ) %>%
+  mutate( formula = paste('resp~', formula)
+          , formula = map(formula, as.formula) 
+          )
+
+p_mod_lm = p_mod %>%
+  filter( p == - 1 ) %>%
+  mutate( m = map(formula, lm, data) )
+
+p_mod_tweed = p_mod %>%
+  filter( p != - 1 ) %>%
+  mutate( m = map(formula, p function(x,y,...) , data = data) )
 
 ```
 

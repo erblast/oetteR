@@ -32,6 +32,25 @@ test_that('add regression predictions to dataframe'
 
 })
 
+test_that('add regression predictions for training data to df'
+          ,{
+
+  form = as.formula( 'disp~cyl+mpg')
+
+  pl = mtcars %>%
+    mutate(names = row.names(.)) %>%
+    pipelearner::pipelearner() %>%
+    pipelearner::learn_models( twidlr::rpart, form ) %>%
+    pipelearner::learn_models( twidlr::randomForest, form ) %>%
+    pipelearner::learn_models( twidlr::svm, form ) %>%
+    pipelearner::learn() %>%
+    f_predict_pl_regression( 'names', newdata = 'train') %>%
+    unnest( preds , .drop = FALSE ) %>%
+    mutate( title = model ) %>%
+    f_predict_pl_regression_summarize()
+
+})
+
 
 test_that('plot model performance'
           ,{
