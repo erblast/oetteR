@@ -5,7 +5,8 @@
 \title{adds predictions, residuals, abolute residuals, squared residuals and
   absolute percent error to a dataframe.}
 \usage{
-f_predict_regression_add_predictions(data, m, col_target, cols_id = NULL)
+f_predict_regression_add_predictions(data, m, col_target, cols_id = NULL,
+  formula = NULL)
 }
 \arguments{
 \item{m}{regression model}
@@ -24,6 +25,9 @@ dataframe
 }
 \description{
 absolute percent error = (abs(resid/pred)*100 )
+}
+\details{
+works with HDtweedie, randomForest, rpart, e1071::svm
 }
 \examples{
 df = mtcars \%>\%

@@ -15,13 +15,12 @@
 #'   pipelearner::learn_models( twidlr::randomForest, form ) %>%
 #'   pipelearner::learn_models( twidlr::svm, form ) %>%
 #'   pipelearner::learn() %>%
-#'   f_predict_pl_regression( 'names' ) %>%
-#'   f_predict_pl_regression_summarize()
+#'   f_predict_pl_regression( 'names' )
 #' @rdname f_predict_pl_regression
 #' @export
 #' @seealso
 #' \code{\link{f_predict_regression_add_predictions}}
-f_predict_pl_regression = function( pl, cols_id = NULL, formula = NULL){
+f_predict_pl_regression = function( pl, cols_id = NULL, formula = NULL, newdata = 'test'){
 
   if( ! all( c('models.id'
                , 'cv_pairs.id'
@@ -33,8 +32,10 @@ f_predict_pl_regression = function( pl, cols_id = NULL, formula = NULL){
     stop('need learned pipelearner dataframe as input pl')
   }
 
+  sym_data = as.name(newdata)
+
   pl = pl %>%
-    mutate( preds = pmap( list( test, fit, target)
+    mutate( preds = pmap( list( !! sym_data, fit, target)
                           , f_predict_regression_add_predictions
                           , cols_id
                           , formula ) )
@@ -321,6 +322,8 @@ f_predict_regression_add_predictions = function(data, m, col_target, cols_id = N
     if( is.null(formula) ){
       stop('need formula to make predictions for glmnet/HDtweedie model')
     }
+
+    print(data)
 
     x = model.matrix(formula, data)[,-1]
 

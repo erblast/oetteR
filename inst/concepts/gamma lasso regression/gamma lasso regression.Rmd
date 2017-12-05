@@ -1,14 +1,64 @@
+---
+title: "Untitled"
+author: "OEB"
+date: "December 5, 2017"
+output: html_document
+---
 
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Regression Feature Selection
+
+To my understanding Feature Selection for regression was pretty straigth forward using stepwise regression. However I recently learned that this approach is [flawed](https://en.wikipedia.org/wiki/Stepwise_regression). The alternatively used method should be the Lasso. However most of the response variables I do regression for are not normally distributed and have a distribution that looks to my like a gamma or beta distribution. I recently had good results fitting a gamma regression model, beta distribution models did usually not converge to a minimum or did not improve the fit. It is however challenging to find an implementation of Lasso that works for a gamma regression. 
+
+# R Implementations for Lasso
+
+- `glmnet` does not support gamma regression but is the most used lasso implementation. [Documenatation](http://web.stanford.edu/~hastie/glmnet/glmnet_alpha.html)
+- `HDtweedie` a gamma regression is a [tweedie distribution](https://en.wikipedia.org/wiki/Tweedie_distribution) for `p == 2`, the package offers lasso for those distributions. [documentation](https://jasdumas.github.io/tech-short-papers/HDtweedie_lasso_tutorial.html)
+- `gamlss` offers Lasso and gamma regression. The way the predict.gamlss is implemented (expects fitting data to be present in global environment when calling predict) makes it difficult to integrate in functions. There also is no documentation.  
+
+# Example Data
+
+In order to test the Lasso implementations we should find or simulate a dataset with a gamma distributed response variable
+
+## The quine data set
+```{r}
+t = tibble( rate = seq(0.1,5, 0.05) 
+            , shape = list(seq(0.1,5, 0.1) ) 
+)%>%
+  unnest(shape)%>%
+  mutate( test = map2( rate, shape, function(x,y)  ks.test( MASS::quine$Days, 'pgamma', x, y ) ) 
+          ,p_val = map_dbl(test, 'p.value')
+          ,D = map_dbl(test,'statistic')
+  ) %>%
+  select(-test) 
+
+summary(t)
+
+t %>%
+  filter(p_val <= 0.0001 ) %>%
+  filter(D == min(D) )
+
+hist( scale(MASS::quine$Days, center = T) )
+hist( scale(rgamma(146,0.2,2.65), center = T ) )
+```
+
+# HDtweedie
+
+## Quine Data
+
+```{r}
 require(oetteR)
 require(pipelearner)
 require(tidyverse)
 
 
-data = ggplot2::diamonds %>%
-  select(-color, -clarity, -cut, -x,-y,-z) %>%
-  mutate_if( is.double, scale, center = T )
+data = MASS::quine %>%
+  as_tibble()
 
-formula = price~.
+formula = Days~.
 
 grid = 10^seq(10,-4,length= 10)
 
@@ -52,8 +102,7 @@ pl = pipelearner(data) %>%
                , function_name = c('glmnet')
                , lambda = grid
   ) %>%
-  learn_cvpairs( crossv_kfold, 5 ) %>%
-  #learn_cvpairs( crossv_mc, n = 1, test = 0.01 ) %>%
+  learn_cvpairs( crossv_mc, n = 1, test = 0.01 ) %>%
   learn()
 
 pl = pl %>%
@@ -84,7 +133,7 @@ pl_all = pl_glm %>%
   mutate( title = paste(function_name, lambda, p))
 
 pl_pred = pl_all %>%
-  f_predict_pl_regression( formula = formula)%>%
+  f_predict_pl_regression(  formula = formula, newdata = 'train')%>%
   unnest(preds, .drop = F)
 
 pl_lab = pl_pred %>%
@@ -109,30 +158,5 @@ p = ggplot(pl_sum, aes( log(lambda)
 
 plotly::ggplotly(p)
 
-
-
-
-p_coef = pl_all %>%
-  unnest(coef, .drop = F ) %>%
-  group_by(coef, p, lambda) %>%
-  summarize( s0 = mean(s0) )
-
-
-p_coef %>%
-  filter( p == -1 ) %>%
-  ggplot( aes(x = log(lambda), y = s0, color = coef) ) +
-  geom_line()+
-  geom_point()
-
-p_coef %>%
-  filter( p == 1.1 ) %>%
-  ggplot( aes(x = log(lambda), y = s0, color = coef) ) +
-  geom_line()+
-  geom_point()
-
-p_coef %>%
-  filter( p == 1.2 ) %>%
-  ggplot( aes(x = log(lambda), y = s0, color = coef) ) +
-  geom_line()+
-  geom_point()
+```
 
