@@ -219,7 +219,7 @@ p_coef %>%
 
 data = tibble( resp = rgamma(5000,1) ) %>%
   mutate( exp1 = rnorm(5000, 50,5)
-          , exp2 = resp +500 /3 * 22 
+          , exp2 = resp +500 /rnorm(5000) * 22 
           , exp3 = runif(5000,1,100)
           , exp4 = resp * rnorm(5000)
           )
@@ -252,13 +252,11 @@ p_coef = pl_all %>%
   summarize( s0 = mean(s0) )
 
 
-p = p_coef %>%
+p_coef %>%
   filter( p == -1 ) %>%
   ggplot( aes(x = log(lambda), y = s0, color = coef) ) +
   geom_line()+
   geom_point()
-
-plotly::ggplotly(p)
 
 p_coef %>%
   filter( p == 1.5 ) %>%
@@ -305,6 +303,18 @@ pl_min_lambda = pl_sum %>%
 
 ```{r}
 
+wr_tweedie = function(data, formula, lambda, p_fact ){
+
+  response_var = f_manip_get_response_variable_from_formula(formula)
+
+  y = data[[response_var]]
+  x = model.matrix(formula, data)[,-1]
+
+  m = HDtweedie::HDtweedie(x,y, lambda = lambda, p = p_fact, alpha = 1 )
+
+}
+
+
 p_mod = pl_min_lambda %>%
   filter( coef != '(Intercept)', s0 > 0 ) %>%
   group_by( p ) %>%
@@ -313,13 +323,62 @@ p_mod = pl_min_lambda %>%
           , formula = map(formula, as.formula) 
           )
 
+require(statmod)
+
 p_mod_lm = p_mod %>%
   filter( p == - 1 ) %>%
   mutate( m = map(formula, lm, data) )
 
 p_mod_tweed = p_mod %>%
-  filter( p != - 1 ) %>%
-  mutate( m = map(formula, p function(x,y,...) , data = data) )
+  filter( p %in% c(1,1.5) ) %>%
+  mutate( m = map2(formula
+                  , p
+                  , function(x,y) glm( x, data, family = tweedie(var.power = y) ) ) 
+          )
+
+p_mod_gamlss = p_mod %>%
+  filter( p == 2 ) %>%
+  mutate( m = map(formula
+                  , gamlss::gamlss
+                  , data = data
+                  , family = gamlss.dist::GA() 
+                  )                    
+          ) 
+
+
+wr_predict = function(m){
+  
+
+  
+}
+
+p_mod_pred = p_mod_lm %>%
+  bind_rows(p_mod_tweed) %>%
+  bind_rows(p_mod_gamlss) %>%
+  mutate( preds = map( m, predict)
+          , preds = map( preds, function(x) tibble( preds = x) ) 
+          , data = list(data) 
+          , preds = map2(preds, data, bind_cols ) ) %>%
+  select(-data, -formula) %>%
+  unnest(preds, .drop = F) %>%
+  mutate( rtmse = preds-resp 
+          ,rtmse = rtmse^2 ) %>%
+  group_by(p) %>%
+  summarise( mean_rtmse = sqrt( mean(rtmse) ) )
+
+
+m_lm = p_mod_lm$m[[1]]
+summary(m_lm)
+plot(m_lm)
+
+m_twe = p_mod_tweed$m[[1]]
+summary(m_twe)
+plot(m_twe)
+
+m_ga = p_mod_gamlss$m[[1]]
+summary(m_ga)
+plot(m_ga)
+
 
 ```
 
