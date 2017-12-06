@@ -97,8 +97,8 @@ make_container_for_function_calls = function(){
     if(print_progress) print( paste( 'Progress:', counter, '/', total, ';'
                                      , round(perc,1), '%', ';'
                                      , 'ETA:', time_predicted_min, 'min'
-                                     )
-                              )
+    )
+    )
 
 
     if( counter == total ) time_end <<- lubridate::now()
@@ -138,8 +138,8 @@ make_container_for_function_calls = function(){
                 , get_calls = get_calls
                 , get_counter = get_counter
                 , get_function_names = get_function_names
-               )
-         )
+  )
+  )
 
 
 }
@@ -385,11 +385,11 @@ f_train_lasso = function(data
                                , s0
                                , fill = as.factor(coef)
                                , color = as.factor(coef)
-                              )
-                  ) +
+  )
+  ) +
     geom_point(size = 1) +
     geom_line() +    geom_vline( data = pl_sum
-                , mapping = aes(xintercept = log(lambda) )
+                                 , mapping = aes(xintercept = log(lambda) )
     ) +
     facet_wrap(~p, scales = 'free' ) +
     scale_fill_manual( values = f_plot_col_vector74() )+
