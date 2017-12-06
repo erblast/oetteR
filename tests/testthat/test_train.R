@@ -59,3 +59,22 @@ test_that('test call container with pipelearner'
   expect_identical( sort(function_names), sort(call_cont$get_function_names() ) )
 
 })
+
+test_that('lasso',{
+
+  data = MASS::quine
+  data$zerovar = 1
+
+  formula = Days~Eth+Sex+Age+Lrn+zerovar
+
+  lasso = f_train_lasso(data, formula, p = NULL, k = 1
+                        , grid = 10^seq(3,-3,length= 25) )
+
+  lasso = f_train_lasso(data, formula, p = 1.5, k = 2
+                        , grid = 10^seq(3,-3,length= 25) )
+
+  lasso = f_train_lasso(data, formula, p = NULL, k = 2
+                        , grid = 10^seq(3,-3,length= 25) )
+
+  lasso
+})

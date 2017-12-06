@@ -11,6 +11,14 @@ editor_options:
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+```{r}
+require(oetteR)
+require(pipelearner)
+require(tidyverse)
+
+```
+
+
 # Regression Feature Selection
 
 To my understanding Feature Selection for regression was pretty straigth forward using stepwise regression. However I recently learned that this approach is [flawed](https://en.wikipedia.org/wiki/Stepwise_regression). The alternatively used method should be the Lasso. However most of the response variables I do regression for are not normally distributed and have a distribution that looks to my like a gamma or beta distribution. I recently had good results fitting a gamma regression model, beta distribution models did usually not converge to a minimum or did not improve the fit. It is however challenging to find an implementation of Lasso that works for a gamma regression. 
@@ -47,27 +55,10 @@ hist( scale(MASS::quine$Days, center = T) )
 hist( scale(rgamma(146,0.2,2.65), center = T ) )
 ```
 
-# HDtweedie
 
-## Quine Data
+# Functions
 
 ```{r}
-
-require(oetteR)
-require(pipelearner)
-require(tidyverse)
-
-
-data = MASS::quine %>%
-  as_tibble()
-
-formula = Days~.
-
-grid = 10^seq(4,-4,length= 100)
-
-call_cont = make_container_for_function_calls()
-call_cont$set_total(600)
-
 lasso = function( data, formula, grid, call_cont){
 
   wr_tweedie = function(data, formula, lambda, p_fact ){
@@ -171,9 +162,29 @@ plot_rtmse = function( pl_all, newdata = 'train'){
 
 }
 
-# pl_all = lasso(data, formula, grid, call_cont)
-# 
-# plot_rtmse(pl_all)
+```
+
+
+# HDtweedie
+
+## Quine Data
+
+```{r, eval = F}
+
+data = MASS::quine %>%
+  as_tibble()
+
+formula = Days~.
+
+grid = 10^seq(4,-4,length= 100)
+
+call_cont = make_container_for_function_calls()
+call_cont$set_total(400)
+
+
+pl_all = lasso(data, formula, grid, call_cont)
+
+plot_rtmse(pl_all)
 
 ```
 
@@ -182,7 +193,7 @@ Because the Data Set is quite small we are calculating rtmse against the trainin
 
 ### Coefficients
 
-```{r}
+```{r, eval = F}
 
 p_coef = pl_all %>%
   unnest(coef, .drop = F ) %>%
@@ -219,20 +230,33 @@ p_coef %>%
 
 data = tibble( resp = rgamma(5000,1) ) %>%
   mutate( exp1 = rnorm(5000, 50,5)
-          , exp2 = resp +500 /rnorm(5000) * 22 
-          , exp3 = runif(5000,1,100)
-          , exp4 = resp * rnorm(5000)
+          , exp2 = log(resp) ##non linear relationship
+          , exp3 = exp2 * rnorm(5000, 1, 0.5) # colinearity to exp2
+          , exp4 = resp * rgamma(5000, 0.5)
+          , exp5 = resp * rgamma(5000, 0.5) * rnorm(5000, 1, 0.5)
           )
+
+
 
 data_res = select(data, resp)
 data_exp = select(data, -resp) %>%
   mutate_all(scale, center = T)
-
 data_scales = data_res %>%
   bind_cols(data_exp)
 
+
+plot(data_scales$exp2, data_scales$resp)
+plot(data_scales$exp4, data_scales$resp)
+plot(data_scales$exp1, data_scales$resp)
+plot(data_scales$exp3, data_scales$resp)
+
+
+
+
 formula = resp~.
 
+call_cont = make_container_for_function_calls()
+call_cont$set_total(400)
 
 pl_all = lasso(data_scales, formula, grid, call_cont)
 
@@ -280,7 +304,7 @@ For some reason the `glmnet` algorithm discards the variables exp1,exp3,exp4 to 
 ```{r}
 
 pl_pred = pl_all %>%
-  f_predict_pl_regression(  formula = formula, newdata = 'test') %>%
+  f_predict_pl_regression(formula = formula, newdata = 'test') %>%
   unnest(preds, .drop = F)
 
 pl_lab = pl_pred %>%
@@ -302,17 +326,6 @@ pl_min_lambda = pl_sum %>%
 ## fit models
 
 ```{r}
-
-wr_tweedie = function(data, formula, lambda, p_fact ){
-
-  response_var = f_manip_get_response_variable_from_formula(formula)
-
-  y = data[[response_var]]
-  x = model.matrix(formula, data)[,-1]
-
-  m = HDtweedie::HDtweedie(x,y, lambda = lambda, p = p_fact, alpha = 1 )
-
-}
 
 
 p_mod = pl_min_lambda %>%
@@ -346,11 +359,6 @@ p_mod_gamlss = p_mod %>%
           ) 
 
 
-wr_predict = function(m){
-  
-
-  
-}
 
 p_mod_pred = p_mod_lm %>%
   bind_rows(p_mod_tweed) %>%

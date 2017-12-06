@@ -145,3 +145,262 @@ make_container_for_function_calls = function(){
 }
 
 
+#' @title wrapper for glmnet and HDtweedie
+#' @description performs lasso for different distributions, returns a list of
+#'   formulas that result in the lowest rtmse for at least one of the
+#'   distributions. Graphical output allows side-by-side comparison of lasso
+#'   behaviour for all distributions.
+#' @param data dataframe
+#' @param formula formula
+#' @param grid grid values for lambda, Default: 10^seq(4, -4, length = 100)
+#' @param p p parameter for tweedie distributions, set p = NULL for not
+#'   performing lasso for tweedie distributions, Default: c(1, 1.25, 1.5, 1.75,
+#'   2)
+#' @param k fold cross validation, set to 1 for testing against training data,
+#'   Default: 5
+#' @param family family parameter for glmnet, can be a vector, Default:
+#'   'gaussian'
+#' @return list()
+#' @details Columns containing NA will be removed, fomrula cannot be constructed
+#'   with '.'
+#' @examples
+#' data = MASS::quine
+#' formula = Days~.
+#'
+#' lasso = f_train_lasso(data, formula, p = NULL, k = 1
+#'                      , grid = 10^seq(3,-3,length= 25) )
+#' lasso = f_train_lasso(data, formula, p = 1.5, k = 2
+#'                      , grid = 10^seq(3,-3,length= 25) )
+#'
+#' lasso
+#' @seealso \code{\link[HDtweedie]{HDtweedie}} \code{\link[glmnet]{glmnet}}
+#'   \code{\link[pipelearner]{pipelearner}},\code{\link[pipelearner]{learn_models}},\code{\link[pipelearner]{learn_cvpairs}},\code{\link[pipelearner]{learn}}
+#'
+#'
+#'
+#'
+#' @rdname f_train_lasso
+#' @export
+#' @importFrom HDtweedie HDtweedie
+#' @importFrom glmnet glmnet
+#' @importFrom pipelearner pipelearner learn_models learn_cvpairs learn
+f_train_lasso = function(data
+                         , formula
+                         , grid = 10^seq(4,-4,length= 100)
+                         , p = c( 1, 1.25, 1.5, 1.75, 2 )
+                         , k = 5
+                         , family = "gaussian"
+                         , ... ){
+
+  # wrapper for pipelearner ----------------------------------------------
+
+  wr_tweedie = function(data, formula, lambda, p_fact ){
+
+    response_var = f_manip_get_response_variable_from_formula(formula)
+
+    y = data[[response_var]]
+    x = model.matrix(formula, data)[,-1]
+
+    m = HDtweedie::HDtweedie(x,y, lambda = lambda, p = p_fact, alpha = 1 )
+
+  }
+
+  wr_glmnet = function(data, formula, lambda, family ){
+
+    response_var = f_manip_get_response_variable_from_formula(formula)
+
+    data = as.data.frame(data)
+
+    y = data[[response_var]]
+    x = model.matrix(formula, data)[,-1]
+
+    m =glmnet::glmnet(x,y, lambda = lambda, alpha = 1, family = family )
+
+  }
+
+  # make call container for progress output-------------------------------
+
+  total_iterations = ( length(p)+1 ) * k * length(grid)
+
+  call_cont = make_container_for_function_calls()
+  call_cont$set_total(total_iterations)
+
+  # standardize data------------------------------------------------------
+
+  response_var = f_manip_get_response_variable_from_formula(formula)
+  vars = f_manip_get_variables_from_formula(formula)
+
+  data_res = select(data, one_of(response_var) )
+
+  data_exp = select(data, one_of(vars) )%>%
+    mutate_if( is.numeric, scale, center = T) %>%
+    select_if( function(x) ! any(is.na(x)) ) ## remove columns containing NA values
+
+  data = data_res %>%
+    bind_cols(data_exp)
+
+  new_formula = paste( response_var, '~', paste( names(data_exp), collapse = ' + ' ) ) %>%
+    as.formula()
+
+  # learn lasso-----------------------------------------------------------
+
+  pl = pipelearner::pipelearner(data) %>%
+    pipelearner::learn_models(models = c(call_cont$make_call)
+                              , formulas = c(new_formula)
+                              , .f = c(wr_glmnet)
+                              , function_name = c('glmnet')
+                              , lambda = grid
+                              , family = family
+    )
+
+  if( ! is.null(p) ){
+    pl = pl %>%
+      pipelearner::learn_models(models = c(call_cont$make_call)
+                                , formulas = c(new_formula)
+                                , .f = c(wr_tweedie)
+                                , function_name = c('tweedie')
+                                , lambda = grid
+                                , p_fact = p
+      )
+  }
+
+  if( k == 1){
+    pl = pl %>%
+      pipelearner::learn_cvpairs( pipelearner::crossv_mc, n = 1, test = 0.01)
+  }else{
+    pl = pl %>%
+      pipelearner::learn_cvpairs( pipelearner::crossv_kfold, k = k )
+  }
+
+  pl = pl %>%
+    pipelearner::learn() %>%
+    mutate(  lambda = map_dbl(params, 'lambda')
+             , function_name = map_chr(params, 'function_name')
+    )
+
+  pl_glm = pl %>%
+    filter( function_name == 'glmnet') %>%
+    mutate( p = map_chr(params, 'family')
+            , coef = map(fit, coef )
+            , coef = map(coef, as.matrix )
+            , coef = map(coef, as.data.frame )
+            , coef = map(coef, function(x) mutate(x, coef = row.names(x))  )
+    )
+
+  if( ! is.null(p) ){
+    pl_tweedie = pl %>%
+      filter( function_name == 'tweedie') %>%
+      mutate( p = map_dbl(params, 'p_fact')
+              , p = paste('Tweedie, p:', round(p,1) )
+              , coef = map(fit, coef )
+              , coef = map(coef, as.matrix )
+              , coef = map(coef, as.data.frame )
+              , coef = map(coef, function(x) mutate(x, coef = row.names(x))  )
+      )
+  }else{
+    pl_tweedie = NULL
+  }
+
+  pl_all = pl_glm %>%
+    bind_rows(pl_tweedie) %>%
+    mutate( title = paste(function_name, lambda, p))
+
+  # unpack coefficients -------------------------------------------------
+
+  pl_coef = pl_all %>%
+    unnest(coef, .drop = F ) %>%
+    group_by(coef, p, lambda) %>%
+    summarize( s0 = mean(s0) )
+
+  # construct formulas for minimum rtmse --------------------------------
+
+  if( k == 1){
+    pl_pred = pl_all %>%
+      f_predict_pl_regression(formula = new_formula, newdata = 'train')
+  }else{
+    pl_pred = pl_all %>%
+      f_predict_pl_regression(formula = new_formula, newdata = 'test')
+  }
+
+  pl_pred = pl_pred %>%
+    unnest(preds, .drop = F)
+
+  pl_lab = pl_pred %>%
+    group_by(title, lambda, p, models.id) %>%
+    summarize()
+
+  pl_pred_plot = pl_pred %>%
+    f_predict_pl_regression_summarize() %>%
+    left_join( pl_lab )
+
+  pl_sum = pl_pred_plot   %>%
+    group_by(p) %>%
+    filter( rtmse == min(rtmse) ) %>%
+    mutate( rwn = row_number() ) %>%
+    filter( rwn == 1 ) %>%
+    select(p, lambda)
+
+  pl_form = pl_sum %>%
+    left_join(pl_coef) %>%
+    filter( coef != '(Intercept)', ! near(s0,0) ) %>%
+    group_by( p ) %>%
+    summarise( formula = paste(coef, collapse = '+')
+               , n_coeff_after_lasso = n()
+               ) %>%
+    mutate( n_coeff_before_lasso = ncol( model.matrix(new_formula, data) )-1 )
+
+  formulas = pl_form %>%
+    group_by( formula ) %>%
+    summarise( p = paste(p, collapse = ' + ') ) %>% ##remove duplicate formulas
+    ungroup() %>%
+    mutate( formula = paste( response_var,'~', formula)
+            , formula = stringr::str_replace_all(formula, '\\.', '_')
+            , formula = stringr::str_replace_all(formula, ' ', '')
+            , formula = map(formula, as.formula)
+    ) %>%
+    .$formula
+
+  # plot ----------------------------------------------------------------
+
+
+  p_rtmse = ggplot(pl_pred_plot, aes( log(lambda)
+                                      , rtmse
+                                      , fill = as.factor(p)
+                                      , color = as.factor(p)
+  )
+  )+
+    geom_line() +
+    geom_point(size = 1) +
+    geom_vline( data = pl_sum
+                , mapping = aes(xintercept = log(lambda)
+                                , color = p)
+    ) +
+    scale_fill_manual( values = f_plot_col_vector74() )+
+    scale_color_manual( values = f_plot_col_vector74()) +
+    theme( legend.position = 'bottom')
+
+
+  p_coef = ggplot(pl_coef, aes(log(lambda)
+                               , s0
+                               , fill = as.factor(coef)
+                               , color = as.factor(coef)
+                              )
+                  ) +
+    geom_point(size = 1) +
+    geom_line() +    geom_vline( data = pl_sum
+                , mapping = aes(xintercept = log(lambda) )
+    ) +
+    facet_wrap(~p, scales = 'free' ) +
+    scale_fill_manual( values = f_plot_col_vector74() )+
+    scale_color_manual( values = f_plot_col_vector74()) +
+    theme( legend.position = 'bottom')
+
+  # return --------------------------------------------------------------
+
+  ret = list( plot_rtmse = p_rtmse
+              , plot_coef = p_coef
+              , formula_as_tib = pl_form
+              , formulas = formulas)
+
+  return(ret)
+}
