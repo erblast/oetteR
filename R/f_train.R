@@ -190,7 +190,7 @@ f_train_lasso = function(data
                          , p = c( 1, 1.25, 1.5, 1.75, 2 )
                          , k = 5
                          , family = "gaussian"
-                         , ... ){
+                         ){
 
   # wrapper for pipelearner ----------------------------------------------
 
@@ -348,18 +348,18 @@ f_train_lasso = function(data
     left_join(pl_fin_coef) %>%
     mutate( formula = map( formula, function(x) x[['coeff']] )
             , n_coeff_after_lasso = map_int( formula, length )
-            , n_coeff_before_lasso = length(vars)
+            , n_coeff_before_lasso = ncol( model.matrix(new_formula, data) ) - 1
             , formula = map( formula, stringr::str_replace_all, '\\.', '_')
             , formula = map( formula, stringr::str_replace_all, ' ', '_')
             , formula = map( formula, paste, collapse = ' + ')
             , formula = map( formula, function(x) ifelse( x == '', 1,x) )
             , formula = map( formula, function(x) paste( response_var, '~', x) )
-            , formula_str = formula
+            , formula_str = unlist(formula)
             , formula = map( formula, as.formula )
     ) %>%
     left_join( pl_pred_plot ) %>%
     left_join( pl_all ) %>%
-    select( p
+    select( distribution = p
             , lambda
             , rtmse
             , coef
@@ -373,51 +373,64 @@ f_train_lasso = function(data
     group_by(p) %>%
     filter( rtmse == min(rtmse) ) %>%
     filter( lambda == max(lambda) ) %>%
-    select(p, lambda) %>%
+    select( distribution = p
+            , lambda) %>%
     left_join( pl_fin )
 
 
   # plot ----------------------------------------------------------------
 
+  pl_min_plot = pl_min %>%
+    ungroup() %>%
+    mutate( lambda = log(lambda)
+            , distribution = as.factor(distribution) )
 
-  p_rtmse = ggplot(pl_pred_plot, aes( log(lambda)
-                                      , rtmse
-                                      , fill = as.factor(p)
-                                      , color = as.factor(p)
-  )
-  )+
+  p_rtmse = pl_pred_plot %>%
+    ungroup() %>%
+    mutate( lambda = log(lambda)
+            , distribution = as.factor(p) ) %>%
+    ggplot( aes( lambda
+            , rtmse
+            , fill = distribution
+            , color = distribution ) )+
     geom_line() +
     geom_point(size = 1) +
-    geom_vline( data = pl_sum
-                , mapping = aes(xintercept = log(lambda)
-                                , color = p)
-    ) +
+    geom_vline( data = pl_min_plot
+                , mapping = aes(xintercept = lambda
+                                , color = distribution ) ) +
     scale_fill_manual( values = f_plot_col_vector74() )+
     scale_color_manual( values = f_plot_col_vector74()) +
-    theme( legend.position = 'bottom')
+    theme( legend.position = 'bottom') +
+    labs( x = 'log lambda')
 
 
-  p_coef = ggplot(pl_coef, aes(log(lambda)
-                               , s0
-                               , fill = as.factor(coef)
-                               , color = as.factor(coef)
-  )
-  ) +
+  p_coef = pl_coef %>%
+    ungroup() %>%
+    mutate( lambda = log(lambda)
+            , coef = as.factor(coef)
+            , distribution = as.factor(p) ) %>%
+    ggplot( aes(lambda
+             , s0
+             , fill = coef
+             , color = coef ) ) +
     geom_point(size = 1) +
-    geom_line() +    geom_vline( data = pl_sum
-                                 , mapping = aes(xintercept = log(lambda) )
+    geom_line( ) +
+    geom_vline( data = pl_min_plot
+                , mapping = aes(xintercept = lambda )
     ) +
-    facet_wrap(~p, scales = 'free' ) +
+    facet_wrap(~distribution, scales = 'free' ) +
     scale_fill_manual( values = f_plot_col_vector74() )+
     scale_color_manual( values = f_plot_col_vector74()) +
-    theme( legend.position = 'bottom')
+    theme( legend.position = 'bottom') +
+    labs( y = 'normalized coefficient values'
+          ,x = 'log lambda')
 
   # return --------------------------------------------------------------
 
   ret = list( plot_rtmse = p_rtmse
               , plot_coef = p_coef
-              , formula_as_tib = pl_form
-              , formulas = formulas)
+              , tib_all = pl_fin
+              , tib_min = pl_min)
 
   return(ret)
 }
