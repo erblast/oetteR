@@ -29,199 +29,15 @@ To my understanding Feature Selection for regression was pretty straigth forward
 - `HDtweedie` a gamma regression is a [tweedie distribution](https://en.wikipedia.org/wiki/Tweedie_distribution) for `p == 2`, the package offers lasso for those distributions. [documentation](https://jasdumas.github.io/tech-short-papers/HDtweedie_lasso_tutorial.html)
 - `gamlss` offers Lasso and gamma regression. The way the predict.gamlss is implemented (expects fitting data to be present in global environment when calling predict) makes it difficult to integrate in functions. There also is no documentation.  
 
-# Example Data
+# `oetteR::f_train_lasso`
 
-In order to test the Lasso implementations we should find or simulate a dataset with a gamma distributed response variable
+I have written a wrapper function for `glmnet` and `HDtweedie` which is implemented in `oetteR`. The Implementation should make it easy to judge the feature reducing qualities of the lasso for different datasets.
 
-## The quine data set
-```{r}
-t = tibble( rate = seq(0.1,5, 0.05) 
-            , shape = list(seq(0.1,5, 0.1) ) 
-)%>%
-  unnest(shape)%>%
-  mutate( test = map2( rate, shape, function(x,y)  ks.test( MASS::quine$Days, 'pgamma', x, y ) ) 
-          ,p_val = map_dbl(test, 'p.value')
-          ,D = map_dbl(test,'statistic')
-  ) %>%
-  select(-test) 
+When building a model with a specific lambda value, the coefficients will vary for each cross validation pair. When I built my coefficient plot I have to calculate the mean of all coefficients for a specific lambda value. 
 
-summary(t)
+It would make sense to me if one would have a fixed value for the coefficients that would be tested against different cross validation pairs. I am also not sure whether the reduced set of variables that can be recommended by the Lasso algorithm is reliant on the exact values of the coefficients that come with it. My understanding is, that a new model, fit using the same variables as recommended, should result in a fit of similar quality. 
 
-t %>%
-  filter(p_val <= 0.0001 ) %>%
-  filter(D == min(D) )
-
-hist( scale(MASS::quine$Days, center = T) )
-hist( scale(rgamma(146,0.2,2.65), center = T ) )
-```
-
-
-# Functions
-
-```{r}
-lasso = function( data, formula, grid, call_cont){
-
-  wr_tweedie = function(data, formula, lambda, p_fact ){
-  
-    response_var = f_manip_get_response_variable_from_formula(formula)
-  
-    y = data[[response_var]]
-    x = model.matrix(formula, data)[,-1]
-  
-    m = HDtweedie::HDtweedie(x,y, lambda = lambda, p = p_fact, alpha = 1 )
-  
-  }
-  
-  wr_glmnet = function(data, formula, lambda ){
-  
-    response_var = f_manip_get_response_variable_from_formula(formula)
-  
-    y = data[[response_var]]
-    x = model.matrix(formula, data)[,-1]
-  
-    m =glmnet::glmnet(x,y, lambda = lambda, alpha = 1 )
-  
-  }
-  
-  
-  pl = pipelearner(data) %>%
-    learn_models(models = c(call_cont$make_call)
-                 , formulas = c(formula)
-                 , .f = c(wr_tweedie)
-                 , function_name = c('tweedie')
-                 , lambda = grid
-                 , p_fact = c(1,1.5,2)
-                 ) %>%
-    learn_models(models = c(call_cont$make_call)
-                 , formulas = c(formula)
-                 , .f = c(wr_glmnet)
-                 , function_name = c('glmnet')
-                 , lambda = grid
-    ) %>%
-    learn_cvpairs( crossv_mc, n = 1, test = 0.01 ) %>%
-    learn()
-  
-  pl = pl %>%
-    mutate(  lambda = map_dbl(params, 'lambda')
-            , function_name = map_chr(params, 'function_name')
-            )
-  
-  pl_glm = pl %>%
-    filter( function_name == 'glmnet') %>%
-    mutate( p = -1
-            , coef = map(fit, coef )
-            , coef = map(coef, as.matrix )
-            , coef = map(coef, as.data.frame )
-            , coef = map(coef, function(x) mutate(x, coef = row.names(x))  )
-    )
-  
-  pl_tweedie = pl %>%
-    filter( function_name == 'tweedie') %>%
-    mutate( p = map_dbl(params, 'p_fact')
-            , coef = map(fit, coef )
-            , coef = map(coef, as.matrix )
-            , coef = map(coef, as.data.frame )
-            , coef = map(coef, function(x) mutate(x, coef = row.names(x))  )
-    )
-  
-  pl_all = pl_glm %>%
-    bind_rows(pl_tweedie) %>%
-    mutate( title = paste(function_name, lambda, p))
-  
-  return(pl_all)
-  
-}
-
-
-plot_rtmse = function( pl_all, newdata = 'train'){
-
-  pl_pred = pl_all %>%
-    f_predict_pl_regression(  formula = formula, newdata = newdata) %>%
-    unnest(preds, .drop = F)
-  
-  pl_lab = pl_pred %>%
-    group_by(title, lambda, p, models.id) %>%
-    summarize()
-  
-  pl_sum = pl_pred %>%
-    f_predict_pl_regression_summarize() %>%
-    left_join( pl_lab )
-  
-  p = ggplot(pl_sum, aes( log(lambda)
-                      , rtmse
-                      , fill = as.factor(p)
-                      , color = as.factor(p)
-                      )
-         )+
-    geom_line() +
-    scale_fill_manual( values = f_plot_col_vector74() )+
-    scale_color_manual( values = f_plot_col_vector74())
-  
-  
-  return( plotly::ggplotly(p) )
-
-}
-
-```
-
-
-# HDtweedie
-
-## Quine Data
-
-```{r, eval = F}
-
-data = MASS::quine %>%
-  as_tibble()
-
-formula = Days~.
-
-grid = 10^seq(4,-4,length= 100)
-
-call_cont = make_container_for_function_calls()
-call_cont$set_total(400)
-
-
-pl_all = lasso(data, formula, grid, call_cont)
-
-plot_rtmse(pl_all)
-
-```
-
-
-Because the Data Set is quite small we are calculating rtmse against the training Data. Which is likely to overfit.
-
-### Coefficients
-
-```{r, eval = F}
-
-p_coef = pl_all %>%
-  unnest(coef, .drop = F ) %>%
-  group_by(coef, p, lambda) %>%
-  summarize( s0 = mean(s0) )
-
-
-p_coef %>%
-  filter( p == -1 ) %>%
-  ggplot( aes(x = log(lambda), y = s0, color = coef) ) +
-  geom_line()+
-  geom_point()
-
-p_coef %>%
-  filter( p == 1 ) %>%
-  ggplot( aes(x = log(lambda), y = s0, color = coef) ) +
-  geom_line()+
-  geom_point()
-
-p_coef %>%
-  filter( p == 1.5 ) %>%
-  ggplot( aes(x = log(lambda), y = s0, color = coef) ) +
-  geom_line()+
-  geom_point()
-
-
-
-```
+A next step could be to use the cross validation implementations that come with those packages. I expect those algorithms to be much faster than my cross validation approach based on `pipelearner`
 
 
 # Simulated Data
@@ -234,159 +50,66 @@ data = tibble( resp = rgamma(5000,1) ) %>%
           , exp3 = exp2 * rnorm(5000, 1, 0.5) # colinearity to exp2
           , exp4 = resp * rgamma(5000, 0.5)
           , exp5 = resp * rgamma(5000, 0.5) * rnorm(5000, 1, 0.5)
-          )
+  )
 
 
-
-data_res = select(data, resp)
-data_exp = select(data, -resp) %>%
-  mutate_all(scale, center = T)
-data_scales = data_res %>%
-  bind_cols(data_exp)
+form = resp~exp1+exp2+exp3+exp4+exp5
 
 
-plot(data_scales$exp2, data_scales$resp)
-plot(data_scales$exp4, data_scales$resp)
-plot(data_scales$exp1, data_scales$resp)
-plot(data_scales$exp3, data_scales$resp)
+lasso = f_train_lasso(data, form
+                      , grid = 10^seq(-3,3,length.out = 25)
+                      , p = c(1,1.25,1.5,1.75,2)
+                      , k = 10
+                      )
 
-
-
-
-formula = resp~.
-
-call_cont = make_container_for_function_calls()
-call_cont$set_total(400)
-
-pl_all = lasso(data_scales, formula, grid, call_cont)
-
-plot_rtmse(pl_all, newdata = 'test')
-
-
+f_datatable_universal(lasso$formula_as_tib)
 
 ```
-
-## Coefficients
 
 ```{r}
-
-p_coef = pl_all %>%
-  unnest(coef, .drop = F ) %>%
-  group_by(coef, p, lambda) %>%
-  summarize( s0 = mean(s0) )
-
-
-p_coef %>%
-  filter( p == -1 ) %>%
-  ggplot( aes(x = log(lambda), y = s0, color = coef) ) +
-  geom_line()+
-  geom_point()
-
-p_coef %>%
-  filter( p == 1.5 ) %>%
-  ggplot( aes(x = log(lambda), y = s0, color = coef) ) +
-  geom_line()+
-  geom_point()
-
-p_coef %>%
-  filter( p == 2 ) %>%
-  ggplot( aes(x = log(lambda), y = s0, color = coef) ) +
-  geom_line()+
-  geom_point()
-
+plotly::ggplotly(lasso$plot_rtmse)
 ```
 
-
-For some reason the `glmnet` algorithm discards the variables exp1,exp3,exp4 to begin with and thus builds a better modell since exp2 seems to be the strongests predictor variable. There does not seem to be any obvious advantage of using tweedie distributions so far.
-
-## get minimum for lambda
+Here we can see that the overall rtmse is lower for models fit with the tweedie distribution. We can however see that the minimum for all distributions is at the smallest lambda value for the tweedie distributions and at a very low value for the gaussian distribution. The lasso algorithm performs a initial fit to obtain the starting values for the coefficients, then the values of the coefficients are gradually decreases as lambda increases. We can see that the initial fit for the tweedie distributions already represents a near perfect fit and that overfitting effects do not decrease if the coefficients shrink. We find that for the gaussian distribution the initial fit contains an overfitting error that can be slightly reduced if the coefficients are decreased. 
 
 ```{r}
-
-pl_pred = pl_all %>%
-  f_predict_pl_regression(formula = formula, newdata = 'test') %>%
-  unnest(preds, .drop = F)
-
-pl_lab = pl_pred %>%
-  group_by(title, lambda, p, models.id) %>%
-  summarize()
-
-pl_sum = pl_pred %>%
-  f_predict_pl_regression_summarize() %>%
-  left_join( pl_lab ) %>%
-  group_by(p) %>%
-  filter( rtmse == min(rtmse) ) %>%
-  select(p, lambda)
-
-pl_min_lambda = pl_sum %>%
-  left_join(p_coef)
-
+plotly::ggplotly(lasso$plot_coef)
 ```
 
-## fit models
+In this plot we see the coefficient values and how they respond to increasing lambda values. The vertical line shows the lambda value at which we find the lowest cross validated rtmse value. 
+
+# Auto Data
+
+This Dataset comes with the HDtweedie package, the response variable has a typical tweedie p:1.5 distribution.
 
 ```{r}
+library(HDtweedie)
+data('auto')
 
 
-p_mod = pl_min_lambda %>%
-  filter( coef != '(Intercept)', s0 > 0 ) %>%
-  group_by( p ) %>%
-  summarise( formula = paste(coef, collapse = '+') ) %>%
-  mutate( formula = paste('resp~', formula)
-          , formula = map(formula, as.formula) 
-          )
+data = tibble( resp = auto$y ) %>%
+  bind_cols( as_tibble( scale(auto$x) ) ) 
 
-require(statmod)
-
-p_mod_lm = p_mod %>%
-  filter( p == - 1 ) %>%
-  mutate( m = map(formula, lm, data) )
-
-p_mod_tweed = p_mod %>%
-  filter( p %in% c(1,1.5) ) %>%
-  mutate( m = map2(formula
-                  , p
-                  , function(x,y) glm( x, data, family = tweedie(var.power = y) ) ) 
-          )
-
-p_mod_gamlss = p_mod %>%
-  filter( p == 2 ) %>%
-  mutate( m = map(formula
-                  , gamlss::gamlss
-                  , data = data
-                  , family = gamlss.dist::GA() 
-                  )                    
-          ) 
+form = paste( 'resp~', paste( colnames(auto$x), collapse = '+' ) ) %>%
+  as.formula()
 
 
+lasso = f_train_lasso(data, form
+                      , grid = 10^seq(-3,3,length.out = 25)
+                      , p = c(1,1.5,2)
+                      , k = 5
+                      )
 
-p_mod_pred = p_mod_lm %>%
-  bind_rows(p_mod_tweed) %>%
-  bind_rows(p_mod_gamlss) %>%
-  mutate( preds = map( m, predict)
-          , preds = map( preds, function(x) tibble( preds = x) ) 
-          , data = list(data) 
-          , preds = map2(preds, data, bind_cols ) ) %>%
-  select(-data, -formula) %>%
-  unnest(preds, .drop = F) %>%
-  mutate( rtmse = preds-resp 
-          ,rtmse = rtmse^2 ) %>%
-  group_by(p) %>%
-  summarise( mean_rtmse = sqrt( mean(rtmse) ) )
-
-
-m_lm = p_mod_lm$m[[1]]
-summary(m_lm)
-plot(m_lm)
-
-m_twe = p_mod_tweed$m[[1]]
-summary(m_twe)
-plot(m_twe)
-
-m_ga = p_mod_gamlss$m[[1]]
-summary(m_ga)
-plot(m_ga)
-
+f_datatable_universal(lasso$formula_as_tib)
 
 ```
+
+```{r}
+plotly::ggplotly(lasso$plot_rtmse)
+```
+
+```{r}
+plotly::ggplotly(lasso$plot_coef)
+```
+
 

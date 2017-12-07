@@ -34,7 +34,8 @@ performs lasso for different distributions, returns a list of
   behaviour for all distributions.
 }
 \details{
-DETAILS
+Columns containing NA will be removed, fomrula cannot be constructed
+  with '.'
 }
 \examples{
 data = MASS::quine
