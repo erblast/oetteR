@@ -87,11 +87,10 @@ test_that('faster lasso',{
 
   formula = Days~Eth+Sex+Age+Lrn+zerovar
 
-  lasso = f_train_lasso_faster(data, formula, p = NULL, k = 1  )
+  lasso = f_train_lasso_faster(data, formula, p = NULL, k = 3)
 
-  lasso = f_train_lasso_faster(data, formula, p = 1.5, k = 2 )
-
-  lasso = f_train_lasso_faster(data, formula, p = NULL, k = 2)
+  lasso = f_train_lasso_faster(data, formula, p = 1.5, k = 3,
+                               lambda = 10^seq(3,-3,length= 25) )
 
   lasso
 })

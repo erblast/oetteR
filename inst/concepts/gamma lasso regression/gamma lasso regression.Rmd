@@ -29,16 +29,21 @@ To my understanding Feature Selection for regression was pretty straigth forward
 - `HDtweedie` a gamma regression is a [tweedie distribution](https://en.wikipedia.org/wiki/Tweedie_distribution) for `p == 2`, the package offers lasso for those distributions. [documentation](https://jasdumas.github.io/tech-short-papers/HDtweedie_lasso_tutorial.html)
 - `gamlss` offers Lasso and gamma regression. The way the predict.gamlss is implemented (expects fitting data to be present in global environment when calling predict) makes it difficult to integrate in functions. There also is no documentation.  
 
-# `oetteR::f_train_lasso`
+# `oetteR::f_train_lasso` and `oetteR::f_train_lasso_faster`
 
-I have written a wrapper function for `glmnet` and `HDtweedie` which is implemented in `oetteR`. The Implementation should make it easy to judge the feature reducing qualities of the lasso for different datasets.
+I have written a wrapper functions for `glmnet` and `HDtweedie` which is implemented in `oetteR`. The Implementation should make it easy to judge the feature reducing qualities of the lasso for different datasets.
 
-When building a model with a specific lambda value, the coefficients will vary for each cross validation pair. When I built my coefficient plot I have to calculate the mean of all coefficients for a specific lambda value. 
+The first function (regular) does the cross validation manually using the `pipelearner` approach while the second one (fast) uses the cross validation implementation that comes with the packages which makes it a lot faster. 
+
+When building a model with a specific lambda value using the regular function , the coefficients will vary for each cross validation pair. When I built my coefficient plot I have to calculate the mean of all coefficients for a specific lambda value. I am not sure how this is handled in the first version
 
 It would make sense to me if one would have a fixed value for the coefficients that would be tested against different cross validation pairs. I am also not sure whether the reduced set of variables that can be recommended by the Lasso algorithm is reliant on the exact values of the coefficients that come with it. My understanding is, that a new model, fit using the same variables as recommended, should result in a fit of similar quality. 
 
-A next step could be to use the cross validation implementations that come with those packages. I expect those algorithms to be much faster than my cross validation approach based on `pipelearner`
+The fast version returns a model that is supposed to be built on the entire dataset for each tested lambda value. I am not sure whether is uses the fixed coefficients or if it only takes the coefficients greater than zero to fit them anew.
 
+The fast version also calculates the the maximum lambda value whose cv error is within range of 1 SE of the lambda value with the lowest cv error.
+
+Here we want to compare the two functions and their usability for different datasets.
 
 # Simulated Data
 
@@ -56,25 +61,49 @@ data = tibble( resp = rgamma(5000,1) ) %>%
 form = resp~exp1+exp2+exp3+exp4+exp5
 
 
-lasso = f_train_lasso(data, form
+lasso_fast = f_train_lasso_faster(data, form
+                      , lambda = 10^seq(-3,3,length.out = 25)
+                      , p = c(1,1.25,1.5,1.75,2)
+                      , k = 10 )
+
+lasso_reg = f_train_lasso(data, form
                       , grid = 10^seq(-3,3,length.out = 25)
                       , p = c(1,1.25,1.5,1.75,2)
                       , k = 10
                       )
 
-f_datatable_universal(lasso$formula_as_tib)
 
 ```
 
+## Regular rtmse plot
 ```{r}
-plotly::ggplotly(lasso$plot_rtmse)
+plotly::ggplotly(lasso_reg$plot_rtmse)
 ```
+
+## Fast rtmse plot
+```{r}
+plotly::ggplotly(lasso_fast$plot_rtmse)
+```
+
 
 Here we can see that the overall rtmse is lower for models fit with the tweedie distribution. We can however see that the minimum for all distributions is at the smallest lambda value for the tweedie distributions and at a very low value for the gaussian distribution. The lasso algorithm performs a initial fit to obtain the starting values for the coefficients, then the values of the coefficients are gradually decreases as lambda increases. We can see that the initial fit for the tweedie distributions already represents a near perfect fit and that overfitting effects do not decrease if the coefficients shrink. We find that for the gaussian distribution the initial fit contains an overfitting error that can be slightly reduced if the coefficients are decreased. 
 
+Both functions seem to give similar results
+
+## Regular coefficients plot
+
 ```{r}
-plotly::ggplotly(lasso$plot_coef)
+plotly::ggplotly(lasso_reg$plot_coef)
 ```
+
+
+## Fast coefficients plot
+
+```{r}
+plotly::ggplotly(lasso_fast$plot_coef)
+```
+
+
 
 In this plot we see the coefficient values and how they respond to increasing lambda values. The vertical line shows the lambda value at which we find the lowest cross validated rtmse value. 
 
@@ -93,6 +122,10 @@ data = tibble( resp = auto$y ) %>%
 form = paste( 'resp~', paste( colnames(auto$x), collapse = '+' ) ) %>%
   as.formula()
 
+lasso_fast = f_train_lasso_faster(data, form
+                      , lambda = 10^seq(-3,3,length.out = 25)
+                      , p = c(1,1.25,1.5,1.75,2)
+                      , k = 10 )
 
 lasso = f_train_lasso(data, form
                       , grid = 10^seq(-3,3,length.out = 25)
@@ -100,16 +133,15 @@ lasso = f_train_lasso(data, form
                       , k = 5
                       )
 
-f_datatable_universal(lasso$formula_as_tib)
 
 ```
 
 ```{r}
-plotly::ggplotly(lasso$plot_rtmse)
+plotly::ggplotly(lasso_fast$plot_rtmse)
 ```
 
 ```{r}
-plotly::ggplotly(lasso$plot_coef)
+plotly::ggplotly(lasso_fast$plot_coef)
 ```
 
 
