@@ -307,14 +307,16 @@ f_predict_plot_model_performance_regression = function(data){
 #' @rdname f_predict_regression_add_predictions
 #' @export
 #' @importFrom modelr add_predictions add_residuals
-f_predict_regression_add_predictions = function(data, m, col_target, cols_id = NULL, formula = NULL){
+f_predict_regression_add_predictions = function(data, m, col_target, cols_id = NULL, formula = NULL, ...){
 
   col_target_sym = as.name(col_target)
 
   data = as.tibble(data)
 
   if( inherits(m, what = 'HDtweedie') |
-      inherits(m, what = 'glmnet')
+      inherits(m, what = 'glmnet') |
+      inherits(m, what = 'cv.HDtweedie') |
+      inherits(m, what = 'cv.glmnet')
       ){
 
     if( is.null(formula) ){
@@ -324,11 +326,11 @@ f_predict_regression_add_predictions = function(data, m, col_target, cols_id = N
     x = model.matrix(formula, data)[,-1]
 
     if( inherits(m, what = 'HDtweedie') ){
-      pred = predict( m, newx = x )
+      pred = predict( m, newx = x , ...)
     }
 
     if( inherits(m, what = 'glmnet') ){
-      pred = predict( m, newx = x, type = 'response')
+      pred = predict( m, newx = x, type = 'response', ...)
     }
 
     df = data %>%

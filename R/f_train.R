@@ -541,7 +541,7 @@ f_train_lasso = function(data
   data_res = select(data, one_of(response_var) )
 
   data_exp = select(data, one_of(vars) )%>%
-    mutate_if( is.numeric, scale, center = T) %>%
+    # mutate_if( is.numeric, scale, center = T) %>%
     select_if( function(x) ! any(is.na(x)) ) ## remove columns containing NA values
 
   data = data_res %>%
@@ -616,7 +616,7 @@ f_train_lasso = function(data
 
 
   pl_fin = pl_all %>%
-    mutate( formula = map(formula, filter, coef != 'Intercept' )
+    mutate( formula = map(formula, filter, coef != '(Intercept)' )
             , formula = map(formula, filter,  ! near( value, 0) )
             , formula = map(formula, 'coef')
             , n_coeff_after_lasso = map_int( formula, length )
@@ -688,7 +688,7 @@ f_train_lasso = function(data
     geom_vline( data = pl_lambda_min
                 , mapping = aes(xintercept = lambda_value )
                 , linetype = 2 ) +
-    facet_wrap(~distribution, scales = 'free' ) +
+    facet_wrap(~distribution, scales = 'free', ncol = 1 ) +
     scale_fill_manual( values = f_plot_col_vector74() )+
     scale_color_manual( values = f_plot_col_vector74()) +
     theme( legend.position = 'bottom') +
@@ -697,9 +697,9 @@ f_train_lasso = function(data
 
   # return --------------------------------------------------------------
 
-  ret = list( plot_rtmse = p_rtmse
+  ret = list( plot_mse = p_rtmse
               , plot_coef = p_coef
-              , tib_all = pl_all
+              , tib_all = pl_fin
   )
 
   return(ret)

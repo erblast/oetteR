@@ -279,3 +279,76 @@ f_manip_append_2_list = function(l, x){
   return(l)
 
 }
+
+#' @title brings data to model.matrix format
+#' @description model.matrix() creates dummy variables for factors. The names of
+#'   these dummy variables however are not compatible with the formula syntax.
+#'   This wrapper cleans up the names of the new variables.
+#' @param data a dataframe
+#' @param formula formula
+#' @return list with new dataframe and new formula
+#' @examples
+#'
+#' data_ls = f_clean_data(mtcars)
+#' data = data_ls$data
+#' formula = hp ~ disp + am + gear
+#' data_trans = f_manip_data_2_model_matrix_format( data, formula )
+#' response_var =f_manip_get_response_variable_from_formula(data_trans$formula)
+#' vars = f_manip_get_variables_from_formula(data_trans$formula)
+#' x = as.matrix( select( data_trans$data, one_of(vars) ) )
+#' y = data_trans$data[[response_var]]
+#' glmnet::glmnet( x , y )
+#'
+#' @seealso \code{\link[stringr]{str_replace_all}}
+#' @rdname f_manip_data_2_model_matrix_format
+#' @export
+#' @importFrom stringr str_replace_all
+f_manip_data_2_model_matrix_format = function(data, formula, scale_data = T, center_data = T){
+
+  data = as_tibble(data)
+
+  vars = f_manip_get_variables_from_formula(formula)
+  response_var = f_manip_get_response_variable_from_formula(formula)
+
+  data_trans = select(data, one_of( c(response_var, vars ) ) )
+
+  if( scale_data == T){
+    data_pred = data_trans %>%
+      select( one_of(vars) ) %>%
+      mutate_if( is.numeric, scale, center = center_data)
+
+    data_trans = data_trans %>%
+      select( one_of(response_var) ) %>%
+      bind_cols( data_pred )
+  }
+
+  data_keep  = select(data, - one_of( c(response_var, vars ) ) )
+
+  matrix_trans = model.matrix(formula, data_trans) %>%
+    as_tibble %>%
+    select( - one_of( '(Intercept)' ) )
+
+  #correct names
+
+  new_names = names(matrix_trans) %>%
+    stringr::str_replace_all( '\\.', '_' ) %>%
+    stringr::str_replace_all( ' ', '_' )
+
+  names(matrix_trans) = new_names
+
+  new_formula = paste( response_var, '~', paste(new_names, collapse = ' + ') ) %>%
+    as.formula
+
+  data_new = select(data, one_of(response_var) ) %>%
+    bind_cols( matrix_trans ) %>%
+    bind_cols( data_keep )
+
+  return( list( data = data_new, formula = new_formula ) )
+
+}
+
+
+
+
+
+

@@ -473,36 +473,47 @@ f_plot_pretty_points = function(df
   df = as.data.frame(df)
 
 
-  #add first principle component
+  add_pc1_and_density = function(df){
 
-  pca_ls = f_pca( f_boxcox( f_clean_data( df ) ), include_ordered_categoricals = F )
+    #add first principle component
 
-  df$PC1 = pca_ls$pca$x[['PC1']]
+    pca_ls = f_pca( f_boxcox( f_clean_data( df ) ), include_ordered_categoricals = F )
+
+    df$PC1 = pca_ls$pca$x[['PC1']]
 
 
-  # add density  for facet
+    # add density  for facet
 
-  if ( ! is.null(col_facet) ){
+    if ( ! is.null(col_facet) ){
+
+      df = df %>%
+        group_by( !! sym_facet )
+    }
+
 
     df = df %>%
-      group_by( !! sym_facet )
-
-
+      mutate( density = list(fields::interp.surface( MASS::kde2d( !! sym_x
+                                                                  , !! sym_y
+                                                                  )
+                                                    , data.frame( !! sym_x, !! sym_y )
+                                                    )
+                              )
+              , row_number = row_number()
+              , density = unlist(density)[row_number]
+              , density = ifelse(density < 1e-25, 1e-25, density) ## ggplot cannot handle extreme values
+    )
   }
 
+  safe_log = safely( add_pc1_and_density )
+  log = safe_log(df)
 
-  df = df %>%
-    mutate( density = list(fields::interp.surface( MASS::kde2d( !! sym_x
-                                                                , !! sym_y
-                                                                )
-                                                  , data.frame( !! sym_x, !! sym_y )
-                                                  )
-                            )
-            , row_number = row_number()
-            , density = unlist(density)[row_number]
-            , density = ifelse(density < 1e-25, 1e-25, density) ## ggplot cannot handle extreme values
-    )
-
+  if( is.null(log$result) ){
+    df = df %>%
+      mutate( density = 1
+              , PC1 = 1 )
+  }else{
+    df = log$result
+  }
 
   p = ggplot(df, aes_string( col_x, col_y, color = 'PC1') ) +
     geom_point( aes( alpha = 1/density ), size = size ) +

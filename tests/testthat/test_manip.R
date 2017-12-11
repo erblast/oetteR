@@ -91,3 +91,22 @@ test_that('f_manip_append_2_list'
    expect_true( length(l) == 3 )
 })
 
+
+test_that('f_manip_data_2_model_matrix_format'
+  ,{
+
+ data = mtcars
+ formula = cyl ~ disp + am
+ data_trans = f_manip_data_2_model_matrix_format( data, formula)
+
+ data_ls = f_clean_data(mtcars)
+ data = data_ls$data
+ formula = cyl ~ disp + am + gear
+ data_trans = f_manip_data_2_model_matrix_format( data, formula)
+
+ data = mtcars
+ data$names = row.names(data)
+ formula = cyl ~ names
+ data_trans = f_manip_data_2_model_matrix_format( data, formula)
+
+})

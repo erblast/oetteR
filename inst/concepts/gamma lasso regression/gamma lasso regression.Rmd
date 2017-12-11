@@ -33,16 +33,6 @@ To my understanding Feature Selection for regression was pretty straigth forward
 
 I have written a wrapper functions for `glmnet` and `HDtweedie` which is implemented in `oetteR`. The Implementation should make it easy to judge the feature reducing qualities of the lasso for different datasets.
 
-The first function (regular) does the cross validation manually using the `pipelearner` approach while the second one (fast) uses the cross validation implementation that comes with the packages which makes it a lot faster. 
-
-When building a model with a specific lambda value using the regular function , the coefficients will vary for each cross validation pair. When I built my coefficient plot I have to calculate the mean of all coefficients for a specific lambda value. I am not sure how this is handled in the first version
-
-It would make sense to me if one would have a fixed value for the coefficients that would be tested against different cross validation pairs. I am also not sure whether the reduced set of variables that can be recommended by the Lasso algorithm is reliant on the exact values of the coefficients that come with it. My understanding is, that a new model, fit using the same variables as recommended, should result in a fit of similar quality. 
-
-The fast version returns a model that is supposed to be built on the entire dataset for each tested lambda value. I am not sure whether is uses the fixed coefficients or if it only takes the coefficients greater than zero to fit them anew.
-
-The fast version also calculates the the maximum lambda value whose cv error is within range of 1 SE of the lambda value with the lowest cv error.
-
 Here we want to compare the two functions and their usability for different datasets.
 
 # Simulated Data
@@ -57,55 +47,102 @@ data = tibble( resp = rgamma(5000,1) ) %>%
           , exp5 = resp * rgamma(5000, 0.5) * rnorm(5000, 1, 0.5)
   )
 
-
 form = resp~exp1+exp2+exp3+exp4+exp5
 
+data_trans = f_manip_data_2_model_matrix_format(data, form)
 
-lasso_fast = f_train_lasso_faster(data, form
+new_data = data_trans$data
+new_formula =  data_trans$formula
+
+
+lasso = f_train_lasso(new_data, new_formula
                       , lambda = 10^seq(-3,3,length.out = 25)
                       , p = c(1,1.25,1.5,1.75,2)
                       , k = 10 )
 
-lasso_reg = f_train_lasso(data, form
-                      , grid = 10^seq(-3,3,length.out = 25)
-                      , p = c(1,1.25,1.5,1.75,2)
-                      , k = 10
-                      )
-
 
 ```
 
-## Regular rtmse plot
+## Plot mse
 ```{r}
-plotly::ggplotly(lasso_reg$plot_rtmse)
+plotly::ggplotly(lasso$plot_mse)
 ```
 
-## Fast rtmse plot
+## Plot coefficients
 ```{r}
-plotly::ggplotly(lasso_fast$plot_rtmse)
+plotly::ggplotly(lasso$plot_coef)
 ```
 
+## Fit regression models
 
-Here we can see that the overall rtmse is lower for models fit with the tweedie distribution. We can however see that the minimum for all distributions is at the smallest lambda value for the tweedie distributions and at a very low value for the gaussian distribution. The lasso algorithm performs a initial fit to obtain the starting values for the coefficients, then the values of the coefficients are gradually decreases as lambda increases. We can see that the initial fit for the tweedie distributions already represents a near perfect fit and that overfitting effects do not decrease if the coefficients shrink. We find that for the gaussian distribution the initial fit contains an overfitting error that can be slightly reduced if the coefficients are decreased. 
-
-Both functions seem to give similar results
-
-## Regular coefficients plot
+Model building does not converge for p >= 1.75
 
 ```{r}
-plotly::ggplotly(lasso_reg$plot_coef)
+
+formulas_df = lasso$tib_all %>%
+  filter( lambda == lambda_1se ) %>%
+  select( n_coeff_before_lasso
+          , n_coeff_after_lasso
+          , formula_str
+          , formula ) %>%
+  group_by( formula_str ) %>%
+  summarise() %>%
+  mutate( formula = map(formula_str, as.formula) )
+
+wr_glm = function(formula, data, var_power){
+  
+  m = glm(formula, data, family = statmod::tweedie(var.power = var_power))
+  
+}
+
+wr_gamlss = function( formula, data ){
+  
+gamlss::gamlss(formula, data = data, family = gamlss.dist::GA() )
+  
+}
+
+pl = pipelearner::pipelearner(new_data) %>%
+  learn_cvpairs( pipelearner::crossv_kfold, k = 10 ) %>%
+  learn_models( lm, formulas = formulas_df$formula ) %>%
+  learn_models( lm, formulas = resp ~ 1 ) %>%
+  learn_models( wr_glm
+                , formulas = formulas_df$formula
+                , var_power = c(1,1.25,1.5)
+                ) %>%
+  learn()
+
+pl_pred = pl %>%
+  f_predict_pl_regression() %>%
+  mutate( title = map2_chr( model, models.id, paste )  )
+
+
+pl_sum = pl_pred %>%
+  unnest(preds, .drop = F) %>%
+  f_predict_pl_regression_summarize()
+
+
+taglist = pl_pred %>%
+  unnest(preds, .drop = F) %>%
+  mutate( bins = cut(target1, breaks = 5) ) %>%
+  f_predict_plot_model_performance_regression()
+
+
+
+
+#f_plot_obj_2_html(taglist, 'taglist', 'perf_sim_data')
+
 ```
 
-
-## Fast coefficients plot
+## Model Performance
 
 ```{r}
-plotly::ggplotly(lasso_fast$plot_coef)
+taglist
+
+#f_plot_obj_2_html(taglist, 'taglist', 'perf_sim_data')
+
 ```
 
 
-
-In this plot we see the coefficient values and how they respond to increasing lambda values. The vertical line shows the lambda value at which we find the lowest cross validated rtmse value. 
 
 # Auto Data
 
@@ -122,26 +159,114 @@ data = tibble( resp = auto$y ) %>%
 form = paste( 'resp~', paste( colnames(auto$x), collapse = '+' ) ) %>%
   as.formula()
 
-lasso_fast = f_train_lasso_faster(data, form
+
+data_trans = f_manip_data_2_model_matrix_format(data, form)
+
+new_data = data_trans$data
+new_formula =  data_trans$formula
+
+
+lasso = f_train_lasso(new_data, new_formula
                       , lambda = 10^seq(-3,3,length.out = 25)
                       , p = c(1,1.25,1.5,1.75,2)
                       , k = 10 )
 
-lasso = f_train_lasso(data, form
-                      , grid = 10^seq(-3,3,length.out = 25)
-                      , p = c(1,1.5,2)
-                      , k = 5
-                      )
-
 
 ```
+
+## Plot mse
+```{r}
+plotly::ggplotly(lasso$plot_mse)
+```
+
+## Plot coefficients
+```{r}
+plotly::ggplotly(lasso$plot_coef)
+```
+
+## Fit regression models
+
+Model building does not converge for p >= 1.75
 
 ```{r}
-plotly::ggplotly(lasso_fast$plot_rtmse)
+
+formulas_df = lasso$tib_all %>%
+  filter( lambda == lambda_1se ) %>%
+  select( n_coeff_before_lasso
+          , n_coeff_after_lasso
+          , formula_str
+          , formula ) %>%
+  group_by( formula_str ) %>%
+  summarise() %>%
+  mutate( formula = map(formula_str, as.formula) )
+
+
+pl = pipelearner::pipelearner(new_data) %>%
+  learn_cvpairs( pipelearner::crossv_kfold, k = 10 ) %>%
+  learn_models( lm, formulas = formulas_df$formula ) %>%
+  learn_models( wr_glm
+                , formulas = formulas_df$formula
+                , var_power = c(1,1.25,1.5,1.75,2)
+                ) %>%
+  # learn_models( wr_gamlss
+  #               , formulas =  formulas_df$formula ) %>%
+  learn()
+
+pl_pred = pl %>%
+  f_predict_pl_regression() %>%
+  mutate( title = map2_chr( model, models.id, paste )  )
+
+
+pl_sum = pl_pred %>%
+  unnest(preds, .drop = F) %>%
+  f_predict_pl_regression_summarize()
+
+
+taglist = pl_pred %>%
+  unnest(preds, .drop = F) %>%
+  mutate( bins = cut(target1, breaks = 5) ) %>%
+  f_predict_plot_model_performance_regression()
+
+
+
+
+f_plot_obj_2_html(taglist, 'taglist', 'perf_sim_data')
+
 ```
+
+## Model Performance
 
 ```{r}
-plotly::ggplotly(lasso_fast$plot_coef)
+taglist
+
+#f_plot_obj_2_html(taglist, 'taglist', 'perf_sim_data')
+
 ```
 
+
+```{r}
+models_tweedie = lasso$tib_all %>%
+  filter( lambda == lambda_1se ) %>%
+  select(distribution, fit, lambda ) %>%
+  filter( startsWith(distribution, 'Tweedie') ) %>%
+  mutate( fit = map(fit, 'HDtweedie.fit') )
+
+models_gaussian = lasso$tib_all %>%
+  filter( lambda == lambda_1se ) %>%
+  select(distribution, fit, lambda ) %>%
+  filter( startsWith(distribution, 'gaussian') ) %>%
+  mutate( fit = map(fit, 'Hglmnet.fit') )
+  
+models = models_tweedie %>%
+  bind_rows(models_gaussian) %>%
+  mutate( data = list(new_data)
+          , preds = map2(data
+                         , fit
+                         , f_predict_regression_add_predictions
+                         , col_target = 'resp'
+                         , formula = new_formula
+                         , lambda = 'lambda.1se') 
+          )
+
+```
 

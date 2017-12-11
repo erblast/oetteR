@@ -206,6 +206,10 @@ test_that( 'pretty points'
 
     f_plot_pretty_points(df, col_x, col_y, col_facet, title = title)
 
+    df$carat = 1
+    df$price = 2
+
+    f_plot_pretty_points(df, col_x, col_y, col_facet, title = title)
 
 })
 
