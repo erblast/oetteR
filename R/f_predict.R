@@ -325,11 +325,13 @@ f_predict_regression_add_predictions = function(data, m, col_target, cols_id = N
 
     x = model.matrix(formula, data)[,-1]
 
-    if( inherits(m, what = 'HDtweedie') ){
+    if( inherits(m, what = 'HDtweedie') |
+        inherits(m, what = 'cv.HDtweedie') ){
       pred = predict( m, newx = x , ...)
     }
 
-    if( inherits(m, what = 'glmnet') ){
+    if( inherits(m, what = 'glmnet') |
+        inherits(m, what = 'cv.glmnet') ){
       pred = predict( m, newx = x, type = 'response', ...)
     }
 

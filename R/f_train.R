@@ -179,11 +179,11 @@ make_container_for_function_calls = function(){
 #'
 #'
 #'
-#' @rdname f_train_lasso_old
+#' @rdname f_train_lasso_manual_cv
 #' @importFrom HDtweedie HDtweedie
 #' @importFrom glmnet glmnet
 #' @importFrom pipelearner pipelearner learn_models learn_cvpairs learn
-f_train_lasso_old = function(data
+f_train_lasso_manual_cv = function(data
                          , formula
                          , grid = 10^seq(4,-4,length= 100)
                          , p = c( 1, 1.25, 1.5, 1.75, 2 )
@@ -200,7 +200,7 @@ f_train_lasso_old = function(data
     y = data[[response_var]]
     x = model.matrix(formula, data)[,-1]
 
-    m = HDtweedie::HDtweedie(x,y, lambda = lambda, p = p_fact, alpha = 1 )
+    m = HDtweedie::HDtweedie(x,y, lambda = lambda, p = p_fact, alpha = 1, standardize = F, ... )
 
   }
 
@@ -213,7 +213,7 @@ f_train_lasso_old = function(data
     y = data[[response_var]]
     x = model.matrix(formula, data)[,-1]
 
-    m =glmnet::glmnet(x,y, lambda = lambda, alpha = 1, family = family )
+    m =glmnet::glmnet(x,y, lambda = lambda, alpha = 1, family = family, standardize = F, ... )
 
   }
 
@@ -232,7 +232,7 @@ f_train_lasso_old = function(data
   data_res = select(data, one_of(response_var) )
 
   data_exp = select(data, one_of(vars) )%>%
-    mutate_if( is.numeric, scale, center = T) %>%
+    # mutate_if( is.numeric, scale, center = T) %>%
     select_if( function(x) ! any(is.na(x)) ) ## remove columns containing NA values
 
   data = data_res %>%
@@ -250,6 +250,7 @@ f_train_lasso_old = function(data
                               , function_name = c('glmnet')
                               , lambda = grid
                               , family = family
+
     )
 
   if( ! is.null(p) ){
@@ -260,6 +261,7 @@ f_train_lasso_old = function(data
                                 , function_name = c('tweedie')
                                 , lambda = grid
                                 , p_fact = p
+
       )
   }
 
@@ -504,6 +506,7 @@ f_train_lasso = function(data
                                  , alpha = 1
                                  , nfolds = k
                                  , pred.loss = 'mse'
+                                 , standardize = FALSE
                                  , ... )
 
   }
@@ -522,6 +525,7 @@ f_train_lasso = function(data
                           , family = family
                           , nfolds = k
                           , type.measure = 'mse'
+                          , standardize = FALSE
                           , ... )
 
   }

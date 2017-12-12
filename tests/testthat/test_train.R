@@ -67,30 +67,16 @@ test_that('lasso',{
 
   formula = Days~Eth+Sex+Age+Lrn+zerovar
 
-  lasso = f_train_lasso(data, formula, p = NULL, k = 1
-                        , grid = 10^seq(3,-3,length= 25) )
+  lasso = f_train_lasso(data, formula, p = NULL, k = 3
+                        , lambda = 10^seq(3,-3,length= 25) )
 
-  lasso = f_train_lasso(data, formula, p = 1.5, k = 2
-                        , grid = 10^seq(3,-3,length= 25) )
+  lasso = f_train_lasso(data, formula, p = 1.5, k = 3
+                        , lambda = 10^seq(3,-3,length= 25) )
 
-  lasso = f_train_lasso(data, formula, p = NULL, k = 2
-                        , grid = 10^seq(3,-3,length= 25) )
-
-  lasso
-})
-
-
-test_that('faster lasso',{
-
-  data = MASS::quine
-  data$zerovar = 1
-
-  formula = Days~Eth+Sex+Age+Lrn+zerovar
-
-  lasso = f_train_lasso_faster(data, formula, p = NULL, k = 3)
-
-  lasso = f_train_lasso_faster(data, formula, p = 1.5, k = 3,
-                               lambda = 10^seq(3,-3,length= 25) )
+  lasso = f_train_lasso(data, formula, p = NULL, k = 3
+                        , lambda = 10^seq(3,-3,length= 25) )
 
   lasso
 })
+
+

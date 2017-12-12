@@ -186,7 +186,6 @@ plotly::ggplotly(lasso$plot_coef)
 
 ## Fit regression models
 
-Model building does not converge for p >= 1.75
 
 ```{r}
 
@@ -228,10 +227,6 @@ taglist = pl_pred %>%
   f_predict_plot_model_performance_regression()
 
 
-
-
-f_plot_obj_2_html(taglist, 'taglist', 'perf_sim_data')
-
 ```
 
 ## Model Performance
@@ -239,7 +234,31 @@ f_plot_obj_2_html(taglist, 'taglist', 'perf_sim_data')
 ```{r}
 taglist
 
-#f_plot_obj_2_html(taglist, 'taglist', 'perf_sim_data')
+# f_plot_obj_2_html(taglist, 'taglist', 'perf_auto_data')
+
+```
+
+
+```{r}
+
+wr_predict = function( fit, lambda ){
+  
+  preds = f_predict_regression_add_predictions( data = new_data
+                                               , m = fit
+                                               , col_target = 'resp'
+                                               , formula = new_formula
+                                               , s = lambda)
+  
+}
+
+tib_pred = lasso$tib_all %>%
+  filter( lambda == lambda_1se ) %>%
+  select(distribution, fit, lambda ) %>%
+  mutate(  preds = map2(fit
+                         , lambda
+                         , wr_predict
+                        ) 
+          )
 
 ```
 
