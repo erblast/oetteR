@@ -6,7 +6,7 @@
   absolute percent error to a dataframe.}
 \usage{
 f_predict_regression_add_predictions(data, m, col_target, cols_id = NULL,
-  formula = NULL)
+  formula = NULL, ...)
 }
 \arguments{
 \item{m}{regression model}

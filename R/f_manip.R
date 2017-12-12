@@ -286,6 +286,9 @@ f_manip_append_2_list = function(l, x){
 #'   This wrapper cleans up the names of the new variables.
 #' @param data a dataframe
 #' @param formula formula
+#' @param scale_data
+#' @param center_data
+#' @param exclude_na_columns
 #' @return list with new dataframe and new formula
 #' @examples
 #'
@@ -303,7 +306,11 @@ f_manip_append_2_list = function(l, x){
 #' @rdname f_manip_data_2_model_matrix_format
 #' @export
 #' @importFrom stringr str_replace_all
-f_manip_data_2_model_matrix_format = function(data, formula, scale_data = T, center_data = T){
+f_manip_data_2_model_matrix_format = function(data
+                                              , formula
+                                              , scale_data = T
+                                              , center_data = T
+                                              , exclude_na_columns = T){
 
   data = as_tibble(data)
 
@@ -320,6 +327,17 @@ f_manip_data_2_model_matrix_format = function(data, formula, scale_data = T, cen
     data_trans = data_trans %>%
       select( one_of(response_var) ) %>%
       bind_cols( data_pred )
+  }
+
+  if( exclude_na_columns == T){
+
+    data_trans = data_trans %>%
+      select_if( function(x) ! any(is.na(x)) )
+
+    vars = names( select(data_trans, - one_of(response_var) ) )
+
+    formula = paste( response_var, '~', paste(vars, collapse = ' + ') ) %>%
+      as.formula
   }
 
   data_keep  = select(data, - one_of( c(response_var, vars ) ) )

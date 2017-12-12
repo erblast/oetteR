@@ -109,4 +109,9 @@ test_that('f_manip_data_2_model_matrix_format'
  formula = cyl ~ names
  data_trans = f_manip_data_2_model_matrix_format( data, formula)
 
+ data_ls = f_clean_data(mtcars)
+ data = data_ls$data
+ formula = hp ~ disp + am + gear
+
+
 })
