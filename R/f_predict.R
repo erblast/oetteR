@@ -14,31 +14,60 @@
 #'   pipelearner::learn_models( twidlr::rpart, form ) %>%
 #'   pipelearner::learn_models( twidlr::randomForest, form ) %>%
 #'   pipelearner::learn_models( twidlr::svm, form ) %>%
+#'   pipelearner::learn_models( gamlss::gamlss, form ) %>%
 #'   pipelearner::learn() %>%
-#'   f_predict_pl_regression( 'names' )
+#'   f_predict_pl_regression( cols_id = 'names' )
 #' @rdname f_predict_pl_regression
 #' @export
 #' @seealso
 #' \code{\link{f_predict_regression_add_predictions}}
-f_predict_pl_regression = function( pl, cols_id = NULL, formula = NULL, newdata = 'test'){
+f_predict_pl_regression = function( pl
+                                    , cols_id = NULL
+                                    , formula = NULL
+                                    , col_model = 'fit'
+                                    , col_target = 'target'
+                                    , data_test = 'test'
+                                    , data_train = 'train'){
 
-  if( ! all( c('models.id'
-               , 'cv_pairs.id'
-               , 'train_p'
-               , 'target'
-               , 'model')
-             %in% names(pl) )
-      ){
-    stop('need learned pipelearner dataframe as input pl')
+
+  sym_data_test = as.name(data_test)
+  sym_data_train = as.name(data_train)
+  sym_target = as.name(col_target)
+  sym_model = as.name(col_model)
+
+  if( ! is.null(formula) ){
+    pl = pl %>%
+      mutate( preds = pmap( list( data_test = !! sym_data_test
+                                  , m = !! sym_model
+                                  , col_target = !! sym_target
+                                  , data_train = !! sym_data_train )
+                            , f_predict_regression_add_predictions
+                            , cols_id
+                            , formula ) )
+
+  }else{
+
+    if( ! 'formula' %in% names(pl) ){
+      pl = pl %>%
+        mutate( formula = map(params, 'formula') )
+    }
+
+    sym_formula = as.name('formula')
+
+    pl = pl %>%
+      mutate( preds = pmap( list( data_test = !! sym_data_test
+                                  , m = !! sym_model
+                                  , col_target = !! sym_target
+                                  , data_train = !! sym_data_train
+                                  , formula = !! sym_formula )
+                            , f_predict_regression_add_predictions
+                            , cols_id
+                            )
+              )
   }
 
-  sym_data = as.name(newdata)
+  return(pl)
 
-  pl = pl %>%
-    mutate( preds = pmap( list( !! sym_data, fit, target)
-                          , f_predict_regression_add_predictions
-                          , cols_id
-                          , formula ) )
 }
 
 
@@ -301,9 +330,7 @@ f_predict_plot_model_performance_regression = function(data){
 #' m = rpart::rpart(disp~., df)
 #' pred = f_predict_regression_add_predictions(df, m, 'disp', 'names')
 #' pred
-#' @details works with HDtweedie, randomForest, rpart, e1071::svm
-#' @seealso
-#' \code{\link[modelr]{add_predictions}},\code{\link[modelr]{add_residuals}}
+#' @details works with HDtweedie, randomForest, rpart, e1071::svm, glmnet, gamlss
 #' @rdname f_predict_regression_add_predictions
 #' @export
 #' @importFrom modelr add_predictions add_residuals

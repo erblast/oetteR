@@ -5,7 +5,8 @@
 \title{adds predictions to learned pipelearner dataframe}
 \usage{
 f_predict_pl_regression(pl, cols_id = NULL, formula = NULL,
-  newdata = "test")
+  col_model = "fit", col_target = "target", data_test = "test",
+  data_train = "train")
 }
 \arguments{
 \item{pl}{learned pipelearner dataframe}
@@ -24,8 +25,9 @@ pl = mtcars \%>\%
   pipelearner::learn_models( twidlr::rpart, form ) \%>\%
   pipelearner::learn_models( twidlr::randomForest, form ) \%>\%
   pipelearner::learn_models( twidlr::svm, form ) \%>\%
+  pipelearner::learn_models( gamlss::gamlss, form ) \%>\%
   pipelearner::learn() \%>\%
-  f_predict_pl_regression( 'names' )
+  f_predict_pl_regression( cols_id = 'names' )
 }
 \seealso{
 \code{\link{f_predict_regression_add_predictions}}

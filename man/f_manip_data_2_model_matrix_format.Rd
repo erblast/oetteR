@@ -5,12 +5,18 @@
 \title{brings data to model.matrix format}
 \usage{
 f_manip_data_2_model_matrix_format(data, formula, scale_data = T,
-  center_data = T)
+  center_data = T, exclude_na_columns = T)
 }
 \arguments{
 \item{data}{a dataframe}
 
 \item{formula}{formula}
+
+\item{scale_data}{boolean}
+
+\item{center_data}{boolean}
+
+\item{exclude_na_columns}{boolean}
 }
 \value{
 list with new dataframe and new formula

@@ -286,9 +286,9 @@ f_manip_append_2_list = function(l, x){
 #'   This wrapper cleans up the names of the new variables.
 #' @param data a dataframe
 #' @param formula formula
-#' @param scale_data
-#' @param center_data
-#' @param exclude_na_columns
+#' @param scale_data boolean
+#' @param center_data boolean
+#' @param exclude_na_columns boolean
 #' @return list with new dataframe and new formula
 #' @examples
 #'
