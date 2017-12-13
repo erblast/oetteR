@@ -2,11 +2,100 @@
 
 context('test predict functions')
 
-test_that('add regression predictions to dataframe'
+test_that('add regression predictions to dataframe rpart'
           ,{
 
   df = mtcars %>%
   mutate(names = row.names(.))
+  m = rpart::rpart(disp~., df)
+  f_predict_regression_add_predictions(df, m, 'disp', 'names')
+
+})
+
+test_that('add regression predictions to dataframe glmnet, HDtweedie'
+          ,{
+
+  formula = disp ~ hp + cyl
+
+  df = mtcars %>%
+    mutate(names = row.names(.)) %>%
+    f_manip_data_2_model_matrix_format( formula )
+
+  new_formula = df$formula
+  new_df = df$data
+
+  x = select(new_df, f_manip_get_variables_from_formula( new_formula) )
+  y = new_df$disp
+
+  m    = glmnet::glmnet( x = as.matrix(x), y = y)
+  m_cv = glmnet::cv.glmnet( x = as.matrix(x), y = y, nfolds = 3)
+
+  f_predict_regression_add_predictions( m = m
+                                       , data_test = new_df
+                                       , col_target = 'disp'
+                                       , formula = new_formula
+                                       , s = 1 )
+
+  f_predict_regression_add_predictions( m = m_cv
+                                        , data_test = new_df
+                                        , col_target = 'disp'
+                                        , formula = new_formula
+                                        , s = 'lambda.1se' )
+
+  m    = HDtweedie::HDtweedie( x = as.matrix(x), y = y)
+  m_cv = HDtweedie::cv.HDtweedie( x = as.matrix(x), y = y, nfolds = 3)
+
+  f_predict_regression_add_predictions( m = m
+                                        , data_test = new_df
+                                        , col_target = 'disp'
+                                        , formula = new_formula
+                                        , s = 1 )
+
+  f_predict_regression_add_predictions( m = m_cv
+                                        , data_test = new_df
+                                        , col_target = 'disp'
+                                        , formula = new_formula
+                                        , s = 'lambda.1se' )
+})
+
+test_that('add regression predictions to dataframe gamlss'
+          ,{
+
+  formula = disp ~ hp + cyl
+
+  df = mtcars %>%
+    mutate(names = row.names(.)) %>%
+    f_manip_data_2_model_matrix_format( formula )
+
+  new_formula = df$formula
+  new_df = df$data
+
+  pl = pipelearner::pipelearner(new_df) %>%
+    pipelearner::learn_models( gamlss::gamlss
+                               , formula = new_formula) %>%
+    pipelearner::learn_cvpairs( pipelearner::crossv_kfold, k = 3) %>%
+    pipelearner::learn() %>%
+    mutate( preds = pmap( list(data_test = test
+                               , m = fit
+                               , data_train = train
+                               , col_target = target )
+                          , f_predict_regression_add_predictions
+                          , cols_id = 'names'
+                          )
+    ) %>%
+    unnest(preds)
+
+})
+
+
+
+
+
+test_that('add regression predictions to dataframe rpart'
+          ,{
+
+  df = mtcars %>%
+    mutate(names = row.names(.))
   m = rpart::rpart(disp~., df)
   f_predict_regression_add_predictions(df, m, 'disp', 'names')
 

@@ -307,11 +307,18 @@ f_predict_plot_model_performance_regression = function(data){
 #' @rdname f_predict_regression_add_predictions
 #' @export
 #' @importFrom modelr add_predictions add_residuals
-f_predict_regression_add_predictions = function(data, m, col_target, cols_id = NULL, formula = NULL, ...){
+f_predict_regression_add_predictions = function(data_test
+                                                , m
+                                                , col_target
+                                                , data_train
+                                                , cols_id = NULL
+                                                , formula = NULL
+                                                , ...){
 
   col_target_sym = as.name(col_target)
 
-  data = as.tibble(data)
+  data_test = as.tibble(data_test)
+  data_train = as.tibble(data_train)
 
   if( inherits(m, what = 'HDtweedie') |
       inherits(m, what = 'glmnet') |
@@ -323,11 +330,12 @@ f_predict_regression_add_predictions = function(data, m, col_target, cols_id = N
       stop('need formula to make predictions for glmnet/HDtweedie model')
     }
 
-    x = model.matrix(formula, data)[,-1]
+    x = select( data_test, f_manip_get_variables_from_formula(formula) ) %>%
+      as.matrix
 
     if( inherits(m, what = 'HDtweedie') |
         inherits(m, what = 'cv.HDtweedie') ){
-      pred = predict( m, newx = x , ...)
+      pred = predict( m, newx = x, ... )
     }
 
     if( inherits(m, what = 'glmnet') |
@@ -335,13 +343,22 @@ f_predict_regression_add_predictions = function(data, m, col_target, cols_id = N
       pred = predict( m, newx = x, type = 'response', ...)
     }
 
-    df = data %>%
+    df = data_test %>%
       mutate( pred = pred
              , resid = (!! col_target_sym) - pred)
 
+  } else if (inherits(m, what = 'gamlss') ) {
+    if( is_empty(data_train) ){
+      stop('need training dataframe to make predictions for gamlss model')
+    }
+      pred = gamlss:::predict.gamlss(m, data = data_train, newdata = data_test )
+      df = data_test %>%
+        mutate( pred = pred
+                , resid = (!! col_target_sym) - pred)
+
   }else{
 
-  df = data %>%
+  df = data_test %>%
     modelr::add_predictions(m) %>%
     modelr::add_residuals(m)
   }
