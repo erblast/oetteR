@@ -43,7 +43,9 @@ test_that('plot time'
 test_that('color scale'
           ,{
 
-            expect_true( length( f_plot_col_vector74() ) == 74 )
+  expect_true( length( f_plot_col_vector74() ) == 74 )
+  expect_true( length( f_plot_adjust_col_vector_length(100) ) == 100 )
+  expect_true( length( f_plot_adjust_col_vector_length(20) ) == 20 )
 
 })
 

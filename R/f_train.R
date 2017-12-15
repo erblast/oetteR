@@ -654,6 +654,12 @@ f_train_lasso = function(data
   pl_lambda_1se = pl_min_plot %>%
     filter(lambda_type == 'lambda_1se')
 
+  # if the number of colors superseeds tha number of colors of the
+  # manual scale ggplot raises an error.
+
+  n_distributions = unique( pl_all$distribution ) %>% length
+  n_coef          = unique( pl_all$coeff)         %>% length
+
   p_rtmse = pl_all %>%
     ungroup() %>%
     mutate( lambda = log(lambda)
@@ -668,8 +674,8 @@ f_train_lasso = function(data
                 , mapping = aes(xintercept = lambda_value
                                 , color = distribution
                                 , linetype = lambda_type ) ) +
-    scale_fill_manual( values = f_plot_col_vector74() )+
-    scale_color_manual( values = f_plot_col_vector74()) +
+    scale_fill_manual( values = f_plot_adjust_col_vector_length(n_distributions) )+
+    scale_color_manual( values = f_plot_adjust_col_vector_length(n_distributions) ) +
     theme( legend.position = 'bottom') +
     labs( x = 'log lambda')
 
@@ -693,8 +699,8 @@ f_train_lasso = function(data
                 , mapping = aes(xintercept = lambda_value )
                 , linetype = 2 ) +
     facet_wrap(~distribution, scales = 'free', ncol = 1 ) +
-    scale_fill_manual( values = f_plot_col_vector74() )+
-    scale_color_manual( values = f_plot_col_vector74()) +
+    scale_fill_manual( values = f_plot_adjust_col_vector_length(n_coef) )+
+    scale_color_manual( values = f_plot_adjust_col_vector_length(n_coef) ) +
     theme( legend.position = 'bottom') +
     labs( y = 'normalized coefficient values'
           ,x = 'log lambda')
