@@ -632,7 +632,26 @@ f_train_lasso = function(data
             , formula = map( formula, function(x) paste( response_var, '~', x) )
             , formula_str = unlist(formula)
             , formula = map( formula, as.formula )
-    )
+    )%>%
+    select( distribution
+            , lambda
+            , lambda_min
+            , lambda_1se
+            , mse
+            , coeff
+            , formula
+            , formula_str
+            , n_coeff_before_lasso
+            , n_coeff_after_lasso
+            )
+
+  formula_str_lambda_min = pl_fin %>%
+    filter( lambda == lambda_min ) %>%
+    .$formula_str
+
+  formula_str_lambda_1se = pl_fin %>%
+    filter( lambda == lambda_1se ) %>%
+    .$formula_str
 
   # plot ----------------------------------------------------------------
 
@@ -710,7 +729,9 @@ f_train_lasso = function(data
   ret = list( plot_mse = p_rtmse
               , plot_coef = p_coef
               , tib_all = pl_fin
-  )
+              , formula_str_lambda_1se = formula_str_lambda_1se
+              , formula_str_lambda_min = formula_str_lambda_min
+             )
 
   return(ret)
 }
