@@ -133,7 +133,7 @@ test_that('add regression predictions for training data to df'
     pipelearner::learn_models( twidlr::randomForest, form ) %>%
     pipelearner::learn_models( twidlr::svm, form ) %>%
     pipelearner::learn() %>%
-    f_predict_pl_regression( 'names', newdata = 'train') %>%
+    f_predict_pl_regression( 'names' ) %>%
     unnest( preds , .drop = FALSE ) %>%
     mutate( title = model ) %>%
     f_predict_pl_regression_summarize()

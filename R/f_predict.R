@@ -337,7 +337,7 @@ f_predict_plot_model_performance_regression = function(data){
 f_predict_regression_add_predictions = function(data_test
                                                 , m
                                                 , col_target
-                                                , data_train
+                                                , data_train = NULL
                                                 , cols_id = NULL
                                                 , formula = NULL
                                                 , ...){
@@ -360,14 +360,18 @@ f_predict_regression_add_predictions = function(data_test
     x = select( data_test, f_manip_get_variables_from_formula(formula) ) %>%
       as.matrix
 
-    if( inherits(m, what = 'HDtweedie') |
-        inherits(m, what = 'cv.HDtweedie') ){
-      pred = predict( m, newx = x, ... )
+    if( inherits(m, what = 'HDtweedie') ){
+        pred = HDtweedie::predict.HDtweedie( m, newx = x, ... )
+    }
+    if( inherits(m, what = 'cv.HDtweedie') ){
+      pred = HDtweedie:::predict.cv.HDtweedie( m, newx = x, ... )
     }
 
-    if( inherits(m, what = 'glmnet') |
-        inherits(m, what = 'cv.glmnet') ){
-      pred = predict( m, newx = x, type = 'response', ...)
+    if( inherits(m, what = 'glmnet') ){
+      pred = glmnet:::predict.glmnet( m, newx = x, type = 'response', ... )
+    }
+    if( inherits(m, what = 'cv.glmnet') ){
+      pred = glmnet:::predict.cv.glmnet( m, newx = x, type = 'response', ... )
     }
 
     df = data_test %>%

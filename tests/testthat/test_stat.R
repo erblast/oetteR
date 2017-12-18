@@ -57,7 +57,7 @@ test_that('f_stat_max_diff_of_freq'
 })
 
 
-testthat('f_stat_chi_square'
+test_that('f_stat_chi_square'
   ,{
 
   data_ls = f_clean_data(mtcars)
@@ -96,7 +96,7 @@ test_that( 'stat group means, medians, counts and percentages'
   ,{
     data_ls = f_clean_data(mtcars)
     f_stat_group_mean_medians(data_ls, 'cyl')
-    f_stat_group_counts_percentages( data_ls, 'cylc')
+    f_stat_group_counts_percentages( data_ls, 'cyl')
 })
 
 

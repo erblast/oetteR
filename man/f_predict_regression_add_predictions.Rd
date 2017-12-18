@@ -5,8 +5,8 @@
 \title{adds predictions, residuals, abolute residuals, squared residuals and
   absolute percent error to a dataframe.}
 \usage{
-f_predict_regression_add_predictions(data_test, m, col_target, data_train,
-  cols_id = NULL, formula = NULL, ...)
+f_predict_regression_add_predictions(data_test, m, col_target,
+  data_train = NULL, cols_id = NULL, formula = NULL, ...)
 }
 \arguments{
 \item{m}{regression model}
