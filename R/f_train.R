@@ -75,6 +75,8 @@ make_container_for_function_calls = function(){
 
     if( counter == 1) time_start <<- lubridate::now()
 
+    if( is.null(total) ) stop('Call Container: Set expected total runs first!')
+
     x = .f(...)
 
     if( 'call' %in% names(x) ){
