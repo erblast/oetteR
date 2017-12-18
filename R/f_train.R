@@ -647,11 +647,13 @@ f_train_lasso = function(data
 
   formula_str_lambda_min = pl_fin %>%
     filter( lambda == lambda_min ) %>%
-    .$formula_str
+    .$formula_str %>%
+    unique()
 
   formula_str_lambda_1se = pl_fin %>%
     filter( lambda == lambda_1se ) %>%
-    .$formula_str
+    .$formula_str %>%
+    unique()
 
   # plot ----------------------------------------------------------------
 
