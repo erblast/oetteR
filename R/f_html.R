@@ -73,3 +73,34 @@ f_html_padding = function( obj
 
   return( htmltools::tagList(l) )
 }
+
+#' @title convert a filename to a html link tag
+#' @param file_name character vector, Default: dir()[1]
+#' @param path character vector, Default: getwd()
+#' @return link
+#' @examples
+#' dir()[1]
+#' f_html_filename_2_link()
+#' dir()[1:5]
+#' f_html_filename_2_link(dir()[1:5])
+#'
+#' @seealso
+#'  \code{\link[stringr]{str_replace_all}}
+#' @rdname f_html_filename_2_link
+#' @export
+#' @importFrom stringr str_replace_all
+f_html_filename_2_link = function( file_name = dir()[1]
+                                     , path = getwd()
+                                     ){
+
+  path = file.path( path, file_name ) %>%
+    stringr::str_replace_all( ' ', '%20') %>%
+    unlist()
+
+  link =  paste0('<a target=_blank href=', path, '>', file_name,'</a>' )
+
+  return(link)
+}
+
+
+

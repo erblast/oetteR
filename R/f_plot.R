@@ -402,6 +402,8 @@ f_plot_time = function(variable
 #' @param type one of c('taglist','plots','tabplots','grids' )
 #' @param output_file file_name of the html file, without .html suffix
 #' @param title character vector of html document title, Default: 'Plots'
+#' @param overwrite boolean
+#' @param quiet boolean supresses rmarkdown::render() output
 #' @examples
 #' #returns a htmltools::taglist with DT::datatables and plotly plots
 #' taglist = f_clean_data(mtcars) %>%
@@ -418,31 +420,41 @@ f_plot_time = function(variable
 #' @importFrom stringr str_replace
 #' @import tabplot
 #'
-f_plot_obj_2_html = function(obj_list, type, output_file, title = 'Plots', ...){
+f_plot_obj_2_html = function(obj_list
+                             , type
+                             , output_file
+                             , title = 'Plots'
+                             , overwrite = TRUE
+                             , quiet = TRUE
+                             , ...){
 
-  file_name_template = switch(type
-                             , taglist  = 'taglist_2_html_template.Rmd'
-                             , plots    = 'plots_2_html_template.Rmd'
-                             , tabplots = 'tabplots_2_html_template.Rmd'
-                             , grids    = 'grids_2_html_template.Rmd'
-                             )
+  if( overwrite == TRUE | ! file.exists( paste0( output_file, '.html') ) ){
 
-  path_template = file.path( system.file(package = 'oetteR')
-                             , 'templates'
-                             , file_name_template)
+    file_name_template = switch(type
+                               , taglist  = 'taglist_2_html_template.Rmd'
+                               , plots    = 'plots_2_html_template.Rmd'
+                               , tabplots = 'tabplots_2_html_template.Rmd'
+                               , grids    = 'grids_2_html_template.Rmd'
+                               )
 
-  txt = readr::read_file(path_template) %>%
-    stringr::str_replace('template', title)
+    path_template = file.path( system.file(package = 'oetteR')
+                               , 'templates'
+                               , file_name_template)
 
-  readr::write_file( txt, file_name_template)
+    txt = readr::read_file(path_template) %>%
+      stringr::str_replace('template', title)
 
-  rmarkdown::render( file_name_template
-                     , output_file = paste0( output_file, '.html')
-                     , params      = list(obj_list = obj_list, ... )
-                     )
+    readr::write_file( txt, file_name_template)
 
+    rmarkdown::render( file_name_template
+                       , output_file = paste0( output_file, '.html')
+                       , params      = list(obj_list = obj_list, ... )
+                       , quiet = quiet
+                       )
 
-  file.remove(file_name_template)
+    file.remove(file_name_template)
+
+  }
 
   return( file.path( getwd(), output_file) )
 

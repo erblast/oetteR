@@ -1,0 +1,24 @@
+---
+title: "concept clickable file links in DT::datatable"
+author: "Björn Oettinghaus"
+date: "27 Dezember 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+
+require(tidyverse)
+
+dr = tibble( file = dir() ) %>%
+  mutate( path = file.path( getwd(), file )
+          , path = stringr::str_replace_all( path, ' ', '%20')
+          , link =  paste0('<a  target=_blank href=', path, '>', file,'</a>' ) )
+
+
+DT::datatable( select(dr, link) , escape = F)
+```
+
