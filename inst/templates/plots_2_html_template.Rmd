@@ -10,7 +10,7 @@ params:
 **Date: `r lubridate::today()`**
 
 ```{r plots_2_html_chunk1, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE, results = 'markup')
 ```
 
 ```{r plots_2_html_chunk2, include = TRUE, echo = F}

@@ -10,7 +10,7 @@ params:
 **Date: `r lubridate::today()`**
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE, results = 'markup')
 ```
 
 ```{r, include = TRUE, echo = F, fig.height=params$height }

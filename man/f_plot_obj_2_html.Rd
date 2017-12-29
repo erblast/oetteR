@@ -4,7 +4,8 @@
 \alias{f_plot_obj_2_html}
 \title{generate a separate html file from a shiny taglist}
 \usage{
-f_plot_obj_2_html(obj_list, type, output_file, title = "Plots", ...)
+f_plot_obj_2_html(obj_list, type, output_file, title = "Plots",
+  overwrite = TRUE, quiet = TRUE, ...)
 }
 \arguments{
 \item{obj_list}{htmltools::tagList}
@@ -14,6 +15,10 @@ f_plot_obj_2_html(obj_list, type, output_file, title = "Plots", ...)
 \item{output_file}{file_name of the html file, without .html suffix}
 
 \item{title}{character vector of html document title, Default: 'Plots'}
+
+\item{overwrite}{boolean}
+
+\item{quiet}{boolean supresses rmarkdown::render() output}
 }
 \description{
 lists of graphical objects like html(taglists), plots, tabplots, grids can
