@@ -1,0 +1,157 @@
+---
+title: "ggalluvial"
+author: "OEB"
+output: html_document
+editor_options:
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+
+suppressPackageStartupMessages( require( 'oetteR' ) )
+suppressPackageStartupMessages( require( 'tidyverse' ) )
+suppressPackageStartupMessages( require( 'ggalluvial' ) )
+
+```
+
+# Grouped Data
+
+## Sum of all frequencies is constant
+
+```{r}
+
+data = UCBAdmissions %>%
+  as.tibble()
+
+data
+```
+
+
+```{r}
+
+ggplot(data,
+       aes( weight = n
+            , axis1 = Gender
+            , axis2 = Dept )
+       ) +
+  geom_alluvium( aes(fill = Admit)
+                 , width = 1/12
+                 ) +
+  geom_stratum( width = 1/12
+                , fill = "black"
+                , color = "grey"
+                ) +
+  geom_label(stat = "stratum", label.strata = TRUE) +
+  scale_x_continuous(breaks = 1:2
+                     , labels = c("Gender", "Dept")) +
+  scale_fill_manual( values = f_plot_col_vector74() ) +
+  ggtitle("UC Berkeley admissions and rejections, by sex and department")
+
+```
+
+## Sum of all Frequencies varies
+
+```{r}
+data(Refugees, package = "alluvial")
+country_regions = c(
+                    Afghanistan = "Middle East",
+                    Burundi = "Central Africa",
+                    `Congo DRC` = "Central Africa",
+                    Iraq = "Middle East",
+                    Myanmar = "Southeast Asia",
+                    Palestine = "Middle East",
+                    Somalia = "Horn of Africa",
+                    Sudan = "Central Africa",
+                    Syria = "Middle East",
+                    Vietnam = "Southeast Asia"
+                   )
+
+Refugees$region = country_regions[Refugees$country]
+
+data = Refugees %>%
+  as.tibble()
+
+data
+
+```
+
+
+```{r}
+data %>%
+  filter( region == 'Middle East') %>%
+  ggplot(
+       aes(x = year, weight = refugees, alluvium = country)) +
+  geom_alluvium(aes(fill = country
+                    , colour = country)
+                , alpha = .75
+                , decreasing = FALSE) +
+  scale_x_continuous(breaks = seq(2003, 2013, 2)) +
+  theme(axis.text.x = element_text(angle = -30, hjust = 0))
+
+```
+
+# Tidy Data (Ungrouped data)
+
+```{r}
+data(majors)
+
+data = majors %>%
+  as_tibble() %>%
+  mutate( curriculum = as.factor(curriculum) )
+
+data
+```
+
+```{r}
+
+ggplot(data,
+       aes(x = semester, stratum = curriculum, alluvium = student,
+           fill = curriculum, label = curriculum)) +
+  geom_flow(stat = "alluvium", lode.guidance = "rightleft",
+            color = "darkgray") +
+  geom_stratum() +
+  theme(legend.position = "bottom") +
+  ggtitle("student curricula across several semesters")
+
+```
+
+## Same plot from grouped data
+
+```{r}
+
+data_gr = data  %>%
+  spread( key = semester, value = curriculum ) %>%
+  select( - student ) %>%
+  group_by_all() %>%
+  count() %>%
+  ungroup() %>%
+  mutate( alluvium = row_number() ) %>%
+  rename( weight = n ) %>%
+  gather( key = 'x', value = 'stratum', - weight, -alluvium ) %>%
+  mutate( x = forcats::as_factor(x) )
+
+```
+
+```{r}
+
+ggplot(data_gr,
+       aes(x = x
+           , stratum = stratum
+           , alluvium = alluvium
+           , weight = weight
+           , fill = stratum
+           , label = stratum)) +
+  geom_flow(stat = "alluvium", lode.guidance = "rightleft",
+            color = "darkgray") +
+  geom_stratum() +
+  theme(legend.position = "bottom") +
+  ggtitle("student curricula across several semesters")
+
+
+```
+
