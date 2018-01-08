@@ -1,0 +1,285 @@
+---
+title: "GGpubr"
+author: "OEB"
+date: "January 6, 2018"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+`ggpubr` is a package that offers a sophisticated interface to produce nice histograms and violin plots for numeric variables and easily ads significance values to the plots. `oetteR::f_plot_hist` takes a data_ls list and plots a histogram or a bar plot of frequencies of all variables but the histograms are lacking some of `ggpubr` features, which are not so easily replicated. Here we want to try whether we can modify `oetteR::fplot_hist` to use most of `ggpubr` features
+
+
+```{r}
+suppressPackageStartupMessages( require(oetteR) )
+suppressPackageStartupMessages( require(ggpubr) )
+suppressPackageStartupMessages( require(tidyverse) )
+
+```
+
+# Data
+
+```{r}
+
+data_ls = ISLR::Auto %>%
+  f_clean_data()
+
+```
+
+# Density Histograms
+
+```{r}
+
+ggdensity( data = data_ls$data
+           , x = 'displacement'
+           , y = '..count..'
+           , color = 'cylinders'
+           , fill = 'cylinders'
+           , palette = f_plot_col_vector74()
+           , rug = T
+           , add = 'mean'
+           )
+
+
+f_plot_hist( data_ls
+             , variable = 'displacement'
+             , group = 'cylinders'
+             , y_axis = 'count'
+             , graph_type = 'line'
+             , rug = T )
+```
+
+# Bar Histograms
+
+```{r}
+
+gghistogram( data = data_ls$data
+           , x = 'displacement'
+           , y = '..count..'
+           , color = 'cylinders'
+           , fill = 'cylinders'
+           , palette = f_plot_col_vector74()
+           , rug = T
+           , add = 'mean'
+           )
+
+
+f_plot_hist( data_ls
+             , variable = 'displacement'
+             , group = 'cylinders'
+             , y_axis = 'count'
+             , graph_type = 'bar'
+             , rug = T )
+```
+
+# Violin Plots
+
+```{r}
+
+v1 = ggviolin( data = data_ls$data
+           , x = 'cylinders'
+           , y = 'displacement'
+           #, color = 'cylinders'
+           , fill = 'cylinders'
+           , palette = f_plot_col_vector74()
+           , rug = T
+           , add = 'boxplot'
+           , add.params = list( fill = 'white')
+           )
+
+v1
+
+v2 = f_plot_hist( data_ls
+             , variable = 'displacement'
+             , group = 'cylinders'
+             , y_axis = 'count'
+             , graph_type = 'violin'
+             , rug = T )
+
+v2
+
+```
+
+
+# Add stats
+
+## all combinations
+
+```{r}
+
+lvl = levels(data_ls$data$cylinders) 
+
+compare = expand.grid( a = lvl
+                       , b = lvl
+                       , stringsAsFactors = F) %>%
+  filter( a != b) %>%
+  mutate( comb = map2( a, b, function(x,y) sort( c(x,y) ) )
+          , comb = map( comb, paste0, collapse = ',' )
+          ) %>%
+  unnest( comb ) %>%
+  group_by( comb ) %>%
+  summarise() %>%
+  mutate( comb = stringr::str_split(comb, ',') ) %>%
+  .$comb
+
+```
+
+
+```{r error=FALSE }
+
+v1_1 = v1 + 
+  stat_compare_means(comparisons = compare, label = "p.signif") 
+
+v1_1
+
+
+ggplot( data_ls$data, aes( cylinders
+                           , displacement
+                           , fill = cylinders) ) +
+  geom_violin() + 
+  stat_compare_means(comparisons = compare, label = "p.signif") 
+
+
+p = f_plot_pretty_points( df = data_ls$data
+                          , col_y = 'displacement'
+                          , col_x = 'weight'
+                          , col_facet = 'origin') +
+  geom_smooth() + 
+  ggpubr::stat_cor()
+
+p
+
+```
+
+# Hide NS values
+
+Make random grouping
+
+```{r}
+
+data_ls$data$rnd = as.factor( sample( LETTERS[1:5], nrow(data_ls$data), replace = T ) )
+
+```
+
+filter all pairs that have a t_test p_val over 0.05
+
+```{r}
+
+f_compare_means = function(comb, data, col_var, col_group){
+  
+  sym_group = as.name(col_group)
+  
+  lvl1 = stringr::str_split(comb, ',')[[1]][1]
+  lvl2 = stringr::str_split(comb, ',')[[1]][2]
+  
+  x = data %>%
+    filter( rlang::UQ(sym_group) == lvl1 ) %>%
+    .[[col_var]]
+  
+  y = data %>%
+    filter( rlang::UQ(sym_group) == lvl2 ) %>%
+    .[[col_var]]
+  
+  t_test = t.test(x,y)
+  
+  return( t_test$p.value )
+}
+
+lvl = levels(data_ls$data$rnd) 
+
+compare_filt = expand.grid( a = lvl
+                       , b = lvl
+                       , stringsAsFactors = F) %>%
+  filter( a != b) %>%
+  mutate( comb = map2( a, b, function(x,y) sort( c(x,y) ) )
+          , comb = map( comb, paste0, collapse = ',' )
+          ) %>%
+  unnest( comb ) %>%
+  group_by( comb ) %>%
+  summarise() %>%
+  mutate( p_val  = map_dbl( comb, f_compare_means
+                            , data = data_ls$data
+                            , col_var = 'displacement'
+                            , col_group = 'rnd' )
+          , comb = stringr::str_split(comb, ',') ) %>%
+  filter( p_val <= 0.05 ) %>%
+  .$comb
+
+```
+
+
+```{r}
+
+ggviolin( data = data_ls$data
+           , x = 'rnd'
+           , y = 'displacement'
+           , color = 'rnd'
+           , fill = 'rnd'
+           , palette = f_plot_col_vector74()
+           , rug = T
+           , add = 'boxplot'
+           , add.params = list( fill = 'white')
+           ) + 
+  stat_compare_means(comparisons = compare, label = "p.signif") 
+
+
+ggviolin( data = data_ls$data
+           , x = 'rnd'
+           , y = 'displacement'
+           , color = 'rnd'
+           , fill = 'rnd'
+           , palette = f_plot_col_vector74()
+           , rug = T
+           , add = 'boxplot'
+           , add.params = list( fill = 'white')
+           ) + 
+  stat_compare_means(comparisons = compare_filt, label = "p.signif") 
+
+
+```
+
+
+# plotly compatibility
+
+```{r}
+
+v1_1 %>%
+  plotly::ggplotly()
+
+v1 %>%
+  plotly::ggplotly()
+
+v2 %>%
+  plotly::ggplotly()
+
+ggdensity( data = data_ls$data
+           , x = 'displacement'
+           , y = '..count..'
+           , color = 'cylinders'
+           , fill = 'cylinders'
+           , palette = f_plot_col_vector74()
+           , rug = T
+           , add = 'mean'
+           ) %>%
+  plotly::ggplotly()
+
+p %>%
+  plotly::ggplotly()
+
+```
+
+
+# Summary
+
+`ggpubr` is a great to add p values to any ggplot object and the histograms do look better than the ones from my default function. Unfortunately the p values dont show in plotly. `ggpubr` also does not plot frequency distributions of factor variables and does not offer a stat_ function to add a chi square p value. 
+
+
+
+
+
+
+

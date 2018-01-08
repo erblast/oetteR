@@ -190,9 +190,10 @@ f_stat_chi_square = function(data_ls, col_group) {
     nest( one_of( col_group ), value) %>%
     mutate(  model_chi = purrr::map( data, ~chisq.test(x = .[[col_group]]
                                                        , y = .[['value']]
-    ) )
-    ,chi_pval  = purrr::map_dbl(model_chi, 'p.value')
-    ,diff_df   = purrr::map(data, f_stat_max_diff_of_freq, col_group, 'value')  ) %>%
+                                                       )
+                                     )
+              ,chi_pval  = purrr::map_dbl(model_chi, 'p.value')
+              ,diff_df   = purrr::map(data, f_stat_max_diff_of_freq, col_group, 'value')  ) %>%
     unnest(diff_df) %>%
     select(variable, chi_pval, max_diff_freq, max_diff_freq_perc)
 

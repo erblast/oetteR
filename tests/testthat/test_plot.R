@@ -6,10 +6,16 @@ test_that('plot histogram'
 
   data_ls = f_clean_data(mtcars)
 
-  expect_is( f_plot_hist('disp', data_ls                                      ), 'ggplot' )
-  expect_is( f_plot_hist('disp', data_ls, graph_type = 'violin', group = 'cyl'), 'ggplot' )
-  expect_is( f_plot_hist('cyl' , data_ls, graph_type = 'violin', group = 'cyl'), 'ggplot' )
-  expect_is( f_plot_hist('cyl' , data_ls, graph_type = 'bar',    group = 'cyl'), 'ggplot' )
+  f_plot_hist('disp', data_ls)
+  f_plot_hist('disp', data_ls, y_axis = 'density')
+  f_plot_hist('cyl', data_ls , group = 'gear' )
+  f_plot_hist('cyl', data_ls , group = 'gear', y_axis = 'density' )
+  f_plot_hist('cyl', data_ls, y_axis = 'density' )
+  f_plot_hist('cyl', data_ls, y_axis = 'count' )
+  f_plot_hist('disp', data_ls, graph_type = 'line', group = 'cyl')
+  f_plot_hist('disp', data_ls, graph_type = 'bar', group = 'cyl')
+  f_plot_hist('disp', data_ls, graph_type = 'violin', group = 'cyl'
+              , caption ='caption', title = 'title', subtitle = 'subtitle')
 
 })
 
@@ -212,6 +218,8 @@ test_that( 'pretty points'
     df$price = 2
 
     f_plot_pretty_points(df, col_x, col_y, col_facet, title = title)
+
+    f_plot_pretty_points(df, col_x, col_y, col_facet = NULL, title = title)
 
 })
 

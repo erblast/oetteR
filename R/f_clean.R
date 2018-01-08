@@ -230,4 +230,24 @@ f_boxcox = function(data_ls){
   return(data_ls)
 }
 
+#' @title wrapper for f_clean_data without modifications to data
+#' @param data a dataframe
+#' @return returns a list
+#'   \item{data}{the cleaned dataframe as tibble}
+#'   \item{categoricals}{vector of column names containing categorical data}
+#'   \item{categoricals_ordered}{vector of column names containing all ordered categorical data}
+#'   \item{numericals}{vector of column names containing numerical data}
+#'   \item{ids}{vector of column names containing ids}
+#' @rdname f_clean_data_no_changes
+#' @export
+#' @seealso \code{\link{f_clean_data}}
+f_clean_data_no_changes = function(data){
 
+  f_clean_data( data
+                , max_number_of_levels_factors = Inf
+                , min_number_of_levels_nums = 1
+                , exclude_missing = F
+                , replace_neg_values_with_zero = F
+  )
+
+}
