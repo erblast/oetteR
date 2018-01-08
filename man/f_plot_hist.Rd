@@ -4,9 +4,11 @@
 \alias{f_plot_hist}
 \title{Plot Histograms}
 \usage{
-f_plot_hist(variable, data_ls, group = "None", graph_type = c("violin",
-  "bar", "line"), y_axis = c("count", "density"), auto_range = T,
-  n_breaks = 30, x_min = 0, x_max = 100, title = "", ...)
+f_plot_hist(variable, data_ls, group = "None", graph_type = "violin",
+  y_axis = "count", auto_range = T, n_breaks = 30, rug = T, x_min = 0,
+  x_max = 100, title = "",
+  col_vector = f_plot_adjust_col_vector_length(100,
+  RColorBrewer::brewer.pal(name = "Dark2", n = 8)), p_val = T, ...)
 }
 \arguments{
 \item{variable}{character vector naming the variable to be plotted}
@@ -15,7 +17,8 @@ f_plot_hist(variable, data_ls, group = "None", graph_type = c("violin",
 list( data = <dataframe>, numericals = < vector with column names of
 numerical columns>)}
 
-\item{group}{character vector naming the column to be used as grouping variable, Default: NULL}
+\item{group}{character vector naming the column to be used as grouping
+variable, Default: NULL}
 
 \item{graph_type}{one of c("violin", "bar", "line"), Default: 'violin'}
 
@@ -25,13 +28,20 @@ numerical columns>)}
 
 \item{n_breaks}{integer , Default: 30}
 
+\item{rug}{boolean}
+
 \item{x_min}{double, requires aut_range == F, Default: 0}
 
 \item{x_max}{double, requires aut_range == F,  Default: 100}
 
 \item{title}{character vector plot title}
 
-\item{...}{additional arguments passed to labs()}
+\item{col_vector}{vector with RGB colors, Default:
+f_plot_adjust_col_vector_length(100, RColorBrewer::brewer.pal(name =
+"Dark2", n = 8))}
+
+\item{p_val}{boolean, Default: T#'@param ... additional arguments
+passed to labs()}
 }
 \value{
 plot object
@@ -45,20 +55,25 @@ Function plots smart histograms for variables in a data_ls list
  Thus we can easily pipe through long lists of variables and thus generate
  histograms for all variables in the input (see examples).
 }
-\details{
-DETAILS
-}
 \examples{
 \dontrun{
 #'
 #plot single variable
 data_ls = f_clean_data(mtcars)
 f_plot_hist('disp', data_ls)
+f_plot_hist('disp', data_ls, y_axis = 'density')
+f_plot_hist('cyl', data_ls , group = 'gear' )
+f_plot_hist('cyl', data_ls , group = 'gear', y_axis = 'density' )
+f_plot_hist('cyl', data_ls, y_axis = 'density' )
+f_plot_hist('cyl', data_ls, y_axis = 'count' )
+f_plot_hist('disp', data_ls, graph_type = 'line', group = 'cyl')
+f_plot_hist('disp', data_ls, graph_type = 'bar', group = 'cyl')
 f_plot_hist('disp', data_ls, graph_type = 'violin', group = 'cyl'
              , caption ='caption', title = 'title', subtitle = 'subtitle')
 
 #plot all variables
-vars = c(data_ls$categorical, data_ls$numericals) \%>\%
- walk( f_plot_hist, data_ls, group = 'cyl')
+vars = c(data_ls$all_variables) \%>\%
+ map( f_plot_hist, data_ls, group = 'cyl')
+vars
 }
 }
