@@ -116,6 +116,7 @@ f_plot_adjust_col_vector_length = function( n = 74, col_vector = f_plot_col_vect
 #'@param x_max double, requires aut_range == F,  Default: 100
 #'@param title character vector plot title
 #'@param rug boolean
+#'@param add character vector one_of( c('mean','median','none') ) , Default: 'mean'
 #'@param col_vector vector with RGB colors, Default:
 #'  f_plot_adjust_col_vector_length(100, RColorBrewer::brewer.pal(name =
 #'  "Dark2", n = 8))
@@ -128,6 +129,8 @@ f_plot_adjust_col_vector_length = function( n = 74, col_vector = f_plot_col_vect
 #' #plot single variable
 #' data_ls = f_clean_data(mtcars)
 #' f_plot_hist('disp', data_ls)
+#' f_plot_hist('disp', data_ls, add = 'median')
+#' f_plot_hist('disp', data_ls, add = 'none')
 #' f_plot_hist('disp', data_ls, y_axis = 'density')
 #' f_plot_hist('cyl', data_ls , group = 'gear' )
 #' f_plot_hist('cyl', data_ls , group = 'gear', y_axis = 'density' )
@@ -163,6 +166,7 @@ f_plot_hist = function(variable
                        , title = ''
                        , col_vector = f_plot_adjust_col_vector_length( 100, RColorBrewer::brewer.pal(name = 'Dark2', n = 8) )
                        , p_val = T
+                       , add = 'mean'
                        , ...
                        ){
 
@@ -185,6 +189,8 @@ f_plot_hist = function(variable
 
   if(group == 'None') group = NULL
 
+  if( graph_type == 'density') graph_type = 'line'
+
   #violin plots require a grouping variable, defaults to bar histogram
 
   #geom_freqpoly
@@ -197,7 +203,7 @@ f_plot_hist = function(variable
                    , fill = group
                    , palette = col_vector
                    , rug = rug
-                   , add = 'median'
+                   , add = add
     )
 
   }
@@ -213,7 +219,7 @@ f_plot_hist = function(variable
                  , fill = group
                  , palette = col_vector
                  , rug = rug
-                 , add = 'median'
+                 , add = add
                  , bins = n_breaks
     )
   }
@@ -221,15 +227,10 @@ f_plot_hist = function(variable
   #geom_violin
   if(variable %in% numericals & graph_type == 'violin' & ! is.null(group) ){
 
-    p = ggpubr::ggviolin( data = data
-                  , x = group
-                  , y = variable
-                  , fill = group
-                  , palette = col_vector
-                  , rug = rug
-                  , add = 'boxplot'
-                  , add.params = list( fill = 'white')
-                )
+    p = ggplot(data, aes_string( x = group, y = variable) ) +
+      geom_violin( aes_string( fill = group), alpha = 0.5, trim = F ) +
+      geom_boxplot( width = 0.25) +
+      scale_fill_manual( values = col_vector )
 
     if( p_val ){
       p = p +
@@ -246,7 +247,7 @@ f_plot_hist = function(variable
                    , x = variable
                    , y = y_axis
                    , rug = rug
-                   , add = 'median'
+                   , add = add
                    , palette = col_vector
                    ) +
       geom_histogram( fill = col_vector[1], color = 'black' )
@@ -258,7 +259,7 @@ f_plot_hist = function(variable
                              , x = variable
                              , y = y_axis
                              , rug = rug
-                             , add = 'median'
+                             , add = add
                              , palette = col_vector
     ) +
       geom_histogram( fill = col_vector[1], color = 'black' , alpha = 0.5)
@@ -524,7 +525,7 @@ f_plot_obj_2_html = function(obj_list
 
   }
 
-  return( file.path( getwd(), output_file) )
+  return( file.path( getwd(), paste0( output_file, '.html')) )
 
 }
 

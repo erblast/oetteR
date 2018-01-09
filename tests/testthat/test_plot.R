@@ -6,6 +6,8 @@ test_that('plot histogram'
 
   data_ls = f_clean_data(mtcars)
 
+  f_plot_hist('disp', data_ls, add = 'median')
+  f_plot_hist('disp', data_ls, add = 'none')
   f_plot_hist('disp', data_ls)
   f_plot_hist('disp', data_ls, y_axis = 'density')
   f_plot_hist('cyl', data_ls , group = 'gear' )
@@ -148,8 +150,7 @@ test_that('f_plot_obj_2_html'
               )
       )  %>%
       .$tabplot %>%
-      f_plot_obj_2_html( type = "plots", output_file =  'test_me', title = 'Plots', aspect_ratio = 1)
-
+      f_plot_obj_2_html( type = "plots", output_file =  'test_me', title = 'Plots')
 
     file.remove('test_me.html')
 
