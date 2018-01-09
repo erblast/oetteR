@@ -12,7 +12,7 @@ params:
 knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
 ```
 
-```{r taglist_2_html_chunk2, include = TRUE, echo = F, fig.asp = params$aspect_ratio }
+```{r taglist_2_html_chunk2, include = TRUE, echo = F, results='asis'}
 
 params$obj_list
 

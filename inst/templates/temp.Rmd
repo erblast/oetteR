@@ -1,0 +1,29 @@
+---
+title: "template"
+output: html_document
+params:
+  obj_list: !r lubridate::today()
+
+---
+
+**Date: `r lubridate::today()`**
+
+```{r taglist_2_html_chunk1, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+```
+
+```{r taglist_2_html_chunk2, include = TRUE, echo = F, results='asis'}
+
+taglist = htmltools::tagList()
+
+taglist[[1]] = '<a href=C:/OneDrive/R/oetter/group_ana_stat_plots>Link to static plots of numerical variables with more statistical features</a> '
+
+print( as.character(taglist) )
+
+print(taglist)
+
+print('<a href=C:/OneDrive/R/oetter/group_ana_stat_plots>Link to static plots of numerical variables with more statistical features</a> 
+')
+
+```
+

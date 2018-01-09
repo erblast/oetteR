@@ -73,3 +73,16 @@ f_html_padding = function( obj
 
   return( htmltools::tagList(l) )
 }
+
+#' @title file path to html link
+#' @param file_path file path
+#' @param text link text
+#' @return character vector
+#' @examples
+#' f_html_link(getwd(),'Working Directory')
+#' @rdname f_html_link
+#' @export
+f_html_link = function( file_path, text ){
+
+  paste0( '<a href=', file_path ,'>', text, '</a>')
+}
