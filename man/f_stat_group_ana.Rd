@@ -30,8 +30,9 @@ creates a html document with a group analysis
 \examples{
 \dontrun{
  data_ls = f_clean_data(mtcars)
- f_stat_group_ana(data_ls, 'cyl')
+ f_stat_group_ana(data_ls, 'cyl','output_file = test_me')
  file.remove('test_me.html')
+ file.remove('test_me_stat_plots.html')
 }
 }
 \seealso{

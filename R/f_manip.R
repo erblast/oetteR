@@ -365,6 +365,70 @@ f_manip_data_2_model_matrix_format = function(data
 
 }
 
+#' @title bin numerical columns
+#' @description centers, scales and Yeo Johnson transforms numeric variables in
+#'   a dataframe before binning into n bins of eqal range
+#' @param df dataframe with numeric variables
+#' @param bins number of bins for numerical variables, Default: 5
+#' @param bin_labels labels for the bins from low to high, Default: c("LL",
+#'   "ML", "M", "MH", "HH")#' @param center boolean, Default: T
+#' @param scale boolean, Default: T
+#' @param transform boolean, Default: T
+#' @return dataframe
+#' @examples
+#' \dontrun{
+#' if(interactive()){
+#'  #EXAMPLE1
+#'  }
+#' }
+#' @rdname f_manip_bin_numerics
+#' @export
+f_manip_bin_numerics = function(df
+                                , bins = 5
+                                , bin_labels = c('LL', 'ML', 'M', 'MH', 'HH')
+                                , center = T
+                                , scale = T
+                                , transform = T){
+  require( recipes )
+
+  if( length(bin_labels) != bins ){
+    stop( 'bin_labes must be equal to bins')
+  }
+
+  numerics = df %>%
+    select_if( is.numeric ) %>%
+    names()
+
+  if( is_empty(numerics) ){
+    return( df )
+  }
+
+  rec = recipe(df)
+
+  if( center ) rec = rec %>%
+    step_center( all_numeric() )
+
+  if( scale ) rec = rec  %>%
+    step_scale( all_numeric() )
+
+  if( transform ) rec = rec %>%
+    step_YeoJohnson( all_numeric() )
+
+  rec = rec %>%
+    prep()
+
+  rename_levels = function(x){
+    levels(x) = bin_labels
+    return(x)
+  }
+
+  data_new <- bake(rec, df ) %>%
+    mutate_at( vars(numerics), function(x) cut(x, breaks = bins) ) %>%
+    mutate_at( vars(numerics),  rename_levels)
+
+  return(data_new)
+
+}
 
 
 

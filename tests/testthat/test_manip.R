@@ -95,23 +95,50 @@ test_that('f_manip_append_2_list'
 test_that('f_manip_data_2_model_matrix_format'
   ,{
 
- data = mtcars
- formula = cyl ~ disp + am
- data_trans = f_manip_data_2_model_matrix_format( data, formula)
+   data = mtcars
+   formula = cyl ~ disp + am
+   data_trans = f_manip_data_2_model_matrix_format( data, formula)
 
- data_ls = f_clean_data(mtcars)
- data = data_ls$data
- formula = cyl ~ disp + am + gear
- data_trans = f_manip_data_2_model_matrix_format( data, formula)
+   data_ls = f_clean_data(mtcars)
+   data = data_ls$data
+   formula = cyl ~ disp + am + gear
+   data_trans = f_manip_data_2_model_matrix_format( data, formula)
 
- data = mtcars
- data$names = row.names(data)
- formula = cyl ~ names
- data_trans = f_manip_data_2_model_matrix_format( data, formula)
-
- data_ls = f_clean_data(mtcars)
- data = data_ls$data
- formula = hp ~ disp + am + gear
-
+   data = mtcars
+   data$names = row.names(data)
+   formula = cyl ~ names
+   data_trans = f_manip_data_2_model_matrix_format( data, formula)
 
 })
+
+test_that('f_manip_bin_numerics'
+  ,{
+
+  data = f_clean_data(mtcars) %>%
+    .$data
+
+  data_new = f_manip_bin_numerics(data)
+
+  numerics = data_new %>%
+    select_if( is.numeric ) %>%
+    names()
+
+  expect_true( is_empty(numerics) )
+  expect_true( ! is_empty(data_new) )
+  expect_identical( names(data_new) , names(data) )
+
+})
+
+
+test_that('f_manip_bin_numerics no numerics in data'
+          ,{
+
+  data = mtcars %>%
+    mutate_all( as.factor )
+
+  data_new = f_manip_bin_numerics(data)
+
+  expect_identical(data, data_new)
+
+})
+

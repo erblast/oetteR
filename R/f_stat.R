@@ -257,7 +257,7 @@ f_stat_combine_anova_with_chi_square = function(df_anova = NULL, df_chi_square =
 #' @examples
 #' \dontrun{
 #'  data_ls = f_clean_data(mtcars)
-#'  f_stat_group_ana(data_ls, 'cyl','test_me.html')
+#'  f_stat_group_ana(data_ls, 'cyl','output_file = test_me')
 #'  file.remove('test_me.html')
 #'  file.remove('test_me_stat_plots.html')
 #' }
@@ -359,7 +359,9 @@ f_stat_group_ana = function(data_ls
                                    , output_file = paste0(output_file, '_stat_plots')
                                    , title = paste('Differences Between ', col_group, ' Groups - Static Plots')
                                    )
-  html_link = f_html_link(link_ggplot, 'Static plots of numerical variables with more statistical features')
+
+  html_link = f_html_filename_2_link(file_path = link_ggplot
+                                     , link_text =  'Static plots of numerical variables with more statistical features')
 
   tab_link = DT::datatable( tibble(Link = html_link), escape = F , options = list( dom = ''), rownames = F )
 
@@ -384,9 +386,7 @@ f_stat_group_ana = function(data_ls
   taglist[[2]] = tab_all
   taglist[[3]] = htmltools::h2( paste( 'Plots for features with significant differences of minimum'
                                        , thresh_diff_perc, '% sorted by P Value' ) )
-  taglist[[4]] = f_html_padding( tab_link
-                                 , pad_before = 2
-                                 , pad_after = 2)
+  taglist[[4]] = f_html_padding( tab_link)
   taglist[[5]] = plots_plotly
   taglist[[6]] = f_html_breaks(5)
   taglist[[7]] = htmltools::h2( 'Summary Tables' )

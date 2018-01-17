@@ -142,7 +142,7 @@ f_plot_adjust_col_vector_length = function( n = 74, col_vector = f_plot_col_vect
 #'              , caption ='caption', title = 'title', subtitle = 'subtitle')
 #'
 #'#plot all variables
-#'vars = c(data_ls$all_variables) %>%
+#'vars = data_ls$all_variables %>%
 #'  map( f_plot_hist, data_ls, group = 'cyl')
 #'vars
 #'}
@@ -471,8 +471,6 @@ f_plot_time = function(variable
 #' @param type one of c('taglist','plots','tabplots','grids' )
 #' @param output_file file_name of the html file, without .html suffix
 #' @param title character vector of html document title, Default: 'Plots'
-#' @param overwrite boolean
-#' @param quiet boolean supresses rmarkdown::render() output
 #' @examples
 #' #returns a htmltools::taglist with DT::datatables and plotly plots
 #' taglist = f_clean_data(mtcars) %>%
@@ -489,41 +487,31 @@ f_plot_time = function(variable
 #' @importFrom stringr str_replace
 #' @import tabplot
 #'
-f_plot_obj_2_html = function(obj_list
-                             , type
-                             , output_file
-                             , title = 'Plots'
-                             , overwrite = TRUE
-                             , quiet = TRUE
-                             , ...){
+f_plot_obj_2_html = function(obj_list, type, output_file, title = 'Plots', ...){
 
-  if( overwrite == TRUE | ! file.exists( paste0( output_file, '.html') ) ){
+  file_name_template = switch(type
+                             , taglist  = 'taglist_2_html_template.Rmd'
+                             , plots    = 'plots_2_html_template.Rmd'
+                             , tabplots = 'tabplots_2_html_template.Rmd'
+                             , grids    = 'grids_2_html_template.Rmd'
+                             )
 
-    file_name_template = switch(type
-                               , taglist  = 'taglist_2_html_template.Rmd'
-                               , plots    = 'plots_2_html_template.Rmd'
-                               , tabplots = 'tabplots_2_html_template.Rmd'
-                               , grids    = 'grids_2_html_template.Rmd'
-                               )
+  path_template = file.path( system.file(package = 'oetteR')
+                             , 'templates'
+                             , file_name_template)
 
-    path_template = file.path( system.file(package = 'oetteR')
-                               , 'templates'
-                               , file_name_template)
+  txt = readr::read_file(path_template) %>%
+    stringr::str_replace('template', title)
 
-    txt = readr::read_file(path_template) %>%
-      stringr::str_replace('template', title)
+  readr::write_file( txt, file_name_template)
 
-    readr::write_file( txt, file_name_template)
+  rmarkdown::render( file_name_template
+                     , output_file = paste0( output_file, '.html')
+                     , params      = list(obj_list = obj_list, ... )
+                     )
 
-    rmarkdown::render( file_name_template
-                       , output_file = paste0( output_file, '.html')
-                       , params      = list(obj_list = obj_list, ... )
-                       , quiet = quiet
-                       )
 
-    file.remove(file_name_template)
-
-  }
+  file.remove(file_name_template)
 
   return( file.path( getwd(), paste0( output_file, '.html')) )
 
@@ -709,3 +697,191 @@ f_plot_generate_comparison_pairs = function(data, col_var, col_group, thresh = 0
 
   return(compare)
 }
+
+#' @title plot alluvial
+#' @description plots a dataframe as an alluvial plot. All numerical variables
+#'   are scaled, centered and YeoJohnson transformed before binning.
+#' @param data a dataframe
+#' @param variables vector denoting names and order of the plotted variables,
+#'   Default: names(data)
+#' @param max_variables maximum number of variables, Default: 20
+#' @param bins number of bins for numerical variables, Default: 5
+#' @param bin_labels labels for the bins from low to high, Default: c("LL",
+#'   "ML", "M", "MH", "HH")
+#' @param order_levels character vector denoting levels to be reorderer from low to high
+#' @param fill_by one_of(c('first_variable', 'last_variable', 'all_flows',
+#'   'values')), Default: 'first_variable'
+#' @param col_vector vector with HEX color codes, Default:
+#'   RColorBrewer::brewer.pal(name = "Dark2", n = 8)
+#' @return OUTPUT_DESCRIPTION
+#' @details DETAILS
+#' @examples
+#' \dontrun{
+#' if(interactive()){
+#' data_ls = mtcars %>%
+#'   f_clean_data()
+#'
+#' max_variables = 5
+#' variables = c( data_ls$categoricals[1:3], data_ls$numericals[1:3] )
+#'
+#' f_plot_alluvial( data_ls$data, variables, max_variables, fill_by = 'first_variable' )
+#' f_plot_alluvial( data_ls$data, variables, max_variables, fill_by = 'last_variable' )
+#' f_plot_alluvial( data_ls$data, variables, max_variables, fill_by = 'all_flows' )
+#' f_plot_alluvial( data_ls$data, variables, max_variables, fill_by = 'values' )
+#'
+#' # manually order variable values
+#' f_plot_alluvial( data_ls$data
+#'                  , variables
+#'                  , max_variables
+#'                  , fill_by = 'first_variable'
+#'                  , order_levels = c('1', '0') )
+#' }
+#' @seealso \code{\link[RColorBrewer]{brewer.pal}}
+#'   \code{\link[forcats]{fct_relevel}}
+#'   \code{\link[ggalluvial]{geom_flow}},\code{\link[ggalluvial]{geom_stratum}}
+#' @rdname f_plot_alluvial
+#' @export
+#' @importFrom RColorBrewer brewer.pal
+#' @importFrom forcats fct_relevel
+#' @importFrom ggalluvial geom_flow geom_stratum
+f_plot_alluvial = function( data
+                            , variables = names(data)
+                            , max_variables = 20
+                            , bins = 5
+                            , bin_labels = c('LL', 'ML', 'M', 'MH', 'HH')
+                            , order_levels = NULL
+                            , fill_by = 'first_variable'
+                            , col_vector = RColorBrewer::brewer.pal(name = 'Dark2', n = 8)
+){
+
+  # both packages need to be loaded entirely
+  require(ggalluvial)
+
+  # adjust variable length
+
+  if( max_variables > length(variables) ) max_variables = length(variables)
+
+  variables = variables[1:max_variables]
+
+  fill_by =  switch (fill_by
+                     , first_variable  = variables[1]
+                     , last_variable   = variables[ length(variables) ]
+                     , all_flows       = 'alluvial_id'
+                     , values          = 'value'
+  )
+
+
+
+  # transform numerical variables for binning
+
+  data_new = data %>%
+    select( one_of(variables) ) %>%
+    f_manip_bin_numerics( bins, bin_labels) %>%
+    group_by_all() %>%
+    count() %>%
+    ungroup()
+
+  # preserve order of categorical variables
+
+  ordered_levels = data_new %>%
+    select_if( is.factor ) %>%
+    head(1) %>%
+    mutate_all( function(x) list(levels(x)) ) %>%
+    gather( key = 'key', value = 'levels') %>%
+    unnest(levels) %>%
+    .$levels %>%
+    unique()
+
+  if( ! is.null(order_levels) ){
+    ordered_levels = ordered_levels[ ! ordered_levels %in% order_levels ]
+    ordered_levels = c( order_levels, ordered_levels)
+
+  }
+
+  # Prepare dataframe
+
+  # this code is a bit redundant but the different fill options require
+  # different transformations. I have marked the sections where there are
+  # differences with ## ***
+
+  suppressWarnings(
+
+    if( fill_by != 'value' ){
+
+      data_new <- data_new %>%
+        mutate( alluvial_id = row_number()
+                , fill = !! as.name(fill_by) )  %>% ## ***
+        gather( key = 'x', value = 'value', - alluvial_id, - n , - fill) %>% ## ***
+        mutate( value = as.factor(value)
+                , value = forcats::fct_relevel( value, ordered_levels )
+                , value = forcats::fct_rev(value)
+                , x = as.factor(x)
+                , x = forcats::fct_relevel(x, variables)
+                , fill = as.factor(fill) ## ***
+                , alluvial_id = as.factor(alluvial_id)
+        )
+    }else{
+
+      data_new <- data_new %>%
+        mutate( alluvial_id = row_number() )  %>%
+        gather( key = 'x', value = 'value', - alluvial_id, - n ) %>% ## ***
+        mutate( value = as.factor(value)
+                , value = forcats::fct_relevel( value, ordered_levels )
+                , value = forcats::fct_rev(value)
+                , x = as.factor(x)
+                , x = forcats::fct_relevel(x, variables)
+                , fill = as.factor(value) ## ***
+                , alluvial_id = as.factor(alluvial_id)
+        )
+    }
+
+  )
+
+  n_flows    = max( f_manip_factor_2_numeric( data_new$alluvial_id) )
+  reduced_to = round( n_flows/nrow(data) * 100, 1 )
+  max_weight = max( data_new$n )
+  max_weight_perc = round( max_weight/nrow(data) * 100, 1 )
+
+  print( paste('Number of flows:', n_flows) )
+  print( paste('Original Dataframe reduced to', reduced_to, '%' ) )
+  print( paste('Maximum weight of a singfle flow', max_weight_perc, '%') )
+
+  # if(  n_flows > 500 ){
+  #   warning( 'Number of individual flows is very high, reduce variables')
+  # }
+  # if(  n_flows > 1000 ){
+  #   stop( 'Number of individual flows too high for plotting')
+  # }
+
+
+  #adjust col_vector length
+
+  n_colors_needed = length( unique(data_new$fill) )
+
+  if( length(col_vector) < n_colors_needed ) col_vector = c( col_vector, f_plot_col_vector74() )
+
+  col_vector = f_plot_adjust_col_vector_length( n_colors_needed, col_vector )
+
+
+  p <- ggplot(data_new,
+              aes(x = x
+                  , stratum = value
+                  , alluvium = alluvial_id
+                  , weight = n
+                  , label = value)) +
+    ggalluvial::geom_flow(stat = "alluvium"
+                          , lode.guidance = "leftright"
+                          , color = "darkgray"
+                          , aes( fill = fill )
+    ) +
+    ggalluvial::geom_stratum( fill = 'darkgrey'
+                              , color = 'black' ) +
+    geom_label( stat = 'stratum') +
+    theme(legend.position = "none" ) +
+    scale_fill_manual( values = col_vector )
+
+  return(p)
+}
+
+
+
