@@ -49,6 +49,7 @@ f_plot_alluvial_1v1 = function( data
                             , col_y
                             , col_id
                             , col_fill = NULL
+                            , fill_right = T
                             , max_variables = 20
                             , bins = 5
                             , bin_labels = c('LL', 'ML', 'M', 'MH', 'HH')
@@ -57,7 +58,7 @@ f_plot_alluvial_1v1 = function( data
                             , order_levels_fill = NULL
                             , complete = TRUE
                             , fill_by = 'first_variable'
-                            , col_vector = RColorBrewer::brewer.pal(name = 'Dark2', n = 8)
+                            , col_vector = f_plot_col_vector74( faint = F, greys = F )
 ){
 
   # package needs to be loaded entirely
@@ -95,23 +96,32 @@ f_plot_alluvial_1v1 = function( data
 
   if( ! is.null(col_fill) ){
     ordered_levels_fill = c( order_levels_fill, levels( data_trans[[col_fill]] ) ) %>% unique()
+    ordered_levels_y = c( ordered_levels_y, ordered_levels_fill)
+
+    if(fill_right){
+      ordered_levels_x = c( ordered_levels_x, col_fill )
+    }else{
+      ordered_levels_x = c( col_fill, ordered_levels_x )
+    }
+
   }else{
     ordered_levels_fill = NULL
   }
 
+  suppressWarnings({
 
-  # add alluvial ids
-  data_new = data_trans %>%
-    spread( key = !! sym_x, value = !! sym_y ) %>%
-    select( - one_of(col_id) ) %>%
-    group_by_all() %>%
-    count() %>%
-    ungroup() %>%
-    mutate( alluvial_id = row_number() ) %>%
-    gather( key = 'x', value = 'value',  - one_of( c('alluvial_id', 'n', col_fill) ) ) %>%
-    mutate( x = as.factor(x)
-            , x = forcats::fct_relevel(x, ordered_levels_x))
-
+    # add alluvial ids
+    data_new = data_trans %>%
+      spread( key = !! sym_x, value = !! sym_y ) %>%
+      select( - one_of(col_id) ) %>%
+      group_by_all() %>%
+      count() %>%
+      ungroup() %>%
+      mutate( alluvial_id = row_number() ) %>%
+      gather( key = 'x', value = 'value',  - one_of( c('alluvial_id', 'n', col_fill) ) ) %>%
+      mutate( x = as.factor(x)
+              , x = forcats::fct_relevel(x, ordered_levels_x))
+  })
   # compose fill columns
 
   last_x = levels(data_new$x) %>%
@@ -128,6 +138,7 @@ f_plot_alluvial_1v1 = function( data
               , x = col_fill )
 
     suppressWarnings({
+
         data_new = data_new %>%
         bind_rows( data_fill )
     })
@@ -157,6 +168,10 @@ f_plot_alluvial_1v1 = function( data
     data_new$fill = data_new$alluvial_id %>%
       as.factor(.)
 
+  }else if( fill_by == 'value'){
+
+    data_new$fill = data_new$value
+
   }else{
     warning( 'no valid fill option selected')
 
@@ -171,7 +186,8 @@ f_plot_alluvial_1v1 = function( data
     mutate( x =  forcats::fct_relevel( x, ordered_levels_x )
             , value =  forcats::fct_relevel( value, ordered_levels_y )
             , fill =  forcats::fct_relevel( fill , ordered_levels_fill )
-            )
+            ) %>%
+    mutate( value =  forcats::fct_rev(value) )
 
   n_flows    = max( f_manip_factor_2_numeric( data_new$alluvial_id) )
   reduced_to = round( n_flows/nrow(data) * 100, 1 )
@@ -183,14 +199,25 @@ f_plot_alluvial_1v1 = function( data
   print( paste('Maximum weight of a singfle flow', max_weight_perc, '%') )
 
 
-  #adjust col_vector length
+  #adjust col_vector length fill
 
   n_colors_needed = length( unique(data_new$fill) )
 
-  if( length(col_vector) < n_colors_needed ) col_vector = c( col_vector, f_plot_col_vector74() )
+  if( length(col_vector) < n_colors_needed ){
+    col_vector = c( col_vector, f_plot_col_vector74( greys = F) )
+  }
 
   col_vector = f_plot_adjust_col_vector_length( n_colors_needed, col_vector )
 
+  df_fill = tibble( )
+
+  # adjust col_vector length color
+
+  col_vector_col = RColorBrewer::brewer.pal(9, 'Greys')
+
+  n_colors_needed = length( unique(data_new$value) )
+
+  col_vector_col = f_plot_adjust_col_vector_length( n_colors_needed, col_vector_col )
 
   p <- ggplot(data_new,
               aes(x = x
@@ -204,10 +231,11 @@ f_plot_alluvial_1v1 = function( data
                           , aes( fill = fill )
     ) +
     ggalluvial::geom_stratum( fill = 'darkgrey'
-                              , color = 'black' ) +
+                              , aes(color = value) ) +
     geom_label( stat = 'stratum') +
     theme(legend.position = "none" ) +
-    scale_fill_manual( values = col_vector )
+    scale_fill_manual( values = col_vector ) +
+    scale_color_manual(values = col_vector_col )
 
   return(p)
 }
