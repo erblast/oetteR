@@ -1,20 +1,37 @@
+
 #' @title plot alluvial
-#' @description plots a dataframe as an alluvial plot. All numerical variables
-#'   are scaled, centered and YeoJohnson transformed before binning.
+#' @description Plots two variables of a dataframe on an alluvial plot. A third
+#'   variable can be added either two the left or the right of the alluvial plot
+#'   to provide coloring of the flows. All numerical variables are scaled,
+#'   centered and YeoJohnson transformed before binning.
 #' @param data a dataframe
-#' @param variables vector denoting names and order of the plotted variables,
-#'   Default: names(data)
-#' @param max_variables maximum number of variables, Default: 20
-#' @param bins number of bins for numerical variables, Default: 5
-#' @param bin_labels labels for the bins from low to high, Default: c("LL",
-#'   "ML", "M", "MH", "HH")
-#' @param order_levels character vector denoting levels to be reorderer from low to high
+#' @param col_x character vector denoting column for the x axis variable
+#' @param col_y character vector denoting column for the y axis variable
+#' @param col_id character vector denoting id column
+#' @param col_fill character vector denoting color fill variable for flows,
+#'   Default: NULL
+#' @param fill_right logical, TRUE fill variable is added to the right FALSE to
+#'   the left, Default: T
+#' @param bins number of bins for automatic binning of numerical variables,
+#'   Default: 5
+#' @param bin_labels labesl for bins, Default: c("LL", "ML", "M", "MH", "HH")
+#' @param order_levels_y character vector denoting order of y levels from low to
+#'   high, does not have to be complete can also just be used to bring levels to
+#'   the front, Default: NULL
+#' @param order_levels_x character vector denoting order of x levels from low to
+#'   high, does not have to be complete can also just be used to bring levels to
+#'   the front, Default: NULL
+#' @param order_levels_fill character vector denoting order of color fill
+#'   variable levels from low to high, does not have to be complete can also
+#'   just be used to bring levels to the front, Default: NULL
+#' @param complete add implicitly missing data, Default: TRUE
 #' @param fill_by one_of(c('first_variable', 'last_variable', 'all_flows',
 #'   'values')), Default: 'first_variable'
-#' @param col_vector vector with HEX color codes, Default:
-#'   RColorBrewer::brewer.pal(name = "Dark2", n = 8)
-#' @return OUTPUT_DESCRIPTION
-#' @details DETAILS
+#' @param col_vector_flow HEX colors for flows, Default: f_plot_col_vector74(faint
+#'   = F, greys = F)
+#' @param col_vector_value Hex colors for y levels/values, Default:
+#'   RColorBrewer::brewer.pal(9, "Greys")[c(3, 6, 4, 7, 5)]
+#' @return plot
 #' @examples
 #' \dontrun{
 #' if(interactive()){
@@ -37,12 +54,14 @@
 #'                  , order_levels = c('1', '0') )
 #' }
 #' @seealso \code{\link[RColorBrewer]{brewer.pal}}
-#'   \code{\link[forcats]{fct_relevel}}
+#'   \code{\link[forcats]{fct_relevel}},\code{\link[forcats]{fct_rev}}
+#'   \code{\link[rlang]{UQ}}
 #'   \code{\link[ggalluvial]{geom_flow}},\code{\link[ggalluvial]{geom_stratum}}
-#' @rdname f_plot_alluvial
+#' @rdname f_plot_alluvial_1v1
 #' @export
 #' @importFrom RColorBrewer brewer.pal
-#' @importFrom forcats fct_relevel
+#' @importFrom forcats fct_relevel fct_rev
+#' @importFrom rlang UQ
 #' @importFrom ggalluvial geom_flow geom_stratum
 f_plot_alluvial_1v1 = function( data
                             , col_x
@@ -50,7 +69,6 @@ f_plot_alluvial_1v1 = function( data
                             , col_id
                             , col_fill = NULL
                             , fill_right = T
-                            , max_variables = 20
                             , bins = 5
                             , bin_labels = c('LL', 'ML', 'M', 'MH', 'HH')
                             , order_levels_y = NULL
@@ -58,7 +76,8 @@ f_plot_alluvial_1v1 = function( data
                             , order_levels_fill = NULL
                             , complete = TRUE
                             , fill_by = 'first_variable'
-                            , col_vector = f_plot_col_vector74( faint = F, greys = F )
+                            , col_vector_flow = f_plot_col_vector74( faint = F, greys = F )
+                            , col_vector_value =  RColorBrewer::brewer.pal(9, 'Greys')[c(3,6,4,7,5)]
 ){
 
   # package needs to be loaded entirely
@@ -199,25 +218,41 @@ f_plot_alluvial_1v1 = function( data
   print( paste('Maximum weight of a singfle flow', max_weight_perc, '%') )
 
 
-  #adjust col_vector length fill
+  #adjust col_vector length fill flows
 
   n_colors_needed = length( unique(data_new$fill) )
 
-  if( length(col_vector) < n_colors_needed ){
-    col_vector = c( col_vector, f_plot_col_vector74( greys = F) )
-  }
+  col_vector_flow = f_plot_adjust_col_vector_length( n_colors_needed, col_vector_flow )
 
-  col_vector = f_plot_adjust_col_vector_length( n_colors_needed, col_vector )
+  df_fill_flow = tibble( fill = unique(data_new$fill)
+                         , fill_flow = col_vector_flow )
 
-  df_fill = tibble( )
+  suppressMessages({
+    data_new = data_new %>%
+      left_join( df_fill_flow )
+  })
 
-  # adjust col_vector length color
-
-  col_vector_col = RColorBrewer::brewer.pal(9, 'Greys')
+  # adjust col_vector length fill value
 
   n_colors_needed = length( unique(data_new$value) )
 
-  col_vector_col = f_plot_adjust_col_vector_length( n_colors_needed, col_vector_col )
+  col_vector_value = f_plot_adjust_col_vector_length( n_colors_needed, col_vector_value )
+
+  d_fill_value = tibble( value = unique(data_new$value)
+                         , fill_value = col_vector_value )
+
+  suppressMessages({
+    data_new = data_new %>%
+      left_join( d_fill_value )
+  })
+
+
+  if( ! is.null(col_fill) ){
+
+    data_new = data_new %>%
+      mutate( fill_value = ifelse( as.character(value) == as.character(rlang::UQ(sym_fill))
+                                   , fill_flow, fill_value ) )
+  }
 
   p <- ggplot(data_new,
               aes(x = x
@@ -227,15 +262,16 @@ f_plot_alluvial_1v1 = function( data
                   , label = value)) +
     ggalluvial::geom_flow(stat = "alluvium"
                           , lode.guidance = "leftright"
-                          , color = "darkgray"
-                          , aes( fill = fill )
+                          , aes( fill = fill_flow
+                                 , color = fill_flow )
     ) +
-    ggalluvial::geom_stratum( fill = 'darkgrey'
-                              , aes(color = value) ) +
+    ggalluvial::geom_stratum(  aes(fill = fill_value
+                                   , color = fill_value)
+                               ) +
     geom_label( stat = 'stratum') +
     theme(legend.position = "none" ) +
-    scale_fill_manual( values = col_vector ) +
-    scale_color_manual(values = col_vector_col )
+    scale_fill_identity() +
+    scale_color_identity()
 
   return(p)
 }

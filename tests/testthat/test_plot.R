@@ -263,7 +263,7 @@ test_that('f_plot_alluvial'
 
 test_that('f_plot_alluvial_1v1'
           ,{
-
+  # sample data
   monthly_flights = nycflights13::flights %>%
     group_by(month, tailnum, origin, dest, carrier) %>%
     summarise() %>%
@@ -290,14 +290,22 @@ test_that('f_plot_alluvial_1v1'
   col_fill = 'carrier'
   col_id = 'tailnum'
 
-  f_plot_alluvial_1v1( data, col_x, col_y, col_id, col_fill )
+  # flow coloring variants
+  p = f_plot_alluvial_1v1( data, col_x, col_y, col_id, col_fill )
   f_plot_alluvial_1v1( data, col_x, col_y, col_id, fill_by = 'last_variable' )
   f_plot_alluvial_1v1( data, col_x, col_y, col_id, fill_by = 'first_variable' )
   f_plot_alluvial_1v1( data, col_x, col_y, col_id, fill_by = 'all_flows' )
   f_plot_alluvial_1v1( data, col_x, col_y, col_id, fill_by = 'value' )
 
+  # use same color coding for flows and y levels
+  f_plot_alluvial_1v1( data, col_x, col_y, col_id, fill_by = 'last_variable'
+                       , col_vector_flow = f_plot_col_vector74()
+                       , col_vector_value = f_plot_col_vector74() )
+
+  # move fill variable to the left
   f_plot_alluvial_1v1( data, col_x, col_y, col_id, col_fill, fill_right = F )
 
+  # reorder levels
   f_plot_alluvial_1v1( data, col_x, col_y, col_id, fill_by = 'first_variable'
                        , order_levels_y = c('on_time', 'late') )
 
