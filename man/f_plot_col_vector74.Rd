@@ -4,11 +4,16 @@
 \alias{f_plot_col_vector74}
 \title{generate a most distinctive color scale}
 \usage{
-f_plot_col_vector74()
+f_plot_col_vector74(greys = T, reds = T, blues = T, greens = T,
+  faint = T, only_unique = F)
+}
+\arguments{
+\item{colors}{boolean include color}
 }
 \value{
 vector with HEX colours
 }
 \description{
 based on RColorBrewer colours of length 74
+for RGB colors see {rapidtables}(https://www.rapidtables.com/web/color/index.html)
 }
