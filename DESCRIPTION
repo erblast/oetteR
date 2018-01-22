@@ -11,4 +11,7 @@ LazyData: true
 RoxygenNote: 6.0.1
 Imports:
   tidyverse
-Suggests: testthat
+Suggests: testthat,
+    knitr,
+    rmarkdown
+VignetteBuilder: knitr

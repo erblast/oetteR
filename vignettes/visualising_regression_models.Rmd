@@ -1,0 +1,168 @@
+---
+title: "Vignette Title"
+author: "Vignette Author"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+  , out.width = '30%'
+  , message = F
+  , warning = F
+  , echo = T
+)
+```
+
+```{r}
+suppressPackageStartupMessages( require(oetteR) )
+suppressPackageStartupMessages( require(tidyverse) )
+```
+
+
+# Visualising Regression Models
+
+Classically regression models are judged by their performance based on a calculated performance metric like `rtSME` and usually we will pick the least complex model with the best performance. However the best performance is often given by complex nonlinear models that are difficult to interpret in terms of what aspects of the data they are capturing, which makes it more difficult to trust them. Here certain visualisations can help us to judge the model and build up more confidence.
+
+# Visualising the model in the data space
+
+In linear regression we can rely on a simple easily interpretable function to judge the impact of one predictor variable on the response variable. We can set up a empirical method to come up with a similar visualisation. For most of the statistical models we have methods to determine variable importance. So we generally have an idea which variables to investigate. The trick is to generate artifical data where we change the values of only one predictor while keeping all other predictors constant at their median.
+
+## Train nonlinear regression models
+
+We are using the `pipelearner` package. We want the models to be trained on the full data set. Unfortunately we can only do this in pipelearner if we set the test section to a really low value.
+
+```{r}
+
+data_ls = f_clean_data(ISLR::Auto)
+form = displacement~horsepower+cylinders+weight+acceleration+mpg+year
+variable_color_code = f_plot_color_code_variables(data_ls)
+limit            = 10
+
+pl = pipelearner::pipelearner( data_ls$data ) %>%
+  pipelearner::learn_models( rpart::rpart, form ) %>%
+  pipelearner::learn_models( randomForest::randomForest, form ) %>%
+  pipelearner::learn_models( e1071::svm, form ) %>%
+  pipelearner::learn_cvpairs( pipelearner::crossv_mc, test = 0.000001, n = 1 ) %>%
+  pipelearner::learn() 
+ 
+ 
+ 
+ 
+```
+## Calculate Predictor importance
+
+```{r}
+
+pl = pl %>%
+  mutate( imp   = map2(fit, train, f_model_importance) )
+
+pl$imp  
+
+```
+
+
+## Plot Variable dependencies
+
+```{r}
+pl = pl %>%
+  mutate( plot = pmap( list( m = fit, ranked_variables = imp, title = model, data = train)
+                        , .f = f_model_plot_variable_dependency_regression
+                        , formula = form
+                        , data_ls = data_ls
+                        , variable_color_code = variable_color_code
+                       , limit = limit )
+  )
+
+pl$plot %>%
+  walk( print )
+
+```
+
+These plots are already quite informative. However we know the models are capaple of capturing nonlinear relationships meaning that the changes in response variable based on changes in one predictor can be quite different depending on the other predictors. For example the change in displacement in response to acceleration could be different even opposite in small cars compared to large cars
+
+## Binning the data
+
+Here we could start to split the data into groups and repeat the above exercise for each group. We can either split the data on some notion we already have or simply split on the most important variable. 
+
+```{r fig.height = 15 }
+pl = pl %>%
+  mutate( range_var = map_chr(imp, function(x) head(x,1)$row_names )
+          , grid = pmap( list( m = fit
+                            , title = model
+                            , variables = imp
+                            , range_variable = range_var
+                     )
+                     , f_model_plot_var_dep_over_spec_var_range
+                     , formula = form
+                     , data_ls = data_ls
+                     , data = data_ls$data
+                     , variable_color_code = variable_color_code
+                     , log_y = F
+                     , limit = 12
+                     )
+  )
+
+pl$grid %>%
+  walk( gridExtra::grid.arrange )
+```
+
+
+# Visualising the data in the model space
+
+We can also put the dataset into the modelling space and trace observations that are particularly bad good or differently predicted by a group of models. 
+
+## Add Predictions and Residuals
+
+```{r out.width = '45%', fig.show='hold' }
+
+pl_pred = pl %>%
+  f_predict_pl_regression( cols_id = 'name', data_test = 'train') %>%
+  unnest(preds) %>%
+  mutate( title = model ) %>%
+  group_by( title ) %>%
+  arrange( name ) %>%
+  mutate( rwn = row_number()
+          , id = paste(name, rwn) ) %>%
+  ungroup()
+
+
+
+f_plot_hist( 'resid', f_clean_data_no_changes(pl_pred) )
+
+f_plot_hist( 'resid', f_clean_data_no_changes(pl_pred), group = 'title', graph_type = 'violin' )
+
+
+```
+
+## Plot alluvial plot
+
+The range of all residuals is binned into 5 equidistant groups. LL Low-Low, ML - Medium, M Medium, MH - Medium-High, HH High-High. And the predictions of an individual observation are tracked between models and grouped into flows.
+
+```{r out.width = '50%', fig.align='center}
+
+p = f_plot_alluvial_1v1( data = pl_pred
+                     , col_x = 'title'
+                     , col_y = 'resid'
+                     , col_id = 'id'
+                     , fill_by = 'all_flows'
+                     , order_levels_x = c('randomForest', 'svm') )
+
+p
+```
+
+We can see that the residuals of single observations fall mostly into the same category for each model. Transisition from a High (MH, HH) to a Low range (LM,LL) or the other way around are very rare if wee look at the to better performing models randomFores and svm. We can thus conclude that the two models catch up on similar traits of the data. We also find a consistency in the observations that are poorly predicted. In a next step we will investigate what sets them apart from the other observations that are predicted better.
+
+## Tag observations that dont predict well
+
+```{r}
+df = p$data_key %>%
+  mutate()
+```
+

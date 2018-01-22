@@ -1,14 +1,19 @@
 ---
 title: "template"
-output: html_document
+output: 
+  html_document:
+    toc: true
+    toc_depth: 3
+    toc_float: 
+     collapsed: false
+     smooth_scroll: false
 params:
   obj_list: !r lubridate::today()
-
 ---
-
 **Date: `r lubridate::today()`**
 
 ```{r taglist_2_html_chunk1, include=FALSE}
+# headers in taglist will appear in toc but they will not be numbered, numbering is added by rmarkdown
 knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE, results = 'markup')
 ```
 

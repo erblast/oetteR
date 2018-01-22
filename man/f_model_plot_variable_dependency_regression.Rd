@@ -58,11 +58,10 @@ limit               = 12
 f_model_plot_variable_dependency_regression( m
                                              , ranked_variables
                                              , title = unlist( stringr::str_split( class(m)[1], '\\\\.') )[1]
-                                             , data
-                                             , formula
-                                             , data_ls
-                                             , variable_color_code
-                                             , limit
+                                             , formula = formula
+                                             , data_ls = data_ls
+                                             , variable_color_code = variable_color_code
+                                             , limit = limit
                                              )
 
 #pipe version ------------------------------------------

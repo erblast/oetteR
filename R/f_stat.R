@@ -249,17 +249,20 @@ f_stat_combine_anova_with_chi_square = function(df_anova = NULL, df_chi_square =
 #'  list( data = <dataframe>, numericals = < vector with column names of
 #'  numerical columns>)
 #'@param col_group character vector denoting grouping columns
-#'@param tresh_p_val p value threshold for plots, Default: 0.05
+#'@param thresh_p_val p value threshold for plots, Default: 0.05
 #'@param thresh_diff_perc minimum percent difference threshold for plots,
 #'  Default: 3
 #'@param output_file character vector containing output file name
+#'@alluvial
 #'@return file path to html file
 #' @examples
 #' \dontrun{
 #'  data_ls = f_clean_data(mtcars)
-#'  f_stat_group_ana(data_ls, 'cyl','output_file = test_me')
+#'  f_stat_group_ana(data_ls, 'cyl', output_file = 'test_me')
 #'  file.remove('test_me.html')
 #'  file.remove('test_me_stat_plots.html')
+#'  file.remove('test_me_alluvial.html')
+#'  file.remove('test_me_tabplots.html')
 #' }
 #'@seealso \code{\link[plotly]{ggplotly}}
 #'  \code{\link[htmltools]{tagList}},\code{\link[htmltools]{h1}},\code{\link[htmltools]{h2}}
@@ -271,9 +274,14 @@ f_stat_combine_anova_with_chi_square = function(df_anova = NULL, df_chi_square =
 #'@importFrom htmltools tagList h1 h2 h3 h4 h5 h6
 f_stat_group_ana = function(data_ls
                               , col_group
-                              , tresh_p_val = 0.05
+                              , thresh_p_val = 0.05
                               , thresh_diff_perc = 3
-                              , output_file = 'group_ana'){
+                              , output_file = 'group_ana'
+                              , alluvial = T
+                              , alluvial_thresh_p_val = 0.05
+                              , alluvial_thres_diff_perc = 7.5
+                              , tabplot = T
+                              ){
 
   df_anova = f_stat_anova( data_ls, col_group )
   df_chi   = f_stat_chi_square( data_ls, col_group )
@@ -335,12 +343,22 @@ f_stat_group_ana = function(data_ls
 
   }
 
+  # Plot group count -----------------------------------------------------------------
+
+  p_group_count = f_plot_hist( col_group, data_ls, y_axis = 'count')
+  p_group_perc  = f_plot_hist( col_group, data_ls, y_axis = 'density')
+
+  taglist_group = htmltools::tagList( list(plotly::ggplotly(p_group_count)
+                                     , plotly::ggplotly(p_group_perc) ) )
+
   # Make Plots -----------------------------------------------------------------------
 
   plots = df_comb %>%
-    filter( p_value <= tresh_p_val & diff_perc >= thresh_diff_perc) %>%
+    filter( p_value <= thresh_p_val & diff_perc >= thresh_diff_perc) %>%
+    arrange( desc(diff_perc) ) %>%
     mutate( stars = f_stat_stars( p_value )
-            ,title = paste( variable, stars)
+            , no = row_number()
+            , title = paste0( 'Plot', no,': ' ,variable, ' ' ,stars)
             , plot_plotly = map2( variable, title, f_plot_plotly, col_group, data_ls )
             , plot_ggplot = map2( variable, title, f_plot_ggplot, col_group, data_ls )
             )
@@ -363,35 +381,137 @@ f_stat_group_ana = function(data_ls
   html_link = f_html_filename_2_link(file_path = link_ggplot
                                      , link_text =  'Static plots of numerical variables with more statistical features')
 
-  tab_link = DT::datatable( tibble(Link = html_link), escape = F , options = list( dom = ''), rownames = F )
+  # Make and render alluvial plot------------------------------------------------------
+
+  if(alluvial){
+
+    var_alluvial = df_comb %>%
+      arrange( desc(diff_perc) ) %>%
+      filter( p_value <= alluvial_thresh_p_val, diff_perc >= alluvial_thres_diff_perc ) %>%
+      .$variable
+
+    var_alluvial = c( col_group, var_alluvial )
+
+    p_alluv = f_plot_alluvial( data = data_ls$data
+                               , variables = var_alluvial
+                               , max_variables = 20
+                               , fill_by = 'first_variable'
+                               )
+
+    link_alluvial = f_plot_obj_2_html( list(p_alluv)
+                                       , 'plots'
+                                       , output_file = paste0(output_file, '_alluvial')
+                                       , title = paste('Alluvial Plot ( P <'
+                                                       , alluvial_thresh_p_val
+                                                       , ', difference % >'
+                                                       , alluvial_thres_diff_perc
+                                                       ,')')
+                                       )
+
+    html_link_alluvial = f_html_filename_2_link( file_path = link_alluvial
+                                                 , link_text = 'Alluvial Plot')
+
+
+  }else{
+    html_link_alluvial = 'Alluvial plot option is disabled.'
+  }
+
+  # Make and render tableplot --------------------------------------------------------
+
+  if(tabplot){
+
+    n_vars_tabplot = 12
+
+    var_tabplot = df_comb %>%
+      filter( p_value <= thresh_p_val & diff_perc >= thresh_diff_perc) %>%
+      arrange( desc(diff_perc) ) %>%
+      .$variable
+
+    data_tab = select(data_ls$data, one_of(col_group, var_tabplot)  )
+
+    to = c(1:ceiling( ncol(data_tab)/n_vars_tabplot)) * n_vars_tabplot
+    to = to + 1
+    to[length(to)] = ncol(data_tab)
+
+    to = unique(to)
+
+    if( length(to) > 1){
+      from = to - (n_vars_tabplot-1)
+    }else{
+      from = 2
+    }
+
+    suppressWarnings({
+      df_tab = tibble( from = from, to = to ) %>%
+        mutate( data = map2(from, to, function(x,y) data_tab[,c(1,x:y)] )
+                , title = paste( col_group, ' and variables',from, 'to', to, 'sorted by % difference')
+                , tabplot = map( data, tabplot::tableplot, plot = F )
+                )
+    })
+
+    #passing titles to the plot function does not work tweaked the rmd template to
+    # accept the titles as params
+
+    tabplots = df_tab$tabplot
+    titles = df_tab$title
+
+    link_tabplot = f_plot_obj_2_html(tabplots
+                                    , type = 'tabplots'
+                                    , output_file = paste0(output_file, '_tabplots')
+                                    , title = paste('Tabplot Plot  ( P <'
+                                                    , thresh_p_val
+                                                    , ', difference % >'
+                                                    , thresh_diff_perc
+                                                    ,')')
+                                    , titles = titles
+                                    )
+
+    html_link_tabplot = f_html_filename_2_link( file_path = link_tabplot
+                                               , link_text = 'Tabplot')
+  }else{
+    html_link_tabplot = 'Tabplot option is disabled'
+  }
+
+  # Table with links -----------------------------------------------------------------
+
+  tab_link = DT::datatable( tibble(Link = c( html_link
+                                             , html_link_alluvial
+                                             , html_link_tabplot)
+                                   )
+                            , escape = F
+                            , options = list( dom = '')
+                            , rownames = F )
 
   # Render html ----------------------------------------------------------------------
 
 
   tab_all = f_datatable_universal( df_comb, round_other_nums = 2 ) %>%
-    f_html_padding( 3, title ='All features'
+    f_html_padding( 3, title ='Table: All features'
                     , subtitle = paste('grouped by:', col_group), pad_after = 3 )
 
   tab_mean = f_datatable_universal( df_means, round_other_nums = 2 ) %>%
-    f_html_padding( 3, title ='Means and Medians of numerical features'
+    f_html_padding( 3, title ='Table: Means and Medians of numerical features'
                     , subtitle = paste('grouped by:', col_group))
 
   tab_perc = f_datatable_universal( df_perc, round_other_nums = 2 ) %>%
-    f_html_padding(  title ='Counts and percentages of categorical features'
+    f_html_padding(  title ='Table: Counts and percentages of categorical features'
                     , subtitle = paste('grouped by:', col_group), pad_after = 2 )
 
 
   taglist = htmltools::tagList()
   taglist[[1]] = htmltools::h1( paste('Differences Between "', col_group, '" Groups') )
-  taglist[[2]] = tab_all
-  taglist[[3]] = htmltools::h2( paste( 'Plots for features with significant differences of minimum'
-                                       , thresh_diff_perc, '% sorted by P Value' ) )
-  taglist[[4]] = f_html_padding( tab_link)
-  taglist[[5]] = plots_plotly
-  taglist[[6]] = f_html_breaks(5)
-  taglist[[7]] = htmltools::h2( 'Summary Tables' )
-  taglist[[8]] = tab_mean
-  taglist[[9]] = tab_perc
+  taglist[[2]] = htmltools::h2( 'Number and percentage of observations per group' )
+  taglist[[3]] = taglist_group
+  taglist[[4]] = tab_all
+  taglist[[5]] = f_html_padding(tab_link, title = 'Links to static plots')
+  taglist[[6]] = htmltools::h1( 'Dynamic Plots' )
+  taglist[[7]] = htmltools::h4( paste( 'P <', thresh_p_val, ', % difference >'
+                                       , thresh_diff_perc, ', sorted by % difference' ) )
+  taglist[[8]] = plots_plotly
+  taglist[[9]] = f_html_breaks(5)
+  taglist[[10]] = htmltools::h1( 'Summary Tables' )
+  taglist[[11]] = tab_mean
+  taglist[[12]] = tab_perc
 
   link_taglist = f_plot_obj_2_html( taglist, 'taglist', output_file = output_file, title = 'Group Analysis')
 

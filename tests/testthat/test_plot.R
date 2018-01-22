@@ -226,7 +226,7 @@ test_that( 'pretty points'
 
 
 
-testhat('test f_plot_colvector'
+test_that('test f_plot_colvector'
   ,{
 
   plot_rgb = function(col){

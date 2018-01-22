@@ -21,7 +21,7 @@ plot_tabplots = function(p, title){
   
 }
 
-tibble( p = params$obj_list, title = params$titles ) %>%
+t = tibble( p = params$obj_list, title = params$titles ) %>%
   mutate( print = walk2( p, title, plot_tabplots) )
 
 

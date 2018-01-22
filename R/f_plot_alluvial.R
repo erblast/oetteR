@@ -40,7 +40,7 @@
 #' \dontrun{
 #' if(interactive()){
 #'# sample data
-#'monthly_flights = nycflights13::flights %>%
+#'  monthly_flights = nycflights13::flights %>%
 #'  group_by(month, tailnum, origin, dest, carrier) %>%
 #'  summarise() %>%
 #'  group_by( tailnum, origin, dest, carrier) %>%
@@ -139,6 +139,7 @@ f_plot_alluvial_1v1 = function( data
   # transform numerical variables for binning
 
   data_trans = data %>%
+    ungroup() %>%
     select( one_of(col_x, col_y, col_fill, col_id) ) %>%
     mutate( !! sym_x := as.factor( !! sym_x )
             , !! sym_id := as.factor( !! sym_id )
@@ -172,13 +173,17 @@ f_plot_alluvial_1v1 = function( data
   suppressWarnings({
 
     # add alluvial ids
-    data_new = data_trans %>%
-      spread( key = !! sym_x, value = !! sym_y ) %>%
+    data_spread = data_trans %>%
+      spread( key = !! sym_x, value = !! sym_y )
+
+    data_alluvial_id = data_spread %>%
       select( - one_of(col_id) ) %>%
       group_by_all() %>%
       count() %>%
       ungroup() %>%
-      mutate( alluvial_id = row_number() ) %>%
+      mutate( alluvial_id = row_number() )
+
+    data_new = data_alluvial_id %>%
       gather( key = 'x', value = 'value',  - one_of( c('alluvial_id', 'n', col_fill) ) ) %>%
       mutate( x = as.factor(x)
               , x = forcats::fct_relevel(x, ordered_levels_x))
@@ -317,6 +322,17 @@ f_plot_alluvial_1v1 = function( data
     theme(legend.position = "none" ) +
     scale_fill_identity() +
     scale_color_identity()
+
+  # attach alluvial_id to id keys
+
+  suppressMessages({
+
+    data_key = data_spread %>%
+      left_join( data_alluvial_id )
+
+    p$data_key = data_key
+
+  })
 
   return(p)
 }

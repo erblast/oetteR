@@ -367,7 +367,8 @@ f_manip_data_2_model_matrix_format = function(data
 
 #' @title bin numerical columns
 #' @description centers, scales and Yeo Johnson transforms numeric variables in
-#'   a dataframe before binning into n bins of eqal range
+#'   a dataframe before binning into n bins of eqal range. Outliers based on
+#'   boxplot stats are capped (set to min or max of boxplot stats).
 #' @param df dataframe with numeric variables
 #' @param bins number of bins for numerical variables, Default: 5
 #' @param bin_labels labels for the bins from low to high, Default: c("LL",
@@ -423,7 +424,15 @@ f_manip_bin_numerics = function(df
   }
 
   data_new <- bake(rec, df ) %>%
-    mutate_at( vars(numerics), function(x) cut(x, breaks = bins) ) %>%
+    mutate_at( vars(numerics), function(x) ifelse( x > max(boxplot.stats(x)$stats)
+                                                   , max(boxplot.stats(x)$stats)
+                                                   , x)
+               ) %>%
+  mutate_at( vars(numerics), function(x) ifelse( x < min(boxplot.stats(x)$stats)
+                                                 , min(boxplot.stats(x)$stats)
+                                                 , x)
+             ) %>%
+  mutate_at( vars(numerics), function(x) cut(x, breaks = bins) ) %>%
     mutate_at( vars(numerics),  rename_levels)
 
   return(data_new)
