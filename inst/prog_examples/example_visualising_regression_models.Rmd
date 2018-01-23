@@ -1,18 +1,17 @@
 ---
-title: "Vignette Title"
-author: "Vignette Author"
+title: "Visualising Regression Models"
+author: "Bjoern Oettinghaus"
 date: "`r Sys.Date()`"
-output: rmarkdown::html_vignette
-vignette: >
-  %\VignetteIndexEntry{Vignette Title}
-  %\VignetteEngine{knitr::rmarkdown}
-  %\VignetteEncoding{UTF-8}
+output: html_document
+editor_options: 
+  chunk_output_type: console
 ---
 
 ```{r setup, include = FALSE}
 knitr::opts_chunk$set(
-  collapse = TRUE,
-  comment = "#>"
+  collapse = TRUE
+  , eval = T
+  , comment = "#>"
   , out.width = '30%'
   , message = F
   , warning = F
@@ -25,8 +24,7 @@ suppressPackageStartupMessages( require(oetteR) )
 suppressPackageStartupMessages( require(tidyverse) )
 ```
 
-
-# Visualising Regression Models
+# Introduction
 
 Classically regression models are judged by their performance based on a calculated performance metric like `rtSME` and usually we will pick the least complex model with the best performance. However the best performance is often given by complex nonlinear models that are difficult to interpret in terms of what aspects of the data they are capturing, which makes it more difficult to trust them. Here certain visualisations can help us to judge the model and build up more confidence.
 
@@ -40,7 +38,10 @@ We are using the `pipelearner` package. We want the models to be trained on the 
 
 ```{r}
 
-data_ls = f_clean_data(ISLR::Auto)
+data = ISLR::Auto %>%
+  mutate(idx = row_number() )
+
+data_ls = f_clean_data( data, id_cols = 'idx' )
 form = displacement~horsepower+cylinders+weight+acceleration+mpg+year
 variable_color_code = f_plot_color_code_variables(data_ls)
 limit            = 10
@@ -61,7 +62,7 @@ pl = pipelearner::pipelearner( data_ls$data ) %>%
 ```{r}
 
 pl = pl %>%
-  mutate( imp   = map2(fit, train, f_model_importance) )
+  mutate( imp = map2(fit, train, f_model_importance) )
 
 pl$imp  
 
@@ -123,13 +124,11 @@ We can also put the dataset into the modelling space and trace observations that
 ```{r out.width = '45%', fig.show='hold' }
 
 pl_pred = pl %>%
-  f_predict_pl_regression( cols_id = 'name', data_test = 'train') %>%
+  f_predict_pl_regression( cols_id = 'idx', data_test = 'train') %>%
   unnest(preds) %>%
   mutate( title = model ) %>%
   group_by( title ) %>%
-  arrange( name ) %>%
-  mutate( rwn = row_number()
-          , id = paste(name, rwn) ) %>%
+  arrange( idx ) %>%
   ungroup()
 
 
@@ -145,12 +144,12 @@ f_plot_hist( 'resid', f_clean_data_no_changes(pl_pred), group = 'title', graph_t
 
 The range of all residuals is binned into 5 equidistant groups. LL Low-Low, ML - Medium, M Medium, MH - Medium-High, HH High-High. And the predictions of an individual observation are tracked between models and grouped into flows.
 
-```{r out.width = '50%', fig.align='center}
+```{r out.width = '100%', fig.align='center'}
 
 p = f_plot_alluvial_1v1( data = pl_pred
                      , col_x = 'title'
                      , col_y = 'resid'
-                     , col_id = 'id'
+                     , col_id = 'idx'
                      , fill_by = 'all_flows'
                      , order_levels_x = c('randomForest', 'svm') )
 
@@ -161,8 +160,87 @@ We can see that the residuals of single observations fall mostly into the same c
 
 ## Tag observations that dont predict well
 
-```{r}
+```{r out.width = '100%', fig.align='center' }
+f_tag = function(x,y,z){
+  
+  if( x == 'M' | y == 'M' | z == 'M'){
+    return( 'Med' )
+  } else if( stringr::str_detect(x,'L')
+             & stringr::str_detect(y,'L')
+             & stringr::str_detect(z,'L')){
+    return( 'Low' )
+  }else if( stringr::str_detect(x,'H')
+             & stringr::str_detect(y,'H')
+             & stringr::str_detect(z,'H')){
+    return( 'High' )
+  } else { 'Cross' }
+}
+
 df = p$data_key %>%
-  mutate()
+  mutate_if( is.factor, as.character ) %>%  ## factors will be passed as integers py pmap
+  mutate( tag = pmap_chr( list( x = randomForest, y = rpart, z = svm), f_tag )
+          , tag = as.factor(tag) 
+          , idx = as.integer(idx) ) %>%
+  select( idx, tag )
+
+pl_tag = pl_pred %>%
+  left_join( df )
+
+p = f_plot_alluvial_1v1( data = pl_tag
+                     , col_x = 'title'
+                     , col_y = 'resid'
+                     , col_fill = 'tag'
+                     , fill_right = F
+                     , col_id = 'idx'
+                     , order_levels_x = c('randomForest', 'svm')
+                     , order_levels_fill = c('Low', 'Cross', 'Med', 'High')
+                     )
+
+p
+
+
+```
+
+## Follow the tags in the dataset
+
+variables are ordered by importance from left to right
+
+```{r out.width = '100%', fig.align='center' }
+
+order_variables = pl %>%
+  unnest(imp) %>%
+  group_by( row_names ) %>%
+  summarise( rank_sum = sum(rank) ) %>%
+  arrange( rank_sum ) %>%
+  .$row_names
+
+# will exclude the one observation which we put in the test set
+data_ls_new = data %>%
+  left_join(df) %>%
+  select( tag, displacement, order_variables ) %>%
+  f_clean_data()
+
+f_plot_alluvial(data_ls_new$data, order_levels = c('Low', 'Cross', 'Med', 'High') ) +
+    theme( axis.text.x = element_text(angle = 90))
+
+```
+
+
+## Perform Group Analysis of differences
+
+```{r}
+
+
+
+
+taglist = f_stat_group_ana(data_ls_new
+                          , 'tag'
+                          , alluvial = F
+                          , tabplot = F 
+                          , static_plots = F
+                          , return_taglist = T )
+
+taglist
+
 ```
 

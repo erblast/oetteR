@@ -321,7 +321,8 @@ f_plot_alluvial_1v1 = function( data
     geom_label( stat = 'stratum') +
     theme(legend.position = "none" ) +
     scale_fill_identity() +
-    scale_color_identity()
+    scale_color_identity() +
+    labs( x = '', y = 'count')
 
   # attach alluvial_id to id keys
 
@@ -536,7 +537,8 @@ f_plot_alluvial = function( data
     geom_label( stat = 'stratum') +
     theme(legend.position = "none" ) +
     scale_fill_identity() +
-    scale_color_identity()
+    scale_color_identity() +
+    labs( x = '', y = 'count')
 
   return(p)
 }

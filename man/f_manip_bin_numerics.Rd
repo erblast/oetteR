@@ -24,7 +24,8 @@ dataframe
 }
 \description{
 centers, scales and Yeo Johnson transforms numeric variables in
-  a dataframe before binning into n bins of eqal range
+  a dataframe before binning into n bins of eqal range. Outliers based on
+  boxplot stats are capped (set to min or max of boxplot stats).
 }
 \examples{
 \dontrun{

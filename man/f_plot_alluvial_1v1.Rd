@@ -67,7 +67,7 @@ Plots two variables of a dataframe on an alluvial plot. A third
 \dontrun{
 if(interactive()){
 # sample data
-monthly_flights = nycflights13::flights \%>\%
+ monthly_flights = nycflights13::flights \%>\%
  group_by(month, tailnum, origin, dest, carrier) \%>\%
  summarise() \%>\%
  group_by( tailnum, origin, dest, carrier) \%>\%

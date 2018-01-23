@@ -77,7 +77,7 @@ f_plot_hist('disp', data_ls, graph_type = 'violin', group = 'cyl'
              , caption ='caption', title = 'title', subtitle = 'subtitle')
 
 #plot all variables
-vars = data_ls$all_variables \%>\%
+vars = data_ls$all_variables[ data_ls$all_variables != 'cyl' ] \%>\%
  map( f_plot_hist, data_ls, group = 'cyl')
 vars
 }

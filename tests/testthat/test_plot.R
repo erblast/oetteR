@@ -19,7 +19,13 @@ test_that('plot histogram'
   f_plot_hist('disp', data_ls, graph_type = 'violin', group = 'cyl'
               , caption ='caption', title = 'title', subtitle = 'subtitle')
 
-})
+  # test very low number of observations
+  data = mtcars[1:5,] %>%
+    mutate( cyl = as.factor(cyl) )
+  data_ls = f_clean_data_no_changes(data)
+  f_plot_hist('disp', data_ls, graph_type = 'violin', group = 'cyl'
+              , caption ='caption', title = 'title', subtitle = 'subtitle')
+          })
 
 test_that('plot time'
           ,{
@@ -286,4 +292,12 @@ test_that('test f_plot_colvector'
 
 })
 
+test_that('f_plot_generate_comparison_pairs'
+  ,{
+
+  f_plot_generate_comparison_pairs( mtcars, 'disp', 'cyl' )
+
+  f_plot_generate_comparison_pairs( mtcars[1:3,], 'disp', 'cyl' )
+
+})
 

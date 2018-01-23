@@ -189,7 +189,7 @@ f_plot_adjust_col_vector_length = function( n = 74, col_vector = f_plot_col_vect
 #'              , caption ='caption', title = 'title', subtitle = 'subtitle')
 #'
 #'#plot all variables
-#'vars = data_ls$all_variables %>%
+#'vars = data_ls$all_variables[ data_ls$all_variables != 'cyl' ] %>%
 #'  map( f_plot_hist, data_ls, group = 'cyl')
 #'vars
 #'}
@@ -331,25 +331,53 @@ f_plot_hist = function(variable
 
   # categoricals ----------------------------------------------------------------------------
 
+
+
   #geom_bar
   if(variable %in% categoricals ){
 
-    if(y_axis == '..density..')   y_axis = '..prop..'
-    if( is.null(group) ){
+    #calculate stats
 
-      p = data %>%
+    if( ! is.null(group) ){
+      data_gr = data %>%
+        #filter( ! ( gear == 4 & cyl == 4) ) %>%
+        group_by( !! as.name(group), !! as.name(variable) ) %>%
+        count() %>%
+        ungroup() %>%
+        complete( !! as.name(group), !! as.name(variable) ) %>%
+        group_by( !! as.name(group) ) %>%
+        mutate( Percent = n / sum(n, na.rm = T )
+                , Count = ifelse( is.na(n), 0, n )
+                , Percent = ifelse( is.na(Percent), 0, Percent )
+        )
+    }else{
+      data_gr = data %>%
+        group_by( !! as.name(variable) ) %>%
+        count() %>%
+        ungroup() %>%
+        mutate( Percent = n / sum(n, na.rm = T )
+                , Count = n )
+    }
+
+    if(y_axis == '..density..'){
+      y = 'Percent'
+    }else{
+      y = 'Count'
+    }
+
+    if( ! is.null(group) ){
+
+      p = data_gr %>%
         ggplot( ) +
-        geom_bar( aes_string(x = variable, y = y_axis, group = 1)
-                  , position = 'dodge'
-                  , fill = col_vector[1] )
+        geom_col( aes_string(x = variable, y = y, fill = group)
+                  , position = 'dodge')
 
     } else {
 
-      p = data %>%
+      p = data_gr %>%
         ggplot( ) +
-        geom_bar( aes_string(x = variable, y = y_axis, fill = group, group = group )
-                  , position = 'dodge'
-                  )
+        geom_col( aes_string(x = variable, y = y, fill = variable) ) +
+        theme( legend.position = 'None')
     }
 
     p = p +
@@ -358,9 +386,12 @@ f_plot_hist = function(variable
 
     if(p_val & ! is.null(group) ){
 
-      t = chisq.test( data[[group]], data[[variable]])
+      suppressWarnings({
+        t = chisq.test( data[[group]], data[[variable]])
+      })
 
       if( t$p.value <= 0.05 )
+
       p = p +
         labs( subtitle = paste('Chi-Square Test', f_stat_stars(t$p.value) ) )
     }
@@ -369,15 +400,29 @@ f_plot_hist = function(variable
 
   # set theme -------------------------------------------------------------------------------
 
-  y_axis_str = ifelse( y_axis == '..density..', 'Density'
-                       , ifelse( y_axis == '..count..', 'Count', 'Percent' ) )
+  if( graph_type == 'violin' & ! is.null(group) & ! variable %in% categoricals){
+    y_axis_str = variable
+  }else if( y_axis == '..density..'  & variable %in% categoricals ){
+    y_axis_str = 'Percent'
+  }else if( y_axis == '..density..' ){
+    y_axis_str = 'Density'
+  }else if(y_axis == '..count..') {
+    y_axis_str = 'Count'
+  }
 
   p = p +
     labs( title = title, y = y_axis_str, ...)
 
   p = p +
-    theme_gray() +
-    theme( legend.position = 'None')
+    theme_gray()
+
+  if(  ( ! is.null(group)  & ( variable %in% categoricals | graph_type != 'violin' ) ) ){
+    p = p +
+      theme( legend.position = 'right')
+  } else {
+    p = p +
+      theme( legend.position = 'None')
+  }
 
   return(p)
 
@@ -698,6 +743,7 @@ f_plot_pretty_points = function(df
 #' @importFrom rlang UQ
 f_plot_generate_comparison_pairs = function(data, col_var, col_group, thresh = 0.05 ){
 
+
   compare_means = function(comb){
 
     sym_group = as.name(col_group)
@@ -713,9 +759,15 @@ f_plot_generate_comparison_pairs = function(data, col_var, col_group, thresh = 0
       filter( rlang::UQ(sym_group) == lvl2 ) %>%
       .[[col_var]]
 
-    t_test = t.test(x,y)
+    t.test_safely = safely(t.test)
+    t_test = t.test_safely(x,y)
 
-    return( t_test$p.value )
+    if( is.null(t_test$error) ){
+      return( t_test$result$p.value )
+    }else{
+      return( 1 )
+    }
+
   }
 
   sym_group = as.name(col_group)
@@ -737,8 +789,8 @@ f_plot_generate_comparison_pairs = function(data, col_var, col_group, thresh = 0
     unnest( comb ) %>%
     group_by( comb ) %>%
     summarise() %>%
-    mutate( p_val  = map_dbl( comb, compare_means )
-            , comb = stringr::str_split(comb, ',') ) %>%
+    mutate( p_val  = map( comb, compare_means )
+            , comb = stringr::str_split(comb, ',') )   %>%
     filter( p_val <= thresh ) %>%
     .$comb
 

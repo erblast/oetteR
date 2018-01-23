@@ -277,10 +277,12 @@ f_stat_group_ana = function(data_ls
                               , thresh_p_val = 0.05
                               , thresh_diff_perc = 3
                               , output_file = 'group_ana'
+                              , static_plots = T
                               , alluvial = T
                               , alluvial_thresh_p_val = 0.05
                               , alluvial_thres_diff_perc = 7.5
                               , tabplot = T
+                              , return_taglist = F
                               ){
 
   df_anova = f_stat_anova( data_ls, col_group )
@@ -373,13 +375,18 @@ f_stat_group_ana = function(data_ls
 
   # Render ggplots -------------------------------------------------------------------
 
-  link_ggplot = f_plot_obj_2_html( plots_ggplot, 'plots'
-                                   , output_file = paste0(output_file, '_stat_plots')
-                                   , title = paste('Differences Between ', col_group, ' Groups - Static Plots')
-                                   )
+  if(static_plots){
 
-  html_link = f_html_filename_2_link(file_path = link_ggplot
+    link_ggplot = f_plot_obj_2_html( plots_ggplot, 'plots'
+                                     , output_file = paste0(output_file, '_stat_plots')
+                                     , title = paste('Differences Between ', col_group, ' Groups - Static Plots')
+                                     )
+
+    html_link = f_html_filename_2_link(file_path = link_ggplot
                                      , link_text =  'Static plots of numerical variables with more statistical features')
+  }else{
+    html_link = 'Satic plot option is disabled'
+  }
 
   # Make and render alluvial plot------------------------------------------------------
 
@@ -513,9 +520,17 @@ f_stat_group_ana = function(data_ls
   taglist[[11]] = tab_mean
   taglist[[12]] = tab_perc
 
-  link_taglist = f_plot_obj_2_html( taglist, 'taglist', output_file = output_file, title = 'Group Analysis')
+  if(return_taglist){
 
-  return( link_taglist )
+    return( taglist )
+
+  }else{
+
+    link_taglist = f_plot_obj_2_html( taglist, 'taglist', output_file = output_file, title = 'Group Analysis')
+
+    return( link_taglist )
+  }
+
 
 }
 
