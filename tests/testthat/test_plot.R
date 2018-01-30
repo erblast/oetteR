@@ -156,7 +156,11 @@ test_that('f_plot_obj_2_html'
               )
       )  %>%
       .$tabplot %>%
-      f_plot_obj_2_html( type = "plots", output_file =  'test_me', title = 'Plots')
+      f_plot_obj_2_html( type = "plots"
+                         , output_file =  'test_me'
+                         , title = 'Plots'
+                         , fig.width = 30
+                         , fig.height = 21)
 
     file.remove('test_me.html')
 

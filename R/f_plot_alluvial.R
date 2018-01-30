@@ -263,9 +263,15 @@ f_plot_alluvial_1v1 = function( data
   max_weight = max( data_new$n )
   max_weight_perc = round( max_weight/n_per_x * 100, 1 )
 
-  print( paste('Number of flows:', n_flows) )
-  print( paste('Original Dataframe reduced to', reduced_to, '%' ) )
-  print( paste('Maximum weight of a singfle flow', max_weight_perc, '%') )
+  line1 = paste('Number of flows:', n_flows)
+  line2 = paste('Original Dataframe reduced to', reduced_to, '%' )
+  line3 = paste('Maximum weight of a singfle flow', max_weight_perc, '%')
+
+  print( line1 )
+  print( line2 )
+  print( line3 )
+
+  caption = paste( line1, line2, line3, sep = '\n' )
 
 
   #adjust col_vector length fill flows
@@ -322,7 +328,19 @@ f_plot_alluvial_1v1 = function( data
     theme(legend.position = "none" ) +
     scale_fill_identity() +
     scale_color_identity() +
-    labs( x = '', y = 'count')
+    labs( x = '', y = 'count', caption = caption)
+
+
+  # angle x labels------------------------------------
+
+  max_length_x_level = levels( data_new$x ) %>%
+    map_int( nchar ) %>%
+    max()
+
+  if( max_length_x_level > 5 ){
+    p = p +
+      theme( axis.text.x = element_text( angle = 90 ) )
+  }
 
   # attach alluvial_id to id keys
 
@@ -359,22 +377,40 @@ f_plot_alluvial_1v1 = function( data
 #' @examples
 #' \dontrun{
 #' if(interactive()){
+#'
 #' data_ls = mtcars %>%
 #'   f_clean_data()
 #'
+#' data = data_ls$data
 #' max_variables = 5
 #' variables = c( data_ls$categoricals[1:3], data_ls$numericals[1:3] )
 #'
-#' f_plot_alluvial( data_ls$data, variables, max_variables, fill_by = 'first_variable' )
-#' f_plot_alluvial( data_ls$data, variables, max_variables, fill_by = 'last_variable' )
-#' f_plot_alluvial( data_ls$data, variables, max_variables, fill_by = 'all_flows' )
-#' f_plot_alluvial( data_ls$data, variables, max_variables, fill_by = 'values' )
+#' f_plot_alluvial( data = data
+#'                 , variables = variables
+#'                 , max_variables = max_variables
+#'                 , fill_by = 'first_variable' )
+#'
+#' f_plot_alluvial( data = data
+#'                 , variables = variables
+#'                 , max_variables = max_variables
+#'                 , fill_by = 'last_variable' )
+#'
+#' f_plot_alluvial( data = data
+#'                 , variables = variables
+#'                 , max_variables = max_variables
+#'                 , fill_by = 'all_flows' )
+#'
+#' f_plot_alluvial( data = data
+#'                 , variables = variables
+#'                 , max_variables = max_variables
+#'                 , fill_by = 'first_variable' )
 #'
 #' # manually order variable values
-#' f_plot_alluvial( data_ls$data
-#'                  , variables
-#'                  , max_variables
-#'                  , fill_by = 'first_variable'
+#'
+#' f_plot_alluvial( data = data
+#'                  , variables = variables
+#'                  , max_variables = max_variables
+#'                  , fill_by = 'values'
 #'                  , order_levels = c('1', '0') )
 #' }
 #' }
@@ -388,6 +424,7 @@ f_plot_alluvial_1v1 = function( data
 #' @importFrom ggalluvial geom_flow geom_stratum
 f_plot_alluvial = function( data
                             , variables = names(data)
+                            , col_id = NULL
                             , max_variables = 20
                             , bins = 5
                             , bin_labels = c('LL', 'ML', 'M', 'MH', 'HH')
@@ -397,8 +434,12 @@ f_plot_alluvial = function( data
                             , col_vector_value =  RColorBrewer::brewer.pal(9, 'Greys')[c(3,6,4,7,5)]
 ){
 
-  # both packages need to be loaded entirely
+  # ggalluvial package needs to be loaded entirely
   require(ggalluvial)
+
+  # remove  id from variables
+
+  if( ! is_empty(col_id %in% variables) ) variables = variables[ ! variables %in% col_id ]
 
   # adjust variable length
 
@@ -413,20 +454,38 @@ f_plot_alluvial = function( data
                      , values          = 'value'
   )
 
+  # prepare ID column
 
+  if( is.null(col_id) ){
+
+    data = data %>%
+      mutate( ID = row_number() )
+
+    col_id = 'ID'
+  }
+
+   data = data %>%
+     mutate( !! as.name(col_id) := as.character( !! as.name(col_id) ) )
 
   # transform numerical variables for binning
 
-  data_new = data %>%
+  data = data %>%
+    f_manip_bin_numerics( bins, bin_labels)
+
+  data_trans = data %>%
     select( one_of(variables) ) %>%
-    f_manip_bin_numerics( bins, bin_labels) %>%
     group_by_all() %>%
     count() %>%
-    ungroup()
+    ungroup() %>%
+    mutate( alluvial_id = row_number() )
+
+  data_alluvial = data %>%
+    left_join( data_trans ) %>%
+    select( one_of( col_id, 'alluvial_id') )
 
   # preserve order of categorical variables
 
-  ordered_levels = data_new %>%
+  ordered_levels = data_trans %>%
     select_if( is.factor ) %>%
     head(1) %>%
     mutate_all( function(x) list(levels(x)) ) %>%
@@ -447,13 +506,13 @@ f_plot_alluvial = function( data
   # different transformations. I have marked the sections where there are
   # differences with ## ***
 
+
   suppressWarnings(
 
     if( fill_by != 'value' ){
 
-      data_new <- data_new %>%
-        mutate( alluvial_id = row_number()
-                , fill = !! as.name(fill_by) )  %>% ## ***
+      data_new <- data_trans %>%
+        mutate(  fill = !! as.name(fill_by) )  %>% ## ***
         gather( key = 'x', value = 'value', - alluvial_id, - n , - fill) %>% ## ***
         mutate( value = as.factor(value)
                 , value = forcats::fct_relevel( value, ordered_levels )
@@ -465,8 +524,7 @@ f_plot_alluvial = function( data
         )
     }else{
 
-      data_new <- data_new %>%
-        mutate( alluvial_id = row_number() )  %>%
+      data_new <- data_trans %>%
         gather( key = 'x', value = 'value', - alluvial_id, - n ) %>% ## ***
         mutate( value = as.factor(value)
                 , value = forcats::fct_relevel( value, ordered_levels )
@@ -485,11 +543,15 @@ f_plot_alluvial = function( data
   max_weight = max( data_new$n )
   max_weight_perc = round( max_weight/nrow(data) * 100, 1 )
 
-  print( paste('Number of flows:', n_flows) )
-  print( paste('Original Dataframe reduced to', reduced_to, '%' ) )
-  print( paste('Maximum weight of a singfle flow', max_weight_perc, '%') )
+  line1 = paste('Number of flows:', n_flows)
+  line2 = paste('Original Dataframe reduced to', reduced_to, '%' )
+  line3 = paste('Maximum weight of a singfle flow', max_weight_perc, '%')
 
+  print( line1 )
+  print( line2 )
+  print( line3 )
 
+  caption = paste( line1, line2, line3, sep = '\n' )
 
   #adjust col_vector length fill flows
 
@@ -519,7 +581,6 @@ f_plot_alluvial = function( data
       left_join( d_fill_value )
   })
 
-
   p <- ggplot(data_new,
               aes(x = x
                   , stratum = value
@@ -538,7 +599,33 @@ f_plot_alluvial = function( data
     theme(legend.position = "none" ) +
     scale_fill_identity() +
     scale_color_identity() +
-    labs( x = '', y = 'count')
+    labs( x = '', y = 'count', caption = caption)
+
+  # angle x labels------------------------------------
+
+  max_length_x_level = levels( data_new$x ) %>%
+    map_int( nchar ) %>%
+    max()
+
+  if( max_length_x_level > 5 ){
+    p = p +
+      theme( axis.text.x = element_text( angle = 90 ) )
+  }
+
+  # attach alluvial_id to id keys
+
+  suppressMessages({
+
+    data_key = data_new %>%
+      mutate( alluvial_id = f_manip_factor_2_numeric(alluvial_id) ) %>%
+      left_join( data_alluvial ) %>%
+      select( - fill_flow, -fill_value, -fill ) %>%
+      spread( key = x, value = value ) %>%
+      select( one_of(col_id, variables, 'alluvial_id', 'n' ) )
+  })
+
+  p$data_key = data_key
+
 
   return(p)
 }

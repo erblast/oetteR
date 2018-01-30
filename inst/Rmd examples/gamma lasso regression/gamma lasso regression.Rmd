@@ -1,0 +1,291 @@
+---
+title: "Untitled"
+author: "OEB"
+date: "December 5, 2017"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+require(oetteR)
+require(pipelearner)
+require(tidyverse)
+
+```
+
+
+# Regression Feature Selection
+
+To my understanding Feature Selection for regression was pretty straigth forward using stepwise regression. However I recently learned that this approach is [flawed](https://en.wikipedia.org/wiki/Stepwise_regression). The alternatively used method should be the Lasso. However most of the response variables I do regression for are not normally distributed and have a distribution that looks to my like a gamma or beta distribution. I recently had good results fitting a gamma regression model, beta distribution models did usually not converge to a minimum or did not improve the fit. It is however challenging to find an implementation of Lasso that works for a gamma regression. 
+
+# R Implementations for Lasso
+
+- `glmnet` does not support gamma regression but is the most used lasso implementation. [Documenatation](http://web.stanford.edu/~hastie/glmnet/glmnet_alpha.html)
+- `HDtweedie` a gamma regression is a [tweedie distribution](https://en.wikipedia.org/wiki/Tweedie_distribution) for `p == 2`, the package offers lasso for those distributions. [documentation](https://jasdumas.github.io/tech-short-papers/HDtweedie_lasso_tutorial.html)
+- `gamlss` offers Lasso and gamma regression. The way the predict.gamlss is implemented (expects fitting data to be present in global environment when calling predict) makes it difficult to integrate in functions. There also is no documentation.  
+
+# `oetteR::f_train_lasso` and `oetteR::f_train_lasso_faster`
+
+I have written a wrapper functions for `glmnet` and `HDtweedie` which is implemented in `oetteR`. The Implementation should make it easy to judge the feature reducing qualities of the lasso for different datasets.
+
+Here we want to compare the two functions and their usability for different datasets.
+
+# Simulated Data
+
+```{r}
+
+data = tibble( resp = rgamma(5000,1) ) %>%
+  mutate( exp1 = rnorm(5000, 50,5)
+          , exp2 = log(resp) ##non linear relationship
+          , exp3 = exp2 * rnorm(5000, 1, 0.5) # colinearity to exp2
+          , exp4 = resp * rgamma(5000, 0.5)
+          , exp5 = resp * rgamma(5000, 0.5) * rnorm(5000, 1, 0.5)
+  )
+
+form = resp~exp1+exp2+exp3+exp4+exp5
+
+data_trans = f_manip_data_2_model_matrix_format(data, form)
+
+new_data = data_trans$data
+new_formula =  data_trans$formula
+
+
+lasso = f_train_lasso(new_data, new_formula
+                      , lambda = 10^seq(-3,3,length.out = 25)
+                      , p = c(1,1.25,1.5,1.75,2)
+                      , k = 10 )
+
+
+```
+
+## Plot mse
+```{r}
+plotly::ggplotly(lasso$plot_mse)
+```
+
+## Plot coefficients
+```{r}
+plotly::ggplotly(lasso$plot_coef)
+```
+
+## Fit regression models
+
+Model building does not converge for p >= 1.75
+
+```{r}
+
+formulas_df = lasso$tib_all %>%
+  filter( lambda == lambda_1se ) %>%
+  select( n_coeff_before_lasso
+          , n_coeff_after_lasso
+          , formula_str
+          , formula ) %>%
+  group_by( formula_str ) %>%
+  summarise() %>%
+  mutate( formula = map(formula_str, as.formula) )
+
+wr_glm = function(formula, data, var_power){
+  
+  m = glm(formula, data, family = statmod::tweedie(var.power = var_power))
+  
+}
+
+wr_gamlss = function( formula, data ){
+  
+gamlss::gamlss(formula, data = data, family = gamlss.dist::GA() )
+  
+}
+
+pl = pipelearner::pipelearner(new_data) %>%
+  learn_cvpairs( pipelearner::crossv_kfold, k = 10 ) %>%
+  learn_models( lm, formulas = formulas_df$formula ) %>%
+  learn_models( lm, formulas = resp ~ 1 ) %>%
+  learn_models( wr_glm
+                , formulas = formulas_df$formula
+                , var_power = c(1,1.25,1.5)
+                ) %>%
+  learn()
+
+pl_pred = pl %>%
+  f_predict_pl_regression() %>%
+  mutate( title = map2_chr( model, models.id, paste )  )
+
+
+pl_sum = pl_pred %>%
+  unnest(preds, .drop = F) %>%
+  f_predict_pl_regression_summarize()
+
+
+taglist = pl_pred %>%
+  unnest(preds, .drop = F) %>%
+  mutate( bins = cut(target1, breaks = 5) ) %>%
+  f_predict_plot_model_performance_regression()
+
+
+
+
+#f_plot_obj_2_html(taglist, 'taglist', 'perf_sim_data')
+
+```
+
+## Model Performance
+
+```{r}
+taglist
+
+#f_plot_obj_2_html(taglist, 'taglist', 'perf_sim_data')
+
+```
+
+
+
+# Auto Data
+
+This Dataset comes with the HDtweedie package, the response variable has a typical tweedie p:1.5 distribution.
+
+```{r}
+library(HDtweedie)
+data('auto')
+
+
+data = tibble( resp = auto$y ) %>%
+  bind_cols( as_tibble( scale(auto$x) ) ) 
+
+form = paste( 'resp~', paste( colnames(auto$x), collapse = '+' ) ) %>%
+  as.formula()
+
+
+data_trans = f_manip_data_2_model_matrix_format(data, form)
+
+new_data = data_trans$data
+new_formula =  data_trans$formula
+
+
+lasso = f_train_lasso(new_data, new_formula
+                      , lambda = 10^seq(-3,3,length.out = 25)
+                      , p = c(1,1.25,1.5,1.75,2)
+                      , k = 10 )
+
+
+```
+
+## Plot mse
+```{r}
+plotly::ggplotly(lasso$plot_mse)
+```
+
+## Plot coefficients
+```{r}
+plotly::ggplotly(lasso$plot_coef)
+```
+
+## Fit regression models
+
+
+```{r}
+
+formulas_df = lasso$tib_all %>%
+  filter( lambda == lambda_1se ) %>%
+  select( n_coeff_before_lasso
+          , n_coeff_after_lasso
+          , formula_str
+          , formula ) %>%
+  group_by( formula_str ) %>%
+  summarise() %>%
+  mutate( formula = map(formula_str, as.formula) )
+
+
+pl = pipelearner::pipelearner(new_data) %>%
+  learn_cvpairs( pipelearner::crossv_kfold, k = 10 ) %>%
+  learn_models( lm, formulas = formulas_df$formula ) %>%
+  learn_models( wr_glm
+                , formulas = formulas_df$formula
+                , var_power = c(1,1.25,1.5,1.75,2)
+                ) %>%
+  # learn_models( wr_gamlss
+  #               , formulas =  formulas_df$formula ) %>%
+  learn()
+
+pl_pred = pl %>%
+  f_predict_pl_regression() %>%
+  mutate( title = map2_chr( model, models.id, paste )  )
+
+
+pl_sum = pl_pred %>%
+  unnest(preds, .drop = F) %>%
+  f_predict_pl_regression_summarize()
+
+
+taglist = pl_pred %>%
+  unnest(preds, .drop = F) %>%
+  mutate( bins = cut(target1, breaks = 5) ) %>%
+  f_predict_plot_model_performance_regression()
+
+
+```
+
+## Model Performance
+
+```{r}
+taglist
+
+# f_plot_obj_2_html(taglist, 'taglist', 'perf_auto_data')
+
+```
+
+
+```{r}
+
+wr_predict = function( fit, lambda ){
+  
+  preds = f_predict_regression_add_predictions( data = new_data
+                                               , m = fit
+                                               , col_target = 'resp'
+                                               , formula = new_formula
+                                               , s = lambda)
+  
+}
+
+tib_pred = lasso$tib_all %>%
+  filter( lambda == lambda_1se ) %>%
+  select(distribution, fit, lambda ) %>%
+  mutate(  preds = map2(fit
+                         , lambda
+                         , wr_predict
+                        ) 
+          )
+
+```
+
+
+```{r}
+models_tweedie = lasso$tib_all %>%
+  filter( lambda == lambda_1se ) %>%
+  select(distribution, fit, lambda ) %>%
+  filter( startsWith(distribution, 'Tweedie') ) %>%
+  mutate( fit = map(fit, 'HDtweedie.fit') )
+
+models_gaussian = lasso$tib_all %>%
+  filter( lambda == lambda_1se ) %>%
+  select(distribution, fit, lambda ) %>%
+  filter( startsWith(distribution, 'gaussian') ) %>%
+  mutate( fit = map(fit, 'Hglmnet.fit') )
+  
+models = models_tweedie %>%
+  bind_rows(models_gaussian) %>%
+  mutate( data = list(new_data)
+          , preds = map2(data
+                         , fit
+                         , f_predict_regression_add_predictions
+                         , col_target = 'resp'
+                         , formula = new_formula
+                         , lambda = 'lambda.1se') 
+          )
+
+```
+

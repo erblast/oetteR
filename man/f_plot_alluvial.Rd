@@ -4,9 +4,9 @@
 \alias{f_plot_alluvial}
 \title{plot alluvial}
 \usage{
-f_plot_alluvial(data, variables = names(data), max_variables = 20,
-  bins = 5, bin_labels = c("LL", "ML", "M", "MH", "HH"),
-  order_levels = NULL, fill_by = "first_variable",
+f_plot_alluvial(data, variables = names(data), col_id = NULL,
+  max_variables = 20, bins = 5, bin_labels = c("LL", "ML", "M", "MH",
+  "HH"), order_levels = NULL, fill_by = "first_variable",
   col_vector_flow = f_plot_col_vector74(faint = F, greys = F),
   col_vector_value = RColorBrewer::brewer.pal(9, "Greys")[c(3, 6, 4, 7, 5)])
 }
@@ -44,22 +44,40 @@ DETAILS
 \examples{
 \dontrun{
 if(interactive()){
+
 data_ls = mtcars \%>\%
   f_clean_data()
 
+data = data_ls$data
 max_variables = 5
 variables = c( data_ls$categoricals[1:3], data_ls$numericals[1:3] )
 
-f_plot_alluvial( data_ls$data, variables, max_variables, fill_by = 'first_variable' )
-f_plot_alluvial( data_ls$data, variables, max_variables, fill_by = 'last_variable' )
-f_plot_alluvial( data_ls$data, variables, max_variables, fill_by = 'all_flows' )
-f_plot_alluvial( data_ls$data, variables, max_variables, fill_by = 'values' )
+f_plot_alluvial( data = data
+                , variables = variables
+                , max_variables = max_variables
+                , fill_by = 'first_variable' )
+
+f_plot_alluvial( data = data
+                , variables = variables
+                , max_variables = max_variables
+                , fill_by = 'last_variable' )
+
+f_plot_alluvial( data = data
+                , variables = variables
+                , max_variables = max_variables
+                , fill_by = 'all_flows' )
+
+f_plot_alluvial( data = data
+                , variables = variables
+                , max_variables = max_variables
+                , fill_by = 'first_variable' )
 
 # manually order variable values
-f_plot_alluvial( data_ls$data
-                 , variables
-                 , max_variables
-                 , fill_by = 'first_variable'
+
+f_plot_alluvial( data = data
+                 , variables = variables
+                 , max_variables = max_variables
+                 , fill_by = 'values'
                  , order_levels = c('1', '0') )
 }
 }

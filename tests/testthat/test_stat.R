@@ -79,17 +79,6 @@ test_that('f_stat_chi_square'
 })
 
 
-test_that('f_stat_group_ana_taglist'
-  ,{
-    #numerical and categorcial variables
-    data_ls = f_clean_data(mtcars)
-    taglist = f_stat_group_ana_taglist(data_ls, 'cyl')
-
-    #categrocals only
-    data_ls = f_clean_data(mtcars, min_number_of_levels_nums = 99999)
-    taglist = f_stat_group_ana_taglist(data_ls, 'cyl')
-
-})
 
 test_that('f_stat_group'
           ,{
@@ -99,17 +88,14 @@ test_that('f_stat_group'
   thresh_diff_perc = 3
   output_file = 'test_me'
   f_stat_group_ana(data_ls, col_group, tresh_p_val, thresh_diff_perc, output_file)
+
+  f_stat_group_ana(data_ls, col_group, tresh_p_val, thresh_diff_perc, output_file
+                   , max_alluvial_flows = 20)
+
   file.remove('test_me.html')
   file.remove('test_me_stat_plots.html')
-
-
-  #numerical and categorcial variables
-  data_ls = f_clean_data(mtcars)
-  taglist = f_stat_group_ana_taglist(data_ls, 'cyl')
-
-  #categrocals only
-  data_ls = f_clean_data(mtcars, min_number_of_levels_nums = 99999)
-  taglist = f_stat_group_ana_taglist(data_ls, 'cyl')
+  file.remove('test_me_alluvial.html')
+  file.remove('test_me_tabplots.html')
 
 })
 

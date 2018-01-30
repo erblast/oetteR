@@ -4,13 +4,27 @@ output: html_document
 params:
   obj_list: !r list()
   titles: !r NA
-
+  fig.height: 5
+  fig.width: 7
 ---
+
+<style>
+  .main-container {
+    max-width: 1920px !important;
+  }
+</style>
+
 
 **Date: `r lubridate::today()`**
 
 ```{r tabplots_2_html_chunk1, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE, results = 'markup')
+knitr::opts_chunk$set(echo = TRUE
+                      , warning = FALSE
+                      , message = FALSE
+                      , results = 'markup'
+                      , fig.width = params$fig.width
+                      , fig.height = params$fig.height
+                      )
 ```
 
 ```{r plots_2_html_chunk2, include = TRUE, echo = F}

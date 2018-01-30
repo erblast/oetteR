@@ -1,34 +1,43 @@
 ---
 title: "template"
-output: html_document
+output: 
+  html_document: 
 params:
   obj_list: !r list()
-  aspect_ratio: !r FALSE
-
+  fig.height: 5
+  fig.width: 7
 ---
+
+<style>
+  .main-container {
+    max-width: 1920px !important;
+  }
+</style>
+
 
 **Date: `r lubridate::today()`**
 
 ```{r plots_2_html_chunk1, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE, results = 'markup')
+knitr::opts_chunk$set(echo = TRUE
+                      , warning = FALSE
+                      , message = FALSE
+                      , results = 'markup'
+                      , fig.width = params$fig.width
+                      , fig.height = params$fig.height
+                      )
 ```
 
 ```{r plots_2_html_chunk2, include = TRUE, echo = F}
 
 
-print_plot = function(p, aspect_ratio){
-  
-  if( ! is.logical(aspect_ratio) ){
-    p = p +
-      theme( aspect.ratio = aspect_ratio )
-  }
+print_plot = function(p){
   
   print(p)
   
 }
 
 params$obj_list %>%
-  walk(print_plot, aspect_ratio = params$aspect_ratio )
+  walk(print_plot )
 
 ```
 

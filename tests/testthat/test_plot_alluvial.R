@@ -4,40 +4,59 @@ context('Plot alluvial functions')
 test_that('f_plot_alluvial'
   ,{
 
-  data_ls = mtcars %>%
-    f_clean_data()
+    data_ls = mtcars %>%
+      f_clean_data()
 
-  max_variables = 5
-  variables = c( data_ls$categoricals[1:3], data_ls$numericals[1:3] )
+    data = data_ls$data
+    max_variables = 5
+    variables = c( data_ls$categoricals[1:3], data_ls$numericals[1:3] )
 
-  suppressMessages({
+    p = f_plot_alluvial( data = data
+                    , variables = variables
+                    , max_variables = max_variables
+                    , fill_by = 'first_variable' )
 
-    p = f_plot_alluvial( data_ls$data, variables, max_variables, fill_by = 'first_variable' )
-    p = f_plot_alluvial( data_ls$data, variables, max_variables, fill_by = 'last_variable' )
-    p = f_plot_alluvial( data_ls$data, variables, max_variables, fill_by = 'all_flows' )
-    p = f_plot_alluvial( data_ls$data, variables, max_variables, fill_by = 'values' )
+    p = f_plot_alluvial( data = data
+                    , variables = variables
+                    , max_variables = max_variables
+                    , fill_by = 'last_variable' )
+
+    p = f_plot_alluvial( data = data
+                    , variables = variables
+                    , max_variables = max_variables
+                    , fill_by = 'all_flows' )
+
+    p = f_plot_alluvial( data = data
+                    , variables = variables
+                    , max_variables = max_variables
+                    , fill_by = 'values' )
 
     # manually order variable values
-    p = f_plot_alluvial( data_ls$data
-                     , variables
-                     , max_variables
-                     , fill_by = 'first_variable'
-                     , order_levels = c('1', '0') )
 
-    # #reserve tests, they take too long
-    # data_ls = diamonds %>%
-    #   sample_n(500) %>%
-    #   f_clean_data()
-    #
-    # variables =  c('price', 'cut', 'carat', 'depth', 'color')
-    #
-    #
-    # f_plot_alluvial( data_ls$data, variables, fill_by = 'first_variable' )
-    # f_plot_alluvial( data_ls$data, variables, fill_by = 'last_variable' )
-    # f_plot_alluvial( data_ls$data, variables, fill_by = 'all_flows' )
-    # f_plot_alluvial( data_ls$data, variables, fill_by = 'values' )
+    p = f_plot_alluvial( data = data
+                    , variables = variables
+                    , max_variables = max_variables
+                    , fill_by = 'values'
+                    , order_levels = c('1', '0') )
 
-  })
+
+    #check integritiy of returned dataframe
+    expect_equal( nrow(data), nrow(p$data_key) )
+
+    #check automatic angling of x axis labels
+
+
+    data_ls = ISLR::Auto %>%
+      mutate( name_x = row_number()
+              , name_x = paste( name, name_x ) ) %>%
+      select( - name ) %>%
+      f_clean_data( id_cols = 'name_x' )
+
+    data = data_ls$data
+
+    variables = data_ls$all_variables
+
+    p = f_plot_alluvial( data, col_id = 'name_x', max_variables = 5 )
 
 })
 
@@ -104,7 +123,11 @@ test_that('f_plot_alluvial_1v1'
   p = f_plot_alluvial_1v1( data, col_x, col_y, col_id, col_fill
                        , order_levels_fill = order_by_carrier_size )
 
-  })
+
+  #check integritiy of returned dataframe
+  expect_equivalent( unique(data$tailnum), levels( p$data_key$tailnum ) )
+
+})
 
 })
 

@@ -1,0 +1,479 @@
+---
+title: "Pipelearner"
+author: "OEB"
+date: "April 25, 2017"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    toc_depth: 3
+    collapsed: false
+    smooth_scroll: false
+    number_sections: true
+    theme: sandstone
+    df_print: tibble  
+    code_folding: show 
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+```{r install, eval=FALSE}
+
+# install.packages("devtools")
+devtools::install_github("drsimonj/pipelearner")
+
+```
+
+
+```{r libraries, message=FALSE, warning=F, echo=F}
+
+require(pipelearner)
+require(tidyverse)
+require(knitr)
+require(modelr)
+require(randomForest)
+require(ROCR)
+require(ggbeeswarm)
+require(xgboost)
+require(stringr)
+require(e1071)
+
+```
+
+
+# Sample Data
+
+## Table
+
+```{r, message=T, cache=TRUE}
+
+data_url <- 'https://archive.ics.uci.edu/ml/machine-learning-databases/breast-cancer-wisconsin/breast-cancer-wisconsin.data'
+
+d <- read_csv(
+  data_url,
+  col_names = c('id', 'thinkness', 'size_uniformity',
+                'shape_uniformity', 'adhesion', 'epith_size',
+                'nuclei', 'chromatin', 'nucleoli', 'mitoses', 'cancer')) %>% 
+  select(-id) %>%            # Remove id; not useful here
+  filter(nuclei != '?') %>%  # Remove records with missing data
+  mutate_all(as.numeric) %>%
+  mutate(cancer = cancer == 4,
+         cancer = as.numeric(cancer),
+         cancer = as.factor(cancer) )  # one-hot encode 'cancer' as 1=malignant;0=benign
+
+d = as_tibble(d)
+```
+
+## Histograms
+
+```{r histograms for classifier, out.width='50%',  warning=FALSE, message=FALSE, fig.show='hold'}
+
+y_scale = scale_y_continuous( limits = c(0,nrow( filter(d, cancer==1)) ))
+
+for(col in names(d)[-ncol(d)] ) {
+
+  p = ggplot(d) +
+    geom_freqpoly(aes(d[,col], colour = cancer), size = 1.5) +
+    labs ( x = col) +
+    y_scale
+  
+  print(p)
+
+}
+
+```
+
+# Required Functions
+
+## model metrics
+
+### predictions
+
+```{r predictions}
+return_predictions = function(test, fit, model_type, response_var, diagnose = F){
+  
+  if(diagnose == T){
+    print(model_type)
+    print(names(fit))
+    print(nrow(test))
+  }
+  
+  test_df = test$data[test$idx, ]
+  
+  if(model_type == 'glm'){
+    preds = predict(fit, newdata =  test_df, type = 'response') 
+  }
+  
+  if(model_type == 'randomForest'){
+    preds = predict(fit, newdata = test_df, type = 'prob')[,2] 
+  }
+  
+  if(model_type == 'wr_xgboost'){
+    
+    test_df = select(test_df, - one_of(response_var)) %>%
+      as.matrix()
+    
+    preds = predict(fit, test_df)
+  }
+  
+  if(! length(preds) == nrow(test_df)){
+    print(length(preds))
+    print(nrow(test_df))
+    print(preds)
+    stop('predictions and testdata do not have same lengths')
+  }
+  
+
+  return( preds )
+}
+
+```
+
+
+### auc
+```{r auc}
+return_auc = function(pred, test, response_var) {
+  
+  #untangle test and pred objects
+  
+  if(is.tibble(pred)){
+    pred = pred[[1]]
+  }
+  
+  
+  pred_vals = pred
+
+  test_vals = as.vector( test$data[test$idx, response_var] )
+  test_vals = test_vals[[1]]
+
+
+  pr = prediction( pred_vals, test_vals )
+
+  p = performance( pr, measure='auc')
+  return( p@y.values[[1]] )
+
+}
+
+```
+
+
+
+# Pipelearner
+
+
+
+```{r}
+
+pl= pipelearner(d) %>%
+  learn_cvpairs(k = 10) %>%
+  learn_curves(.5,.75,1)
+
+pl
+```
+
+
+
+```{r cache= T}
+
+no_vars = ncol(d)-1
+mtry_vec = c(no_vars/3, no_vars/4, no_vars/5, sqrt(no_vars))
+
+pl_m = pl %>%
+  learn_models( glm, cancer~., family = 'binomial' ) %>%
+  learn_models(randomForest::randomForest,cancer~., ntree = 1000, mtry = mtry_vec)%>%
+  learn_models(svm, cancer~., cost = c(.001,0.1,1,10,100), kernel = c('linear', 'radial')) %>%
+  learn_models(naiveBayes, cancer~.) %>%
+  learn_models(gbm, cancer~., distribution = 'bernoulli', n.trees = 5000, interaction.depth = c(4,6), shrinkage = c(0.001, 0.01, 0.1, 0.2, 1))
+    
+    learn()
+
+pl_m
+```
+
+Note that you can pass vectors to the model kwargs passed via the `...` argument
+
+`learn()` starts the final training of the models
+
+## Adding model performance metrics
+
+### Predictions
+
+Adding predictions to the dataframe using `modelR::add_predictions()` does not return predictions in a uniform way when predicting categorical variables. We therefore have to write out own function in which we adjust `predict()` according to the fitted model. Ideally for categorical variables we would like to have the propability 
+
+```{r}
+
+
+
+```
+
+### Model Metrics
+
+The `broom` package is not compatible yet with all modelling packages. We therefore need to write our own performance metric functions, preferrably based on the actual predictions. For categorical response variables the AUC of an ROC plot is best used if true negative are equallally important as true positive predictions. We can easily modify the function below since the `ROC` package supports a number of preformance metrics. See `?ROC::performance()`
+```{r}
+
+```
+
+
+### Visualisation of Model Performance
+
+```{r}
+pl_m_t = pl_m %>%
+  mutate( pred = pmap( list(test = test, fit = fit, model_type = model), return_predictions))
+
+pl_m_t = pl_m_t %>%
+  mutate( auc = pmap( list(pred, test, target), return_auc )) %>%
+  unnest(auc)
+
+pl_m_t %>%
+  group_by(models.id, train_p) %>%
+  summarise(auc = mean(auc)) %>%
+  ggplot() +
+    geom_line( aes(x = train_p, y = auc, color = models.id))
+
+
+medians = pl_m_t %>%
+  group_by(models.id, train_p) %>%
+  summarise( auc = median(auc) ) 
+
+pl_m_t %>%
+  ggplot( aes(x = as.factor(train_p), y = auc, color = models.id) ) +
+    geom_beeswarm( size = 1.5) +
+    geom_line( data = medians, aes( x = as.factor(train_p),y = auc, color = models.id, group = models.id), size = 1)
+
+
+pl_m_t %>%
+  ggplot( aes(x = as.factor(train_p), y = auc) ) +
+    geom_violin( aes(fill = models.id)) +
+    geom_errorbar( data = medians, 
+                   aes( x = as.factor(train_p),ymin = auc, ymax = auc,
+                        group = models.id),
+                   position = 'dodge', size = 2, color = 'black')
+
+
+
+```
+
+## Using packages that do not support a formula Syntax like `xgboost`
+
+###How an `xgboost` model is regularily coded
+```{r}
+# xgboost takes arguments in a data argument  (matrix) determining variables and a label argument(vector) response variable 
+
+data = select(d, -cancer) %>% 
+  as.matrix()
+
+label = d[['cancer']] %>%
+  as.character() %>%
+  as.numeric()
+
+m = xgboost(data, label, nrounds = 5, objective = 'binary:logistic')
+
+pred = predict(m, data)
+
+pr = prediction(pred, label)
+p = performance(pr, measure = 'auc')
+
+auc = p@y.values
+
+auc
+
+```
+
+### the wrapper function
+
+In order to get `xgboost()` to take a formula syntax we have to write a wrapper function
+
+```{r}
+
+
+m = wr_xgboost(d, cancer~., nrounds = 5, objective = 'binary:logistic')
+
+pred = predict(m, as.matrix(select(d, -cancer)))
+
+pr = prediction(pred, label)
+p = performance(pr, measure = 'auc')
+
+auc = p@y.values
+
+auc
+
+```
+
+### using the wrapper function in the pipe  
+
+use wrapper function to add models
+
+```{r fit xgb models, echo=F, include=T}
+
+pl_m = pl %>%
+  learn_models( glm, cancer~., family = 'binomial' ) %>%
+  
+  learn_models(randomForest::randomForest,cancer~.
+               , ntree = 1000, mtry = mtry_vec)%>%
+  
+  learn_models(wr_xgboost , cancer~., objective = 'binary:logistic'
+               , print_every_n = 250
+               , nrounds = c(5,25,50,100)
+               , eta = c(.1,.3)
+               , max_depth = c(4,6)) %>%
+    
+    learn()
+
+
+# this step takes very long to compute will save pipelearner object and reload it in next chunk
+
+save(pl_m, file = 'xgb_pipe.Rdata')
+```
+
+### xgboost performance
+
+```{r}
+load(file = 'xgb_pipe.Rdata')
+
+pl_m = pl_m %>%
+  mutate( pred = pmap(list(test, fit, model, target), return_predictions),
+          auc = pmap(list(pred,test,target), return_auc ) ) %>%
+  unnest(auc)
+
+pl_m %>%
+  group_by(models.id, train_p, model) %>%
+  summarise(auc = mean(auc)) %>%
+  ggplot() +
+    geom_line( aes(x = train_p, y = auc,  color = model, group = models.id) )
+
+
+medians = pl_m %>%
+  group_by(model, train_p) %>%
+  summarise( auc = median(auc) ) 
+
+
+pl_m %>%
+  ggplot( aes(x = as.factor(train_p), y = auc) ) +
+    geom_violin( aes(fill = model)) +
+    geom_errorbar( data = medians, 
+                   aes( x = as.factor(train_p),ymin = auc, ymax = auc,
+                        group = model),
+                   position = 'dodge', size = 2, color = 'black')
+
+
+```
+
+### influence of xgboost parameters, extracting parameters from pipelearner object
+
+A good model should caputre aspects of the data that are representative of the total population thus if the amount of data increases the model can fit these aspects more precisely the more data it has at its disposal. We see that the performance of the xgboost models is ziczacking a lot as more data is added. In some cases the performance always decreases when more data is added.
+
+***Remember there is a `purr` shortcut for extracting a named vector from a list ***
+
+for some reason unnest does not work here, 
+
+
+```{r}
+
+pl_m_xgb = pl_m %>%
+  filter(model == 'wr_xgboost') %>%
+  mutate(nrounds   = map_dbl(params, "nrounds"),
+         eta       = map_dbl(params, "eta"),
+         max_depth = map_dbl(params, "max_depth")
+         ) 
+
+pl_m_xgb %>%
+  group_by(models.id, train_p, model, nrounds, eta, max_depth) %>%
+  summarise(auc = mean(auc)) %>%
+  ggplot() +
+    geom_line( aes(x = train_p, y = auc,  color = as.factor(nrounds), group = models.id) )
+
+pl_m_xgb %>%
+  group_by(models.id, train_p, model, nrounds, eta, max_depth) %>%
+  summarise(auc = mean(auc)) %>%
+  ggplot() +
+    geom_line( aes(x = train_p, y = auc,  color = as.factor(eta), group = models.id) )
+
+pl_m_xgb %>%
+  group_by(models.id, train_p, model, nrounds, eta, max_depth) %>%
+  summarise(auc = mean(auc)) %>%
+  ggplot() +
+    geom_line( aes(x = train_p, y = auc,  color = as.factor(max_depth), group = models.id) )
+
+
+
+```
+there does not seem to be a pattern in accurace increase for the other parameters but for max_depth model accuracy is best when max_depth is 4
+
+
+```{r}
+
+pl_m_xgb = pl_m %>%
+  filter(model == 'wr_xgboost') %>%
+  mutate(nrounds   = map_dbl(params, "nrounds"),
+         eta       = map_dbl(params, "eta"),
+         max_depth = map_dbl(params, "max_depth")
+         )  %>%
+  filter(nrounds > 5)
+
+pl_m_xgb %>%
+  group_by(models.id, train_p, model, nrounds, eta, max_depth) %>%
+  summarise(auc = mean(auc)) %>%
+  ggplot() +
+    geom_line( aes(x = train_p, y = auc,  color = as.factor(nrounds), group = models.id) )
+
+pl_m_xgb %>%
+  group_by(models.id, train_p, model, nrounds, eta, max_depth) %>%
+  summarise(auc = mean(auc)) %>%
+  ggplot() +
+    geom_line( aes(x = train_p, y = auc,  color = as.factor(nrounds), group = models.id, linetype = as.factor(eta))) 
+
+
+
+```
+
+
+
+#Calling a vote
+
+We can select the best models and call a vote in order to further improve the results
+The data set is sort of small and the predictions are really good and are highly dependent on the cv_pairs generated. It would be preferable to select a model for which the cv_error gradually decreases as more data is added. We will however simply take the model with the highes auc for the full data set
+
+```{r}
+
+
+pl_max_auc = pl_m %>%
+  filter(train_p == 1) %>%
+  group_by(models.id) %>%
+  mutate(mean_auc = mean(auc)) %>%
+  group_by(model) %>%
+  filter( mean_auc == max(mean_auc))
+
+pl_max_new_pred = pl_max_auc%>%
+  ungroup () %>%
+  unnest( pred) %>%
+  group_by(model, cv_pairs.id) %>%
+  mutate( row_no = row_number(model) ) %>%
+  select( model,  cv_pairs.id, row_no, pred)%>%
+  spread(key = model, value = pred) %>%
+  mutate(new_pred = (glm + randomForest + wr_xgboost) /3) %>%
+  select(cv_pairs.id, new_pred) %>%
+  nest(new_pred)
+
+pl_max_test = pl_max_auc%>%
+  ungroup()%>%
+  filter(models.id == 1, train_p == 1)%>%
+  select(cv_pairs.id, test)
+
+pl_vote = pl_max_new_pred %>%
+  left_join(pl_max_test) %>%
+  mutate( pred = pmap(list(data, test, 'cancer'), return_auc )  ) %>%
+  unnest(pred)
+
+
+pl_max_auc_gr = pl_max_auc %>%
+  group_by(model, mean_auc) %>%
+  summarise() %>%
+  bind_rows(  tibble(model = 'VOTE',mean_auc = mean(pl_vote$pred ) ) )
+
+pl_max_auc_gr 
+```
+
