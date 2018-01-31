@@ -25,7 +25,27 @@ test_that('plot histogram'
   data_ls = f_clean_data_no_changes(data)
   f_plot_hist('disp', data_ls, graph_type = 'violin', group = 'cyl'
               , caption ='caption', title = 'title', subtitle = 'subtitle')
-          })
+
+
+  # test range feature
+  f_plot_hist('disp'
+              , data_ls
+              , auto_range = F
+              , x_min = 0
+              , x_max = 200
+              , y_max = 5
+              )
+
+  # test n_breaks
+  f_plot_hist('disp', data_ls, n_breaks = 100)
+  f_plot_hist('disp', data_ls, n_breaks = 10)
+
+  f_plot_hist('disp', data_ls, n_breaks = 100, group = 'cyl', graph_type = 'bar')
+  f_plot_hist('disp', data_ls, n_breaks = 10, group = 'cyl', graph_type = 'bar')
+
+})
+
+
 
 test_that('plot time'
           ,{

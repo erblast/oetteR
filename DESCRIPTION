@@ -6,7 +6,6 @@ Author: Bjoern Oettinghaus
 Maintainer: Bjoern Oettinghaus <bjoern.oettinghaus@gmail.com>
 Description: Collection of functions I frequently use
 License: None
-Encoding: WINDOWS-1252
 LazyData: true
 RoxygenNote: 6.0.1
 Imports:

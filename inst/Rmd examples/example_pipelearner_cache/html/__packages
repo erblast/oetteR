@@ -1,0 +1,17 @@
+base
+pipelearner
+tidyverse
+ggplot2
+tibble
+tidyr
+readr
+purrr
+dplyr
+stringr
+forcats
+knitr
+modelr
+randomForest
+xgboost
+e1071
+bindrcpp

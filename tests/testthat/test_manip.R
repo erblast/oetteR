@@ -142,3 +142,21 @@ test_that('f_manip_bin_numerics no numerics in data'
 
 })
 
+test_that('f_manip_bin_numerics zero variance columns'
+          ,{
+
+  data = mtcars %>%
+    as_tibble() %>%
+    mutate( zero_var = 1
+            , zero = 0
+            , near_zero_var = c( rep(1,nrow(.)-1), 0.9 ) )
+
+  data_new = f_manip_bin_numerics(data)
+
+  expect_identical( select(data, zero_var, zero, near_zero_var)
+                    , select(data_new, zero_var, zero, near_zero_var) )
+
+  expect_true( is.factor(data_new$near_zero_var) )
+
+})
+

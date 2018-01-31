@@ -454,6 +454,11 @@ f_plot_alluvial = function( data
                      , values          = 'value'
   )
 
+  # reduce data to selected variables
+
+  data = data %>%
+    select( one_of(variables) )
+
   # prepare ID column
 
   if( is.null(col_id) ){

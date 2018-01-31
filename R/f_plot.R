@@ -210,6 +210,7 @@ f_plot_hist = function(variable
                        , rug = T
                        , x_min = 0
                        , x_max = 100
+                       , y_max = 100
                        , title = ''
                        , col_vector = f_plot_adjust_col_vector_length( 100, RColorBrewer::brewer.pal(name = 'Dark2', n = 8) )
                        , p_val = T
@@ -221,9 +222,6 @@ f_plot_hist = function(variable
   categoricals  = data_ls$categoricals
   all_variables = data_ls$all_variables
   numericals    = data_ls$numericals
-
-  x_min = min
-  x_max = max
 
   #y-axis
   if(y_axis == 'density' | graph_type == 'line') {
@@ -237,6 +235,8 @@ f_plot_hist = function(variable
   if(group == 'None') group = NULL
 
   if( graph_type == 'density') graph_type = 'line'
+
+  if( graph_type == 'violin' & is.null(group) ) graph_type = 'bar'
 
   #violin plots require a grouping variable, defaults to bar histogram
 
@@ -296,8 +296,12 @@ f_plot_hist = function(variable
                    , rug = rug
                    , add = add
                    , palette = col_vector
+                   , bins = n_breaks
                    ) +
-      geom_histogram( fill = col_vector[1], color = 'black' )
+      # the second histogram is necessary for having better coloring options
+      geom_histogram( fill = col_vector[1]
+                      , color = 'black'
+                      , bins = n_breaks)
   }
 
   if( variable %in% numericals & is.null(group) & y_axis == '..density..'){
@@ -312,20 +316,22 @@ f_plot_hist = function(variable
       geom_histogram( fill = col_vector[1], color = 'black' , alpha = 0.5)
   }
 
-  # add x range
+  # add x range for regular histograms
 
   if(variable %in% numericals & auto_range == F & !graph_type == 'violin'){
 
     p = p +
-      xlim( c( as.numeric(x_min), as.numeric(x_max)) )
+      xlim( c( as.numeric(x_min), as.numeric(x_max)) ) +
+      ylim( c(0, y_max) )
   }
 
-  # add y range
+  # add y range for violin plot
 
   if(variable %in% numericals & auto_range == F & graph_type == 'violin'){
 
     p = p +
-      ylim( c( as.numeric(x_min), as.numeric(x_max)) )
+      ylim( c( as.numeric(x_min), as.numeric(x_max)) ) +
+      xlim( c(0, y_max) )
   }
 
 

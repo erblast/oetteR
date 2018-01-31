@@ -398,6 +398,7 @@ f_manip_bin_numerics = function(df
 
   numerics = df %>%
     select_if( is.numeric ) %>%
+    select_if( function(x) var(x) > 0 ) %>%  ##boxplotstats produces NA if var == 0
     names()
 
   if( is_empty(numerics) ){
@@ -407,13 +408,13 @@ f_manip_bin_numerics = function(df
   rec = recipe(df)
 
   if( center ) rec = rec %>%
-    step_center( all_numeric() )
+    step_center( one_of(numerics) )
 
   if( scale ) rec = rec  %>%
-    step_scale( all_numeric() )
+    step_scale( one_of(numerics) )
 
   if( transform ) rec = rec %>%
-    step_YeoJohnson( all_numeric() )
+    step_YeoJohnson( one_of(numerics) )
 
   rec = rec %>%
     prep()
