@@ -71,7 +71,7 @@ p = tib_n %>%
   gather( key = 'calculation', value = 'customer', - years  ) %>%
   ggplot( aes(years, customer, group = calculation, color = calculation) ) +
   geom_line( ) +
-  ylim( c(0, 15E4) )
+  ylim( c(0, n_customers) )
 
 
 plotly::ggplotly(p)
@@ -94,7 +94,7 @@ p = tib_prof %>%
   gather( key = 'calculation', value = 'profit', - years  ) %>%
   ggplot( aes(years, profit, group = calculation, color = calculation) ) +
   geom_line(  ) +
-  ylim( c(0, 15E4 * 200) ) +
+  ylim( c(0, n_customers * 200) ) +
   geom_hline( yintercept = fix_cost, linetype = 2 ) +
   labs( caption = 'dashed line shows fixed costs' )
 
