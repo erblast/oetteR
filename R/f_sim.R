@@ -40,7 +40,8 @@ f_sim_profit = function( output_file = 'profit_simulation'
   )
 
   file.copy( file.path( path_rmd, output_file_html)
-             , file.path( '.', output_file_html) )
+             , file.path( '.', output_file_html)
+             , overwrite = T)
 
   file.remove( file.path( path_rmd, output_file_html ) )
 
