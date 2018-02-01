@@ -6,7 +6,7 @@
 \usage{
 f_plot_hist(variable, data_ls, group = "None", graph_type = "violin",
   y_axis = "count", auto_range = T, n_breaks = 30, rug = T, x_min = 0,
-  x_max = 100, title = "",
+  x_max = 100, y_max = 100, title = "",
   col_vector = f_plot_adjust_col_vector_length(100,
   RColorBrewer::brewer.pal(name = "Dark2", n = 8)), p_val = T, add = "mean",
   ...)

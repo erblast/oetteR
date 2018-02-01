@@ -1,0 +1,153 @@
+---
+title: "Profitability"
+author: "Bjoern Oettinghaus"
+date: "`r Sys.Date()`"
+output: 
+  html_document:
+    code_folding: hide
+editor_options: 
+  chunk_output_type: console
+params:
+  n_customers: 150000
+  retention_rate: 0.82
+  retention_rate_common: 0.88
+  nca_per_year: 5000
+  profit_cm1_per_customer: 200
+  fix_cost: 20000000
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = F, warning = F)
+```
+
+
+```{r}
+suppressPackageStartupMessages( require(tidyverse) )
+```
+
+# Simulation Parameters
+
+```{r}
+
+n_customers = params$n_customers
+retention_rate = params$retention_rate
+retention_rate_common = params$retention_rate_common
+nca_per_year = params$nca_per_year
+profit_cm1_per_customer = params$profit_cm1_per_customer
+fix_cost = params$fix_cost
+
+tab = tibble( n_customers = n_customers
+              , retention_rate = retention_rate
+              , retention_rate_common = retention_rate_common
+              , nca_per_year = nca_per_year
+              , profit_cm1_per_customer = profit_cm1_per_customer
+              , fix_cost = fix_cost) %>%
+  gather(key = 'Parameter', value = 'value') %>%
+  mutate( value = as.character(value)
+          , Parameter_long = c('number of customers'
+                               , 'retention rate'
+                               , 'retention rate common in business'
+                               , 'new customers per year'
+                               , 'profit cm1 per customer'
+                               , 'fixed cost') ) %>%
+  select(Parameter, Parameter_long, value)
+
+knitr::kable(tab)
+```
+
+
+# Development Customer Base
+
+```{r}
+
+
+tib_n = tibble(
+  years = seq(0,10)
+  , wo_acqui = n_customers * retention_rate^years
+  , wi_acqui  = ( n_customers + nca_per_year * years) * retention_rate^years 
+)
+
+p = tib_n %>%
+  gather( key = 'calculation', value = 'customer', - years  ) %>%
+  ggplot( aes(years, customer, group = calculation, color = calculation) ) +
+  geom_line( ) +
+  ylim( c(0, 15E4) )
+
+
+plotly::ggplotly(p)
+
+
+```
+
+
+# Development Profit CM1
+
+```{r}
+
+tib_prof = tib_n %>%
+  mutate( wo_acqui = wo_acqui * profit_cm1_per_customer
+          , wi_acqui = wi_acqui * profit_cm1_per_customer
+            )
+
+
+p = tib_prof %>%
+  gather( key = 'calculation', value = 'profit', - years  ) %>%
+  ggplot( aes(years, profit, group = calculation, color = calculation) ) +
+  geom_line(  ) +
+  ylim( c(0, 15E4 * 200) ) +
+  geom_hline( yintercept = fix_cost, linetype = 2 ) +
+  labs( caption = 'dashed line shows fixed costs' )
+
+plotly::ggplotly(p)
+
+```
+
+
+# Profitability Projection
+
+```{r}
+
+profitability_in_x_years = function(x){
+
+  grid = expand.grid( retention_rate = seq(.70, .975, .005)
+                      , nca_per_year = seq(1000, 20000, 1000) )
+  
+  grid = grid %>%
+    as_tibble() %>%
+    mutate( profit_net_5th_year = ( n_customers + nca_per_year * x) * retention_rate^x * profit_cm1_per_customer - fix_cost
+            , group = cut(profit_net_5th_year, c( min(profit_net_5th_year) - 1 
+                                                  , -5e6, -1e6, -1e5, 1e5, 1e6, 5e6
+                                                  , max(profit_net_5th_year) + 1 ) 
+                          )
+            , group = fct_rev(group)
+            )
+  
+  
+  ggplot(grid, aes(x = retention_rate
+                   , y = nca_per_year
+                   , fill = group) 
+         ) +
+    geom_raster() +
+    scale_fill_manual( values = rev(RColorBrewer::brewer.pal(7,'RdYlGn') ) ) +
+    geom_vline( xintercept = retention_rate ) +
+    geom_hline( yintercept = nca_per_year ) + 
+    geom_vline( xintercept = retention_rate_common, linetype = 2 ) +
+    geom_hline( yintercept = nca_per_year * 2, linetype = 2) + 
+    labs( title = paste('Profitability projection for', x, ' years from today' )
+          , caption = paste('black lines indicate present rates'
+                            , 'dashed lines optimistic rates'
+                            , sep = '\n')
+          , subtitle = paste( 'Profit CM1 per customer:', profit_cm1_per_customer, 'CHF \n'
+                              , 'Fix Cost:', fix_cost, 'CHF') )
+
+}
+
+plots = tibble( years = seq(1:10)
+                , plot = map(years, profitability_in_x_years )
+                #, plotly = map(plot, plotly::ggplotly) 
+                )
+
+walk(plots$plot, print)
+
+```
+

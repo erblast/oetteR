@@ -45,7 +45,6 @@ test_that('f_plot_alluvial'
 
     #check automatic angling of x axis labels
 
-
     data_ls = ISLR::Auto %>%
       mutate( name_x = row_number()
               , name_x = paste( name, name_x ) ) %>%
