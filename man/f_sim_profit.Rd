@@ -4,7 +4,8 @@
 \alias{f_sim_profit}
 \title{simulate profit}
 \usage{
-f_sim_profit(output_file = "profit_simulation", path = ".")
+f_sim_profit(output_file = "profit_simulation", path = ".",
+  params = "ask")
 }
 \arguments{
 \item{output_file}{PARAM_DESCRIPTION, Default: 'profit_simulation'}

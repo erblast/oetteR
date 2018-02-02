@@ -25,7 +25,8 @@
 #' @export
 #' @importFrom rmarkdown render
 f_sim_profit = function( output_file = 'profit_simulation'
-                         , path = '.'){
+                         , path = '.'
+                         , params = 'ask'){
 
   path_rmd = file.path( system.file(package = 'oetteR')
                         , 'Rmd examples' )
@@ -36,7 +37,7 @@ f_sim_profit = function( output_file = 'profit_simulation'
 
   rmarkdown::render( file_rmd
                      , output_file = output_file_html
-                     , params      = 'ask'
+                     , params      = params
   )
 
   file.copy( file.path( path_rmd, output_file_html)

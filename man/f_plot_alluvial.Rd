@@ -2,11 +2,11 @@
 % Please edit documentation in R/f_plot_alluvial.R
 \name{f_plot_alluvial}
 \alias{f_plot_alluvial}
-\title{plot alluvial}
+\title{plot alluvial on tidy data}
 \usage{
 f_plot_alluvial(data, variables = names(data), col_id = NULL,
   max_variables = 20, bins = 5, bin_labels = c("LL", "ML", "M", "MH",
-  "HH"), order_levels = NULL, fill_by = "first_variable",
+  "HH"), NA_label = "NA", order_levels = NULL, fill_by = "first_variable",
   col_vector_flow = f_plot_col_vector74(faint = F, greys = F),
   col_vector_value = RColorBrewer::brewer.pal(9, "Greys")[c(3, 6, 4, 7, 5)])
 }
@@ -22,6 +22,8 @@ Default: names(data)}
 
 \item{bin_labels}{labels for the bins from low to high, Default: c("LL",
 "ML", "M", "MH", "HH")}
+
+\item{NA_label}{character vector define label for missing data}
 
 \item{order_levels}{character vector denoting levels to be reorderer from low to high}
 

@@ -2,12 +2,12 @@
 % Please edit documentation in R/f_plot_alluvial.R
 \name{f_plot_alluvial_1v1}
 \alias{f_plot_alluvial_1v1}
-\title{plot alluvial}
+\title{plot alluvial of gathered data}
 \usage{
 f_plot_alluvial_1v1(data, col_x, col_y, col_id, col_fill = NULL,
   fill_right = T, bins = 5, bin_labels = c("LL", "ML", "M", "MH", "HH"),
-  order_levels_y = NULL, order_levels_x = NULL, order_levels_fill = NULL,
-  complete = TRUE, fill_by = "first_variable",
+  NA_label = "NA", order_levels_y = NULL, order_levels_x = NULL,
+  order_levels_fill = NULL, complete = TRUE, fill_by = "first_variable",
   col_vector_flow = f_plot_col_vector74(faint = F, greys = F),
   col_vector_value = RColorBrewer::brewer.pal(9, "Greys")[c(3, 6, 4, 7, 5)])
 }
@@ -31,6 +31,8 @@ Default: 5}
 
 \item{bin_labels}{labesl for bins, Default: c("LL", "ML", "M", "MH", "HH")}
 
+\item{NA_label}{character vector define label for missing data}
+
 \item{order_levels_y}{character vector denoting order of y levels from low to
 high, does not have to be complete can also just be used to bring levels to
 the front, Default: NULL}
@@ -42,8 +44,6 @@ the front, Default: NULL}
 \item{order_levels_fill}{character vector denoting order of color fill
 variable levels from low to high, does not have to be complete can also
 just be used to bring levels to the front, Default: NULL}
-
-\item{complete}{add implicitly missing data, Default: TRUE}
 
 \item{fill_by}{one_of(c('first_variable', 'last_variable', 'all_flows',
 'values')), Default: 'first_variable'}

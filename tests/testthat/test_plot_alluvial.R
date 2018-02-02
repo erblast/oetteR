@@ -57,7 +57,17 @@ test_that('f_plot_alluvial'
 
     p = f_plot_alluvial( data, col_id = 'name_x', max_variables = 5 )
 
-})
+    # check NA behavoir, rename label ando order to front
+
+    data$cyl[1:4] = NA
+
+    p = f_plot_alluvial( data = data
+                         , variables = variables
+                         , max_variables = max_variables
+                         , fill_by = 'first_variable'
+                         , NA_label = 'none'
+                         , order_levels = 'none' )
+  })
 
 
 test_that('f_plot_alluvial_1v1'
@@ -88,8 +98,6 @@ test_that('f_plot_alluvial_1v1'
   col_y = 'mean_arr_delay'
   col_fill = 'carrier'
   col_id = 'tailnum'
-
-  suppressMessages({
 
   # flow coloring variants
   p = f_plot_alluvial_1v1( data, col_x, col_y, col_id, col_fill )
@@ -126,7 +134,20 @@ test_that('f_plot_alluvial_1v1'
   #check integritiy of returned dataframe
   expect_equivalent( unique(data$tailnum), levels( p$data_key$tailnum ) )
 
-})
+  #check with incomplete data
+
+  data = monthly_flights %>%
+    select(tailnum, qu, mean_arr_delay, carrier) %>%
+    sample_frac(0.9)
+
+  p = f_plot_alluvial_1v1( data, col_x, col_y, col_id, col_fill  = 'carrier'
+                           , NA_label = 'none'
+                           , order_levels_y = 'none')
+
+
+  p = f_plot_alluvial_1v1( data, col_x, col_y, col_id, fill_by = 'last_variable'
+                           , NA_label = 'none'
+                           , order_levels_y = 'none')
 
 })
 

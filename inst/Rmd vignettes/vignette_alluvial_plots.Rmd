@@ -2,7 +2,13 @@
 title: "Visualising Regression Models"
 author: "Bjoern Oettinghaus"
 date: "`r Sys.Date()`"
-output: html_document
+output: 
+  html_document: 
+    number_sections: yes
+    toc: yes
+    toc_float:
+      collapsed: false
+      smooth_scroll: false
 editor_options: 
   chunk_output_type: console
 ---
@@ -221,6 +227,40 @@ f_plot_alluvial( data = data_tidy
 
 ```
 
+### Missing Data
+
+Missing Data will automatically be labeled as `NA`. The label can be changed and it can be ordered as usual
+
+#### Gathered Data
+
+```{r}
+
+data = data_gath %>%
+  select(tailnum, qu, mean_arr_delay) %>%
+  sample_frac(0.9)
+
+f_plot_alluvial_1v1( data, col_x, col_y, col_id, fill_by = 'last_variable'
+                         , NA_label = 'none'
+                         , order_levels_y = 'none')
+
+```
+
+#### Tidy Data
+
+```{r}
+
+data = data_tidy
+data$cyl[1:4] = NA
+
+f_plot_alluvial( data = data
+                     , variables = variables
+                     , max_variables = max_variables
+                     , fill_by = 'first_variable'
+                     , NA_label = 'none'
+                     , order_levels = 'none' )
+
+```
+
 
 ### Connect Flows to observations in original data
 
@@ -253,7 +293,7 @@ p$data_key %>%
 
 ```{r}
 
-p = f_plot_alluvial_1v1( data_gath, col_x = 'qu', col_y = 'mean_arr_delay', col_id = 'tailnum', fill_by = 'last_variable' )
+p = f_plot_alluvial_1v1( data_gath, col_x = 'qu', col_y = 'mean_arr_delay', col_id = 'tailnum', col_fill = 'carrier' )
 
 
 p$data_key %>%
@@ -273,6 +313,30 @@ p = p +
   coord_flip()
 
 p
+
+```
+
+#### Title
+
+```{r}
+
+p = p +
+  ggtitle('Look at my flip')
+
+p
+
+```
+
+
+#### Repel Labels
+
+Unfortunately does not work yet
+
+```{r error=TRUE}
+
+p = p %>%
+  ggrepel::geom_text_repel()
+
 
 ```
 

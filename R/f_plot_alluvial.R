@@ -1,5 +1,5 @@
 
-#' @title plot alluvial
+#' @title plot alluvial of gathered data
 #' @description Plots two variables of a dataframe on an alluvial plot. A third
 #'   variable can be added either two the left or the right of the alluvial plot
 #'   to provide coloring of the flows. All numerical variables are scaled,
@@ -24,7 +24,7 @@
 #' @param order_levels_fill character vector denoting order of color fill
 #'   variable levels from low to high, does not have to be complete can also
 #'   just be used to bring levels to the front, Default: NULL
-#' @param complete add implicitly missing data, Default: TRUE
+#' @param NA_label character vector define label for missing data
 #' @param fill_by one_of(c('first_variable', 'last_variable', 'all_flows',
 #'   'values')), Default: 'first_variable'
 #' @param col_vector_flow HEX colors for flows, Default: f_plot_col_vector74(faint
@@ -113,6 +113,7 @@ f_plot_alluvial_1v1 = function( data
                             , fill_right = T
                             , bins = 5
                             , bin_labels = c('LL', 'ML', 'M', 'MH', 'HH')
+                            , NA_label = 'NA'
                             , order_levels_y = NULL
                             , order_levels_x = NULL
                             , order_levels_fill = NULL
@@ -147,9 +148,25 @@ f_plot_alluvial_1v1 = function( data
     f_manip_bin_numerics( bins, bin_labels) %>%
     mutate( !! sym_y := as.factor( !! sym_y ) )
 
-  # add implicit missing data
-  if(complete) data_trans = data_trans %>%
-    complete( !! sym_x , !! sym_fill )
+  #complete data
+
+  if( is.null(col_fill) ){
+
+    data_trans = data_trans %>%
+      complete( !! sym_x , !! sym_id )
+
+  }else{
+
+    id_2_fill_keys = data_trans %>%
+      group_by( !! sym_id, !! sym_fill) %>%
+      summarise()
+
+    data_trans = data_trans %>%
+      complete( !! sym_x , !! sym_id ) %>% ## leaves NA values for col_fill
+      select( - one_of(col_fill) ) %>%     ## deselect and rejoin col_fill
+      left_join( id_2_fill_keys )
+
+  }
 
   # preserve order of categorical variables
 
@@ -169,6 +186,14 @@ f_plot_alluvial_1v1 = function( data
   }else{
     ordered_levels_fill = NULL
   }
+
+  # convert NA values in col_y to NA_label
+
+  data_trans = data_trans %>%
+    mutate(   !! sym_y := as.character( !! sym_y )
+              , !! sym_y := ifelse( is.na( !!  sym_y ), NA_label, !! sym_y )
+              , !! sym_y := as.factor( !! sym_y) ) ##factor label will be restored further down
+
 
   suppressWarnings({
 
@@ -357,7 +382,7 @@ f_plot_alluvial_1v1 = function( data
 }
 
 
-#' @title plot alluvial
+#' @title plot alluvial on tidy data
 #' @description plots a dataframe as an alluvial plot. All numerical variables
 #'   are scaled, centered and YeoJohnson transformed before binning.
 #' @param data a dataframe
@@ -367,6 +392,7 @@ f_plot_alluvial_1v1 = function( data
 #' @param bins number of bins for numerical variables, Default: 5
 #' @param bin_labels labels for the bins from low to high, Default: c("LL",
 #'   "ML", "M", "MH", "HH")
+#' @param NA_label character vector define label for missing data
 #' @param order_levels character vector denoting levels to be reorderer from low to high
 #' @param fill_by one_of(c('first_variable', 'last_variable', 'all_flows',
 #'   'values')), Default: 'first_variable'
@@ -428,6 +454,7 @@ f_plot_alluvial = function( data
                             , max_variables = 20
                             , bins = 5
                             , bin_labels = c('LL', 'ML', 'M', 'MH', 'HH')
+                            , NA_label = 'NA'
                             , order_levels = NULL
                             , fill_by = 'first_variable'
                             , col_vector_flow = f_plot_col_vector74( faint = F, greys = F )
@@ -519,7 +546,8 @@ f_plot_alluvial = function( data
       data_new <- data_trans %>%
         mutate(  fill = !! as.name(fill_by) )  %>% ## ***
         gather( key = 'x', value = 'value', - alluvial_id, - n , - fill) %>% ## ***
-        mutate( value = as.factor(value)
+        mutate( value = ifelse( is.na(value), NA_label, value )
+                , value = as.factor(value)
                 , value = forcats::fct_relevel( value, ordered_levels )
                 , value = forcats::fct_rev(value)
                 , x = as.factor(x)
@@ -531,7 +559,8 @@ f_plot_alluvial = function( data
 
       data_new <- data_trans %>%
         gather( key = 'x', value = 'value', - alluvial_id, - n ) %>% ## ***
-        mutate( value = as.factor(value)
+        mutate( value = ifelse( is.na(value), NA_label, value )
+                , value = as.factor(value)
                 , value = forcats::fct_relevel( value, ordered_levels )
                 , value = forcats::fct_rev(value)
                 , x = as.factor(x)
