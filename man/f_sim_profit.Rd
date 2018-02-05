@@ -18,11 +18,13 @@ OUTPUT_DESCRIPTION
 \description{
 using the following parameters:
  \itemize{
- \item retention rate
- \item new customers acquired per year
- \item present number of customers
- \item fixed cost
- \item profit per customer per year
+ \item retention rate (retention_rate)
+ \item retention common for business (retention_rate_common)
+ \item new customers acquired per year (nca_per_year)
+ \item expected increase in customers acquired  (expected_increase_nca)
+ \item present number of customers (n_customers)
+ \item fixed cost (fix_cost)
+ \item profit per customer per year (profit_cm1_per_customer)
  }
 }
 \details{
@@ -32,6 +34,13 @@ DETAILS
 \dontrun{
 if(interactive()){
  f_sim_profit( path = tempdir() )
+ f_sim_profit( prefix, params = list( retention_rate = 0.82
+                                     , retention_rate_common = 0.88
+                                     , nca_per_year = 4000
+                                     , expected_increase_nca = 2
+                                     , n_customers = 150000
+                                     , fix_cost = 20000000
+                                     , profit_cm1_per_customer = 200 )
  }
 }
 }
