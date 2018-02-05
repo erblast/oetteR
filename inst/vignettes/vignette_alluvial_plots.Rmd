@@ -1,5 +1,5 @@
 ---
-title: "Visualising Regression Models"
+title: "Alluvial Plots"
 author: "Bjoern Oettinghaus"
 date: "`r Sys.Date()`"
 output: 
