@@ -5,7 +5,7 @@
 \title{add some padding around html objects}
 \usage{
 f_html_padding(obj, pad_before = 0, title = NULL, subtitle = NULL,
-  caption = NULL, pad_after = 0)
+  caption = NULL, pad_after = 0, .f_htitle = htmltools::h3)
 }
 \arguments{
 \item{obj}{html object such as DT:datatable() or plotly::ggplotly()}
@@ -19,6 +19,8 @@ f_html_padding(obj, pad_before = 0, title = NULL, subtitle = NULL,
 \item{caption}{character vector, Default: ''}
 
 \item{pad_after}{character vector, Default: 0}
+
+\item{.f_htitle}{function, Default: htmltools::h3}
 }
 \value{
 taglist

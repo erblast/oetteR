@@ -197,7 +197,9 @@ f_predict_plot_model_performance_regression = function(data){
 
   p = plotly::ggplotly(p,  height = nrows * 200 , dynamicTicks = TRUE)
 
-  taglist[[1]] = f_html_padding(p, pad_before = 3, title = 'Residuals Scatterplot')
+  taglist[[1]] = f_html_padding(htmltools::h2('Summary Plots'), pad_before = 3)
+
+  taglist[[2]] = f_html_padding(p, pad_before = 3, title = 'Residuals Scatterplot' )
 
   p = ggplot( data, aes(bins, resid)) +
     geom_boxplot( aes(fill=title)
@@ -211,7 +213,7 @@ f_predict_plot_model_performance_regression = function(data){
 
 
   p = plotly::ggplotly(p,  height = nrows * 200 )
-  taglist[[2]] = f_html_padding(p, pad_before = 3, title = 'Residuals Boxplot')
+  taglist[[3]] = f_html_padding(p, pad_before = 3, title = 'Residuals Boxplot')
 
   p = f_plot_pretty_points(data
                            , 'target1'
@@ -224,7 +226,7 @@ f_predict_plot_model_performance_regression = function(data){
     coord_cartesian( ylim = c(500,0) )
 
   p = plotly::ggplotly(p,  height = nrows * 200)
-  taglist[[3]] =  f_html_padding(p, pad_before = 3, title = 'APE Scatterplot')
+  taglist[[4]] =  f_html_padding(p, pad_before = 3, title = 'APE Scatterplot')
 
   p = ggplot( data, aes(bins, ape)) +
     geom_boxplot( aes(fill=title) ) +
@@ -236,7 +238,7 @@ f_predict_plot_model_performance_regression = function(data){
     coord_cartesian( ylim = c(200,0) )
 
   p = plotly::ggplotly(p,  height = nrows * 200)
-  taglist[[4]] = f_html_padding(p, pad_before = 3, title = 'APE Boxplot')
+  taglist[[5]] = f_html_padding(p, pad_before = 3, title = 'APE Boxplot')
 
   data_sum1 = data %>%
     group_by( title, bins )  %>%
@@ -262,7 +264,7 @@ f_predict_plot_model_performance_regression = function(data){
     scale_color_manual(values = f_plot_col_vector74() )
 
   p = plotly::ggplotly( p, height = 600 )
-  taglist[[5]] = f_html_padding(p, pad_before = 3, title = 'Performance Measures Binning')
+  taglist[[6]] = f_html_padding(p, pad_before = 3, title = 'Performance Measures Binning')
 
 
   data_sum2 = data %>%
@@ -284,10 +286,10 @@ f_predict_plot_model_performance_regression = function(data){
     labs( y = 'mean + SEM', x = '', color = '') +
     scale_color_manual(values = f_plot_col_vector74() )
 
-  taglist[[6]] = f_html_padding(htmltools::h3('Performance Measures Summary'), pad_before = 3)
+  taglist[[7]] = f_html_padding(htmltools::h3('Performance Measures Summary'), pad_before = 3)
 
   p = plotly::ggplotly( p, height = 600 )
-  taglist[[7]] = f_html_padding(p, pad_before = 3, title = 'SEM')
+  taglist[[8]] = f_html_padding(p, pad_before = 3, title = 'SEM')
 
   p = ggplot(data_sum2, aes( x = title, y = me, color = title) ) +
     geom_pointrange( aes( ymin = me - ci95, ymax = me + ci95)  ) +
@@ -299,15 +301,15 @@ f_predict_plot_model_performance_regression = function(data){
     scale_color_manual(values = f_plot_col_vector74() )
 
   p = plotly::ggplotly(p, height = 600)
-  taglist[[8]] = f_html_padding(p, pad_before = 3, title = 'CI95')
+  taglist[[9]] = f_html_padding(p, pad_before = 3, title = 'CI95')
 
-  taglist[[9]] = f_html_padding(htmltools::h2('Summary Tables'), pad_before = 3)
+  taglist[[10]] = f_html_padding(htmltools::h2('Summary Tables'), pad_before = 3)
 
   t = f_datatable_universal(data_sum2, round_other_nums = 2)
-  taglist[[10]] = f_html_padding(t, pad_before = 3, title = 'Performance Measures Summary')
+  taglist[[11]] = f_html_padding(t, pad_before = 3, title = 'Performance Measures Summary')
 
   t = f_datatable_universal( data_sum1, round_other_nums = 2 )
-  taglist[[11]] = f_html_padding(t, pad_before = 3, title = 'Performance Measures Binning')
+  taglist[[12]] = f_html_padding(t, pad_before = 3, title = 'Performance Measures Binning')
 
   return(taglist)
 

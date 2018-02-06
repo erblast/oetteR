@@ -441,6 +441,42 @@ f_manip_bin_numerics = function(df
 }
 
 
+#' @title converts columns of type double to integer if maximum number of
+#'   decimal digits is zero
+#' @param df dataframe
+#' @return tibble
+#' @examples
+#' as_tibble(mtcars)
+#' f_manip_double_2_int(mtcars)
+#' @rdname f_manip_double_2_int
+#' @export
+
+f_manip_double_2_int = function( df ){
+
+  get_no_digits = function(x){
+
+    x = x %% 1
+    x = as.character(x)
+
+    no_digits = nchar(x) - 2
+
+    no_digits = ifelse( no_digits == -1, 0, no_digits )
+
+    return(no_digits)
+
+  }
+
+  new_df = df %>%
+    as_tibble() %>%
+    mutate_if( function(x) max( get_no_digits(x) ) == 0, as.integer )
+
+  return(new_df)
+
+}
+
+
+
+
 
 
 

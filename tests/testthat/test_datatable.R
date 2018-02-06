@@ -11,4 +11,6 @@ test_that('f_datatable_universal'
   f_stat_group_mean_medians(data_ls, 'cyl') %>%
     f_datatable_universal(round_other_nums = 2)
 
+  f_datatable_universal(mtcars, round_other_nums = 1)
+
 })

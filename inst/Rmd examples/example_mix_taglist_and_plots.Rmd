@@ -1,0 +1,52 @@
+---
+title: "mix taglist and plots"
+author: "OEB"
+date: "February 6, 2018"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+
+suppressPackageStartupMessages( require(oetteR) )
+suppressPackageStartupMessages( require(tidyverse) )
+
+```
+
+
+# Generate Mixed list
+
+```{r}
+
+tab = f_datatable_universal( mtcars )
+
+p = ggplot(mtcars, aes(disp, mpg) ) +
+  geom_point()
+
+tag1 = f_html_padding( tab, title = 'tag1')
+
+tag2 = f_html_padding( tab, title = 'tag2') 
+
+p_plotly = plotly::ggplotly(p)
+
+tabplot = tabplot::tableplot( mtcars, plot = F )
+
+mix = list( p_plotly, tag1, p, tabplot, tab)
+
+```
+
+# Print Mixed List
+
+```{r, results = 'asis'}
+
+
+walk( mix, print)
+
+
+```
+

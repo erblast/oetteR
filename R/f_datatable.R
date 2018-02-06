@@ -14,8 +14,9 @@
 #' @param round_perc digits for percentages, Default: 1
 #' @param round_sign digits for p_values, Default: 2
 #' @param count_cols_as_int detect count columns, Default: T
-#' @param round_other_nums round other numerical columns to that digit. Will not
+#' @param round_other_nums round other numerical(double) columns to that digit. Will not
 #'   do anything if NULL, Default: NULL
+#'@param page_length integer Default page length of table, Default: 10
 #' @return DT:datatable
 #' @examples
 #' data_ls = f_clean_data(mtcars)
@@ -35,11 +36,21 @@ f_datatable_universal = function(df
                                  , round_perc = 1
                                  , round_sign = 2
                                  , count_cols_as_int = T
-                                 , round_other_nums = NULL){
+                                 , round_other_nums = NULL
+                                 , page_length = 10){
 
   if( is.null(df) | is_empty(df) ){
     return()
   }
+
+  df = f_manip_double_2_int( df )
+
+  max_length = nrow(df)
+
+  page_length_menu = c(10,25,50,100, max_length, page_length) %>%
+    unique()
+
+  page_length_menu = page_length_menu[ !page_length_menu > max_length]
 
   bool_perc = stringr::str_detect(names(df), '_perc' ) |
               stringr::str_detect(names(df), 'perc_' )
@@ -49,7 +60,7 @@ f_datatable_universal = function(df
 
   bool_sign = stringr::str_detect(names(df), 'p_val' )
 
-  bool_nums = map_lgl(df, is.numeric)
+  bool_nums = map_lgl(df, is.double)
 
 
   pos_perc  = which(bool_perc)
@@ -58,7 +69,10 @@ f_datatable_universal = function(df
   pos_nums  = which(bool_nums)
   pos_nums  = pos_nums[ ! pos_nums %in% c(pos_perc, pos_sign, pos_count) ]
 
-  df[, bool_perc] = df[, bool_perc] / 100
+  # DT::formatPercentage expects 100% == 1 format
+  if( any(bool_perc) ){
+    df[, bool_perc] = df[, bool_perc] / 100
+  }
 
   dt = DT::datatable(df
                      , extensions = c('Buttons', 'ColReorder', 'KeyTable')
@@ -67,6 +81,8 @@ f_datatable_universal = function(df
                        , buttons = I( c('colvis','copy', 'excel') )
                        , colReorder = TRUE
                        , keys = TRUE
+                       , pageLength = page_length
+                       , lengthMenu = page_length_menu
                      )
   )
 

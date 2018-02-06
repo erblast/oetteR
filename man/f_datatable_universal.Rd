@@ -6,7 +6,7 @@
   and options}
 \usage{
 f_datatable_universal(df, round_perc = 1, round_sign = 2,
-  count_cols_as_int = T, round_other_nums = NULL)
+  count_cols_as_int = T, round_other_nums = NULL, page_length = 10)
 }
 \arguments{
 \item{df}{dataframe}
@@ -17,8 +17,10 @@ f_datatable_universal(df, round_perc = 1, round_sign = 2,
 
 \item{count_cols_as_int}{detect count columns, Default: T}
 
-\item{round_other_nums}{round other numerical columns to that digit. Will not
+\item{round_other_nums}{round other numerical(double) columns to that digit. Will not
 do anything if NULL, Default: NULL}
+
+\item{page_length}{integer Default page length of table, Default: 10}
 }
 \value{
 DT:datatable

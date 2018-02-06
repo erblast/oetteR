@@ -33,6 +33,7 @@ f_html_breaks = function(n){
 #' @param subtitle character vector, Default: ''
 #' @param caption character vector, Default: ''
 #' @param pad_after character vector, Default: 0
+#' @param .f_htitle function, Default: htmltools::h3
 #' @return taglist
 #' @examples
 #' f_html_padding(DT::datatable(mtcars),5,'mtcars Data','subtitle', 'caption', 8 )
@@ -46,7 +47,8 @@ f_html_padding = function( obj
                            , title = NULL
                            , subtitle = NULL
                            , caption = NULL
-                           , pad_after = 0 ){
+                           , pad_after = 0
+                           , .f_htitle = htmltools::h3 ){
 
   if( is.null(obj) | is_empty(obj) ){
     return()
@@ -55,7 +57,7 @@ f_html_padding = function( obj
   l = list( f_html_breaks(pad_before) )
 
   if( ! is.null(title) ){
-    l = f_manip_append_2_list( l, htmltools::h3(title) )
+    l = f_manip_append_2_list( l, .f_htitle(title) )
   }
 
   if( ! is.null(subtitle) ){
