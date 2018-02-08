@@ -455,6 +455,10 @@ f_manip_double_2_int = function( df ){
 
   get_no_digits = function(x){
 
+    if( ! is.numeric(x) ){
+      return(NULL)
+    }
+
     x = x %% 1
     x = as.character(x)
 
@@ -466,9 +470,13 @@ f_manip_double_2_int = function( df ){
 
   }
 
-  new_df = df %>%
-    as_tibble() %>%
-    mutate_if( function(x) max( get_no_digits(x) ) == 0, as.integer )
+  suppressWarnings({
+
+    new_df = df %>%
+      as_tibble() %>%
+      mutate_if( function(x) max( get_no_digits(x) ) == 0, as.integer )
+
+  })
 
   return(new_df)
 

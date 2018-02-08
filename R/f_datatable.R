@@ -76,6 +76,7 @@ f_datatable_universal = function(df
 
   dt = DT::datatable(df
                      , extensions = c('Buttons', 'ColReorder', 'KeyTable')
+                     , rownames = FALSE
                      , options = list(
                        dom = 'Bflrtip'
                        , buttons = I( c('colvis','copy', 'excel') )

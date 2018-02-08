@@ -13,4 +13,12 @@ test_that('f_datatable_universal'
 
   f_datatable_universal(mtcars, round_other_nums = 1)
 
+  # test if function works with other variable types
+
+  data = as_tibble(mtcars)
+  data$names_chr = row.names(mtcars)
+  data$names_fct = as.factor( row.names(mtcars) )
+
+  f_datatable_universal(data, round_other_nums = 1)
+
 })
