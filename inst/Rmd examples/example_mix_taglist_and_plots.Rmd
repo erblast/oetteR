@@ -2,7 +2,10 @@
 title: "mix taglist and plots"
 author: "OEB"
 date: "February 6, 2018"
-output: html_document
+output: 
+  html_document: 
+    number_sections: yes
+    toc: yes
 editor_options: 
   chunk_output_type: console
 ---
@@ -36,16 +39,30 @@ p_plotly = plotly::ggplotly(p)
 
 tabplot = tabplot::tableplot( mtcars, plot = F )
 
-mix = list( p_plotly, tag1, p, tabplot, tab)
+mix = list( p_plotly, tag1, p, tabplot, tab) 
+
 
 ```
 
-# Print Mixed List
 
-```{r, results = 'asis'}
+# Try to identify object
 
+```{r results='asis'}
 
-walk( mix, print)
+# objects = tibble( obj = mix ) %>%
+#   mutate( class = map(obj, class)
+#           , class = map_chr( class, function(x) x[[1]] )
+#           #, print_f = map(class, function(x) ifelse( x == 'tabplot',tabplot:::plot.tabplot, print) )
+#           # , print_f = map(class, function(x) ifelse( x %in% c('plotly', 'shiny.tag.list', 'datatables')
+#           #                                            , htmlwidgets:::knit_print.htmlwidget, print) )
+#           , print_f = map(class, function(x) ifelse( x %in% c('plotly')
+#                                                      , htmlwidgets:::knit_print.htmlwidget, print) )
+#           , exec = walk2(obj, print_f, function(x,y) y(x) )
+#           )
+# 
+
+list( p_plotly, p_plotly ) %>%
+  walk( htmlwidgets:::knit_print.htmlwidget )
 
 
 ```
