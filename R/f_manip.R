@@ -474,7 +474,7 @@ f_manip_double_2_int = function( df ){
 
     new_df = df %>%
       as_tibble() %>%
-      mutate_if( function(x) max( get_no_digits(x) ) == 0, as.integer )
+      mutate_if( function(x) max( get_no_digits(x), na.rm = T ) == 0, as.integer )
 
   })
 

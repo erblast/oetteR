@@ -21,4 +21,10 @@ test_that('f_datatable_universal'
 
   f_datatable_universal(data, round_other_nums = 1)
 
+  # test if function works with NA vales
+
+  data$cyl[1:4] = NA
+
+  f_datatable_universal(data, round_other_nums = 1)
+
 })
