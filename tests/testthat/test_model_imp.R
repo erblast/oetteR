@@ -24,6 +24,27 @@ test_that('model importance regression'
 
 })
 
+
+test_that('check if importance df contains variables not in formula'
+  ,{
+
+    f = disp ~ cyl + mpg
+    m = randomForest::randomForest( f, mtcars)
+    imp = f_model_importance_randomForest(m)
+    expect_true( all( imp$row_names %in% f_manip_get_variables_from_formula(f) ) )
+
+    f = disp ~ cyl + mpg
+    m = e1071::svm( f, mtcars)
+    imp = f_model_importance_svm(m, data = mtcars)
+    expect_true( all( imp$row_names %in% f_manip_get_variables_from_formula(f) ) )
+
+    f = disp ~ cyl + mpg
+    m = rpart::rpart( f, mtcars)
+    imp = f_model_importance_rpart(m)
+    expect_true( all( imp$row_names %in% f_manip_get_variables_from_formula(f) ) )
+
+})
+
 test_that('model importance classification'
           ,{
 

@@ -22,6 +22,8 @@ suppressPackageStartupMessages( require(tidyverse) )
 ```
 
 
+Presently I am only printing lists of one type of printable object as html using `f_plot_obj_2_html`. However I would like to mix these lists. Having plotly graphs right next to regular ggplot graphs. 
+
 # Generate Mixed list
 
 ```{r}
@@ -49,21 +51,63 @@ mix = list( p_plotly, tag1, p, tabplot, tab)
 
 ```{r results='asis'}
 
-# objects = tibble( obj = mix ) %>%
-#   mutate( class = map(obj, class)
-#           , class = map_chr( class, function(x) x[[1]] )
-#           #, print_f = map(class, function(x) ifelse( x == 'tabplot',tabplot:::plot.tabplot, print) )
-#           # , print_f = map(class, function(x) ifelse( x %in% c('plotly', 'shiny.tag.list', 'datatables')
-#           #                                            , htmlwidgets:::knit_print.htmlwidget, print) )
-#           , print_f = map(class, function(x) ifelse( x %in% c('plotly')
-#                                                      , htmlwidgets:::knit_print.htmlwidget, print) )
-#           , exec = walk2(obj, print_f, function(x,y) y(x) )
-#           )
-# 
+objects = tibble( obj = mix ) %>%
+  mutate( class = map(obj, class)
+          , class = map_chr( class, function(x) x[[1]] )
+          , print_f = map(class, function(x) ifelse( x == 'tabplot',tabplot:::plot.tabplot, print) )
+          , list_type = map_chr(class, function(x) ifelse( x %in% c('plotly', 'shiny.tag.list', 'datatables')
+                                                     , 'taglist', 'regular_list') )
+          )
 
-list( p_plotly, p_plotly ) %>%
-  walk( htmlwidgets:::knit_print.htmlwidget )
+objects_marked = objects %>%
+  mutate(  rank = rank(list_type)
+          , change_lag = lag(rank)
+          , change_event = rank != change_lag
+          , change_num = ifelse( is.na(change_event) | change_event == FALSE, 0, 1 )
+          , cum_change = cumsum(change_num) 
+          )
+
+
+objects_collapse = objects_marked %>%
+  group_by( list_type, cum_change ) %>%
+  nest() %>%
+  arrange( cum_change )
+
+
+print_obj = function( tib, list_type){
+  
+  
+  if( list_type == 'taglist' ){
+    
+    htmltools::tagList( tib$obj )
+    
+  }else{
+    
+    walk2( tib$obj, tib$print_f, function(x,y) y(x) ) 
+    
+  }
+  
+}
+
+
+for( p in list(p_plotly, p_plotly) ){
+  
+  htmlwidgets:::knit_print.htmlwidget(p) # does not work inside loops or functions
+  
+}
+
+
+walk2( objects_collapse$data, objects_collapse$list_type, print_obj )
 
 
 ```
+
+it seems impossible to print a plotly object or a DT::datatable or a taglist inside a function or a loop. We could either try to built a custom print function with knitr.
+
+https://cran.r-project.org/web/packages/knitr/vignettes/knit_print.html
+
+which requires understanding of R objects.
+
+or we could merge different Rmd files before rendering which seems a bit too hacky. I think its best to simply seperate htmlwidgets/taglists and other printable objects for the time being.
+
 

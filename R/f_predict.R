@@ -193,9 +193,10 @@ f_predict_plot_model_performance_regression = function(data){
                            , x_title = 'Target Variable'
                            , ncol = 2
                            , size = 2) +
-    geom_hline( yintercept = 0, size = 1)
+    geom_hline( yintercept = 0, size = 1, alpha = 0.5)
 
-  p = plotly::ggplotly(p,  height = nrows * 200 , dynamicTicks = TRUE)
+  p = plotly::ggplotly(p,  height = nrows * 200 , dynamicTicks = TRUE
+                       , tooltip = c('x','y') )
 
   taglist[[1]] = f_html_padding(htmltools::h2('Summary Plots'), pad_before = 3)
 
@@ -205,7 +206,7 @@ f_predict_plot_model_performance_regression = function(data){
     geom_boxplot( aes(fill=title)
                   , show.legend = F ) +
     facet_wrap(~title, ncol = 2 ) +
-    geom_hline( yintercept = 0, size = 1) +
+    geom_hline( yintercept = 0, size = 1, alpha = 0.5) +
     theme( axis.text.x = element_text(angle = 90)
            , legend.position = 'none')+
     scale_fill_manual( values =  f_plot_col_vector74() ) +
@@ -237,7 +238,7 @@ f_predict_plot_model_performance_regression = function(data){
     labs(y = 'APE of Predictions', x = 'Target Variable') +
     coord_cartesian( ylim = c(200,0) )
 
-  p = plotly::ggplotly(p,  height = nrows * 200)
+  p = plotly::ggplotly(p,  height = nrows * 200, tooltip = c('x','y') )
   taglist[[5]] = f_html_padding(p, pad_before = 3, title = 'APE Boxplot')
 
   data_sum1 = data %>%
