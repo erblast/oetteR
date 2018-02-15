@@ -282,7 +282,8 @@ f_plot_hist = function(variable
     if( p_val ){
       p = p +
         ggpubr::stat_compare_means(comparisons = f_plot_generate_comparison_pairs(data, variable, group)
-                                 , label = "p.signif" )
+                                 , label = "p.signif"
+                                 , method = "wilcox.test")
     }
 
   }
@@ -730,7 +731,7 @@ f_plot_pretty_points = function(df
 }
 
 #' @title generates comparison pairs for `ggpubr::stat_compare_means()`
-#' @description generates all possible pairs and filters according to t-test p_value
+#' @description generates all possible pairs and filters according to wilcox p_value
 #' @param data dataframe
 #' @param col_var character vector denoting variable column
 #' @param col_group character vector denoting grouping column
@@ -765,11 +766,11 @@ f_plot_generate_comparison_pairs = function(data, col_var, col_group, thresh = 0
       filter( rlang::UQ(sym_group) == lvl2 ) %>%
       .[[col_var]]
 
-    t.test_safely = safely(t.test)
-    t_test = t.test_safely(x,y)
+    wilcox_safely = safely(wilcox.test)
+    wilcox = wilcox_safely(x,y)
 
-    if( is.null(t_test$error) ){
-      return( t_test$result$p.value )
+    if( is.null(wilcox$error) ){
+      return( wilcox$result$p.value )
     }else{
       return( 1 )
     }
@@ -785,20 +786,24 @@ f_plot_generate_comparison_pairs = function(data, col_var, col_group, thresh = 0
 
   lvl = levels( data[[col_group]] )
 
-  compare = expand.grid( a = lvl
-                        , b = lvl
-                        , stringsAsFactors = F) %>%
-    filter( a != b) %>%
-    mutate( comb = map2( a, b, function(x,y) sort( c(x,y) ) )
-            , comb = map( comb, paste0, collapse = ',' )
-    ) %>%
-    unnest( comb ) %>%
-    group_by( comb ) %>%
-    summarise() %>%
-    mutate( p_val  = map( comb, compare_means )
-            , comb = stringr::str_split(comb, ',') )   %>%
-    filter( p_val <= thresh ) %>%
-    .$comb
+  suppressWarnings({
+
+    compare = expand.grid( a = lvl
+                          , b = lvl
+                          , stringsAsFactors = F) %>%
+      filter( a != b) %>%
+      mutate( comb = map2( a, b, function(x,y) sort( c(x,y) ) )
+              , comb = map( comb, paste0, collapse = ',' )
+      ) %>%
+      unnest( comb ) %>%
+      group_by( comb ) %>%
+      summarise() %>%
+      mutate( p_val  = map( comb, compare_means )
+              , comb = stringr::str_split(comb, ',') )   %>%
+      filter( p_val <= thresh ) %>%
+      .$comb
+
+  })
 
   return(compare)
 }

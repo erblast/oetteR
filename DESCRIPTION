@@ -1,6 +1,6 @@
 Package: oetteR
 Type: Package
-Title: What the Package Does (Title Case)
+Title: Collection of personal R functions
 Version: 0.1.0
 Author: Bjoern Oettinghaus
 Maintainer: Bjoern Oettinghaus <bjoern.oettinghaus@gmail.com>
@@ -10,6 +10,36 @@ LazyData: true
 RoxygenNote: 6.0.1
 Imports:
   tidyverse
+  , DT
+  , HDtweedie
+  , MASS
+  , RColorBrewer
+  , broom
+  , dplyr
+  , fields
+  , forcats
+  , ggalluvial
+  , ggplot2
+  , ggpubr
+  , glmnet
+  , gridExtra
+  , htmltools
+  , lubridate
+  , magrittr
+  , modelr
+  , nycflights13
+  , pipelearner
+  , plotly
+  , purrr
+  , readr
+  , recipes
+  , rlang
+  , rmarkdown
+  , rminer
+  , stringr
+  , tabplot
+  , tibble
+  , tidyr
 Suggests: testthat,
     knitr,
     rmarkdown

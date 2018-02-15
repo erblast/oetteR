@@ -153,8 +153,8 @@ test_that('f_manip_bin_numerics zero variance columns'
 
   data_new = f_manip_bin_numerics(data)
 
-  expect_identical( select(data, zero_var, zero, near_zero_var)
-                    , select(data_new, zero_var, zero, near_zero_var) )
+  expect_identical( select(data, zero_var, zero)
+                    , select(data_new, zero_var, zero) )
 
   expect_true( is.factor(data_new$near_zero_var) )
 
