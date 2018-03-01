@@ -1,0 +1,161 @@
+---
+title: "Data Preparation and Principle Component Analysis"
+author: "OEB"
+date: "March 1, 2018"
+output: 
+  html_document: 
+    number_sections: yes
+    toc: yes
+    toc_float:
+      collapsed: false
+      smooth_scroll: false
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE )
+```
+
+```{r libs}
+
+suppressPackageStartupMessages( require(oetteR) ) 
+suppressPackageStartupMessages( require(tidyverse) )
+
+```
+
+
+# Cleaning Data
+
+Before I learned about `recipes`. I had my own set of functions that would do something similar with less functionality of course. `oetteR::f_clean_data()` takes a dataframe and performs some automated cleaning steps and sorts the variables into categrocial and numerical categories and returns a list which I always name `data_ls`.
+
+
+```{r clean}
+
+data = ISLR::Auto
+
+data_ls = f_clean_data( data = data
+                         # reduce number of levels to 10, group to other
+                         , max_number_of_levels_factors = 10
+                         # numericals with less than 10 unique values will be converted to factors
+                         , min_number_of_levels_nums = 10
+                         # exclude missing data
+                         , exclude_missing = T
+                         # negative values will be set to zero
+                         ,replace_neg_values_with_zero = T
+                         # allow negative values in these columns
+                         ,allow_neg_values = 'null'
+                         # tag id columns
+                         , id_cols = 'name'
+                         )
+
+
+print( str(data_ls) )
+
+
+```
+
+Notice that numericals are converted to ordered factors
+
+# BoxCox Transformation
+
+We can use a boxcox transformation on numerical variables.
+
+
+```{r}
+
+data_ls = f_boxcox(data_ls)
+
+print( str(data_ls) )
+
+```
+
+# PCA
+
+Base R has a decent function for PCA `prcomp()`. However the returned object is a bit messy and contains a lot of matrices intesad of dataframes. `oetteR::f_pca()` is a convenience wrapper which uses `data_ls` lists. 
+
+
+```{r}
+
+pca_ls = f_pca( data_ls
+             , center = T
+             , scale = T
+             , use_boxcox_tansformed_vars = T
+             , include_ordered_categoricals = T
+             # drop components that explain less variance than the threshold
+             , threshold_vae_for_pc_perc = 0 )
+
+
+```
+
+The returned pca object has some new features compared to `prcomp()`
+
+## Call the original Data with the Principle Components as additional Variables
+
+```{r}
+
+as_tibble( pca_ls$data )
+
+```
+
+## Get variance explained as a dataframe
+
+```{r}
+
+pca_ls$pca$vae
+
+```
+
+## How much is each variable contributing to each component in percent
+
+Note the columns add up to 100
+
+```{r}
+
+pca_ls$pca$contrib
+
+```
+
+## Contribution of variables to variance explained by principle component
+
+```{r}
+
+pca_ls$pca$contrib_abs_perc
+
+
+```
+
+# Plot PCA
+
+## Plot variance explained
+
+Note returns a plotly graph by default
+
+`oetteR::f_pca_plot_variance_explained`
+
+```{r}
+
+f_pca_plot_variance_explained(pca_ls
+                              # dont include componetns that explain less than 2.5 percent of the variabnce
+                              , threshold_vae_for_pc_perc = 2.5)
+
+
+```
+
+## Plot first two principle components and color by cylinder
+
+and color cylinders, `oetteR::f_pca_plot_variance_explained` returns a taglist created by `htmltools::tagList` which stores a `plotly` graph and a `DT:datatable`. The algebraic sign (+/-) of the rotation value in the table tells you whether a contribution of one variable to one principle component is positive or negative.
+
+
+
+```{r}
+
+taglist = f_pca_plot_components( pca_ls
+                                 , x_axis = 'PC1'
+                                 , y_axis = 'PC2'
+                                 , group = 'cylinders' )
+
+taglist
+
+```
+

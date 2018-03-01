@@ -158,7 +158,8 @@ f_pca_plot_components = function(pca_ls
   p = ggplot(data) +
     geom_point( aes_string(x = x_axis, y = y_axis, color = group)
                 ,alpha=0.4 ) +
-    labs(title = 'Principle Components')
+    labs(title = 'Principle Components') +
+    scale_color_brewer( palette = 'Dark2')
 
   #convert rotation matrix to tibble and join contribution in percent
   tib = pca$rotation %>%
