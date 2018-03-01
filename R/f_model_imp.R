@@ -105,7 +105,9 @@ f_model_importance_svm = function(m, data){
 
   } else{
     #regression
-    imp = rminer::Importance(m, data, PRED = twidlr::predict.svm )
+    suppressWarnings({
+      imp = rminer::Importance(m, data, PRED = twidlr::predict.svm )
+    })
   }
 
   df = tibble( row_names = names(data)
@@ -264,10 +266,15 @@ f_model_importance_plot = function( importance
 
   if( ! is.null(variable_color_code) ){
 
-    importance = importance %>%
-      left_join( variable_color_code  ) %>%
-      mutate( variables = forcats::fct_reorder(variables, value) )%>%
-      arrange( variables )
+    #joining factor and character vector throws a warning
+    suppressWarnings({
+
+     importance = importance %>%
+        left_join( variable_color_code  ) %>%
+        mutate( variables = forcats::fct_reorder(variables, value) )%>%
+        arrange( variables )
+
+    })
 
     col_vector = importance[['color']]
 
@@ -343,9 +350,14 @@ f_model_importance_plot_tableplot = function( data
     head(limit) %>%
     .[['row_names']]
 
-  p = as.data.frame(data) %>%
-    select( one_of( response_var, vars) ) %>%
-    tabplot::tableplot( plot = F, ...)
+  #supress binning warning
+  suppressWarnings({
+
+    p = as.data.frame(data) %>%
+      select( one_of( response_var, vars) ) %>%
+      tabplot::tableplot( plot = F, ...)
+
+  })
 
   if(print == T){
     tabplot:::plot.tabplot(p)
@@ -494,6 +506,7 @@ f_model_importance_pl_add_plots_regression = function( pl
 #'   modelling dataframe first
 #' @param pl modelling dataframe containing the following columns 'imp_plot', 'imp_plot_dep', 'imp_tabplot', 'title'
 #' @param prefix character vector file name prefix for html files, Default: NULL
+#' @param quiet boolean, suppresses output to console by render function, Default: FALSE
 #' @return html files in working directory
 #' @examples
 #' \dontrun{
@@ -532,7 +545,7 @@ f_model_importance_pl_add_plots_regression = function( pl
 #' @rdname f_model_importance_pl_plots_as_html
 #' @export
 #' @importFrom htmltools tagList
-f_model_importance_pl_plots_as_html = function(pl, prefix = NULL){
+f_model_importance_pl_plots_as_html = function(pl, prefix = NULL, quiet = FALSE){
 
   bool = c('imp_plot', 'imp_plot_dep', 'imp_tabplot', 'title') %in% names(pl)
 
@@ -547,12 +560,14 @@ f_model_importance_pl_plots_as_html = function(pl, prefix = NULL){
                      , type = 'taglist'
                      , output_file = paste0(prefix,'importance_plots')
                      , title = 'Variable Importance'
+                     , quiet = quiet
                      )
 
   f_plot_obj_2_html( pl$imp_plot_dep
                      , type = 'plots'
                      , output_file = paste0(prefix,'importance_variable_dependencies')
                      , title = 'Variable dependecies'
+                     , quiet = quiet
                     )
 
   f_plot_obj_2_html( pl$imp_tabplot
@@ -560,6 +575,7 @@ f_model_importance_pl_plots_as_html = function(pl, prefix = NULL){
                      , output_file = paste0(prefix,'importance_tabplots')
                      , titles = pl$title
                      , title = 'Tabplots'
+                     , quiet = quiet
                    )
 
 }

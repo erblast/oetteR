@@ -1,7 +1,7 @@
 ---
-title: "Alluvial Plots"
-author: "Bjoern Oettinghaus"
-date: "`r Sys.Date()`"
+title: "Gamma/Tweedie Regression"
+author: "OEB"
+date: "December 5, 2017"
 output: 
   html_document: 
     number_sections: yes
@@ -13,330 +13,410 @@ editor_options:
   chunk_output_type: console
 ---
 
-
-```{r setup, include = FALSE}
-knitr::opts_chunk$set(
-  collapse = TRUE
-  , eval = T
-  , comment = "#>"
-  , out.width = '100%'
-  , message = F
-  , warning = F
-  , echo = T
-)
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE )
 ```
 
 ```{r}
-suppressPackageStartupMessages( require(oetteR) )
+
+suppressPackageStartupMessages( require(oetteR) ) 
+suppressPackageStartupMessages( require(pipelearner) )
 suppressPackageStartupMessages( require(tidyverse) )
-```
-
-# Introduction
-
-Alluvial Plots can be a powerfull tool to visualise categorical data. It will group observations that have similar values across a set of dimensions and visualise them as flows. The individual flows can be emphasised through different colouring methods.
-
-# Alluvial Plots
-
-## Visualize Data in a tidy data format
-
-For this dataformat the `f_plot_alluvial` function is suitable. Also see the help documentation and the examples of that function.
-
-### Data
-
-```{r}
-
-data_ls = mtcars %>%
-  f_clean_data()
-
-data_tidy = data_ls$data
-max_variables = 5
-variables = c( data_ls$categoricals[1:3], data_ls$numericals[1:3] )
-
-head(data_tidy, 10) %>%
-  knitr::kable()
 
 ```
 
-### Colouring
+
+# Regression Feature Selection
+
+To my understanding Feature Selection for regression was pretty straigth forward using stepwise regression. However I recently learned that this approach is [flawed](https://en.wikipedia.org/wiki/Stepwise_regression). The alternatively used method should be the Lasso. However most of the response variables I do regression for are not normally distributed and have a distribution that looks to my like a gamma or beta distribution. I recently had good results fitting a gamma regression model, beta distribution models did usually not converge to a minimum or did not improve the fit. It is however challenging to find an implementation of Lasso that works for a gamma regression.
+
+# R Implementations for Lasso
+
+- `glmnet` does not support gamma regression but is the most used lasso implementation. [Documenatation](http://web.stanford.edu/~hastie/glmnet/glmnet_alpha.html)
+- `HDtweedie` a gamma regression is a [tweedie distribution](https://en.wikipedia.org/wiki/Tweedie_distribution) for `p == 2`, the package offers lasso for those distributions. [documentation](https://jasdumas.github.io/tech-short-papers/HDtweedie_lasso_tutorial.html)
+- `gamlss` offers Lasso and gamma regression. The way the predict.gamlss is implemented (expects fitting data to be present in global environment when calling predict) makes it difficult to integrate in functions. There also is no documentation.  
+
+# `oetteR::f_train_lasso` 
+
+I have written a wrapper functions for `glmnet` and `HDtweedie` which is implemented in `oetteR`. The Implementation should make it easy to judge the feature reducing qualities of the lasso for different datasets.
+
+# Feature selection with the lasso
+The `cv.glmnet` and the `cv.HDtweedie` functions already return a model. Since they have built in cross validation I cannot really be sure about the compositions of the coefficients. Since the functions are handeling the internals of the cross validation I am not a hundred percent sure how the coefficients are being averaged. Thus I prefer to select the best model via lasso select the simplest model within 1SE range of the best model and use allfeatures with none zero coefficients to fit a new OLS regression model.
+
+https://stats.stackexchange.com/questions/82466/why-use-lasso-estimates-over-ols-estimates-on-the-lasso-identified-subset-of-var
+
+This also reduces a bias in the cofficients towards zero.
+
+# Tweedie Distributions
+
+Tweedie distributions have depending on the p value a more or less extreme distribution imbalance at zero. As it is not always clear which distribution to use. I prefer to perform lasso with a couple of them and see which variable selection the models come up with.
 
 ```{r}
 
-f_plot_alluvial( data = data_tidy
-                , variables = variables
-                , max_variables = max_variables
-                , fill_by = 'first_variable' )
+tweedies = tibble( p = seq(1,2,0.1) ) 
 
-f_plot_alluvial( data = data_tidy
-                , variables = variables
-                , max_variables = max_variables
-                , fill_by = 'last_variable' )
-
-f_plot_alluvial( data = data_tidy
-                , variables = variables
-                , max_variables = max_variables
-                , fill_by = 'all_flows' )
-
-f_plot_alluvial( data = data_tidy
-                , variables = variables
-                , max_variables = max_variables
-                , fill_by = 'values' )
-
-```
-
-### Ordering
-
-The order of the variables on the x axis is determined by the parameter variables. The order of any y values can be changed using the oder_levels argument. Simply pass the values you want to reorder as a character vector.
-
-```{r}
-
-f_plot_alluvial( data = data_tidy
-                , variables = variables
-                , max_variables = max_variables
-                , fill_by = 'values'
-                , order_levels = c('1', '0') )
+tweedies = tweedies %>%
+  mutate( dist = map( p, function(x) tweedie::rtweedie(5000,x, phi = 1, mu = 1) ) ) %>%
+  unnest( dist ) %>%
+  mutate( p = as.factor(p) )
 
 
-```
-
-## Visualize data in the 'gathered' format
-
-### Data
-
-Here we have more than one row for each observation and measurements that belong to the same group such as mean arrival delay is gathered in one column, which is indexed by the quarter column. In an alluvial Plot we might want to add another independent variable for coloring like in this case `carrier`.
-
-```{r}
-
-monthly_flights = nycflights13::flights %>%
-  group_by(month, tailnum, origin, dest, carrier) %>%
-  summarise() %>%
-  group_by( tailnum, origin, dest, carrier) %>%
-  count() %>%
-  filter( n == 12 ) %>%
-  select( - n ) %>%
-  left_join( nycflights13::flights ) %>%
-  .[complete.cases(.), ] %>%
-  ungroup() %>%
-  mutate( tailnum = pmap_chr(list(tailnum, origin, dest, carrier), paste )
-          , qu = cut(month, 4)) %>%
-  group_by(tailnum, carrier, origin, dest, qu ) %>%
-  summarise( mean_arr_delay = mean(arr_delay) ) %>%
-  ungroup() %>%
-  mutate( mean_arr_delay = ifelse( mean_arr_delay < 10, 'on_time', 'late' ) )
-
-levels(monthly_flights$qu) = c('Q1', 'Q2', 'Q3', 'Q4')
-
-data_gath = monthly_flights
-
-head(data_gath, 10) %>%
-knitr::kable()
-
-col_x = 'qu'
-col_y = 'mean_arr_delay'
-col_fill = 'carrier'
-col_id = 'tailnum'
+ggplot(tweedies) +
+  geom_histogram( aes( dist)
+                  , bins = 50 ) +
+  facet_wrap(~p, scales = 'free' )
 
 
 ```
 
 
-### Coloring
+# Lasso with not normally distributed response variables
 
-#### color by independent variable `carrier`
+**Note:** I am using `pipelearner` for the internals of my lasso functions and for fitting. `pipelearner` is not on CRAN and might not be available in a few years. I think it is much better to come up with a solution using `caret`. However `piplearner` is more flexible and lets you use your own functions. 
 
-```{r}
-
-f_plot_alluvial_1v1( data_gath, col_x = 'qu', col_y = 'mean_arr_delay', col_id = 'tailnum', col_fill )
-
-```
-
-##### Move colored independent variable to the left
+## Simulated Data
 
 ```{r}
 
-f_plot_alluvial_1v1( data_gath, col_x, col_y, col_id, col_fill, fill_right = F )
+data = tibble( resp = rgamma(5000,1) ) %>%
+  mutate( exp1 = rnorm(5000, 50,5)
+          , exp2 = log(resp) ##non linear relationship
+          , exp3 = exp2 * rnorm(5000, 1, 0.5) # colinearity to exp2
+          , exp4 = resp * rgamma(5000, 0.5)
+          , exp5 = resp * rgamma(5000, 0.5) * rnorm(5000, 1, 0.5)
+  )
 
-```
-
-
-#### Other coloring options
-
-```{r}
-
-f_plot_alluvial_1v1( data_gath, col_x = 'qu', col_y = 'mean_arr_delay', col_id = 'tailnum', fill_by = 'last_variable' )
-f_plot_alluvial_1v1( data_gath, col_x = 'qu', col_y = 'mean_arr_delay', col_id = 'tailnum', fill_by = 'first_variable' )
-f_plot_alluvial_1v1( data_gath, col_x = 'qu', col_y = 'mean_arr_delay', col_id = 'tailnum', fill_by = 'all_flows' )
-f_plot_alluvial_1v1( data_gath, col_x = 'qu', col_y = 'mean_arr_delay', col_id = 'tailnum', fill_by = 'value' )
-
-```
-
-### Ordering
-
-#### Y levels of dependent variable
-
-```{r}
-f_plot_alluvial_1v1( data_gath, col_x, col_y, col_id, fill_by = 'first_variable'
-                     , order_levels_y = c('on_time', 'late') )
-
-```
-
-#### Y levels of independent color variable `carrier`
-
-```{r}
-
-order_by_carrier_size = data_gath %>%
-  group_by(carrier) %>%
-  count() %>%
-  arrange( desc(n) ) %>%
-  .[['carrier']]
-
-f_plot_alluvial_1v1( data_gath, col_x, col_y, col_id, col_fill
-                     , order_levels_fill = order_by_carrier_size )
 
 
 ```
 
+## Training the lasso
 
-#### X levels
+- `f_manip_data_2_model_matrix_format` is a wrapper for `model.matrix` which comes up with weird variable names when creating dummy variables that cannot be used in a formula syntax. `f_manip_data_2_model_matrix_format` comes up with better names and returns a new dataframe and a compatible formula.
+
+- `f_train_lasso` works just like `cv.glmnet` and `cv.HDtweedie`. It also comes with more usefull plots as ouput and helps to extract the correct formulas for the features
 
 ```{r}
-f_plot_alluvial_1v1( data_gath, col_x, col_y, col_id, fill_by = 'first_variable'
-                     , order_levels_x = c('Q4', 'Q3', 'Q2', 'Q1') )
+
+form = resp~exp1+exp2+exp3+exp4+exp5
+
+data_trans = f_manip_data_2_model_matrix_format(data, form)
+
+new_data = data_trans$data
+new_formula =  data_trans$formula
+
+
+lasso = f_train_lasso(new_data, new_formula
+                      , lambda = 10^seq(-3,3,length.out = 25)
+                      , p = c( 1, 1.25, 1.5, 1.75, 2 )
+                      , k = 10 )
+
 
 ```
 
+### lasso tibble
 
-## General
-
-### Change the colors
-
-Any color palette can be passed to both functions.
+Here we find for each lambda the correspnding mse, a tibble with the coefficients, a formula including all none zero coefficients, the formulas as strings for readability, and the number of coefficients.
 
 ```{r}
 
-f_plot_alluvial_1v1( data_gath, col_x, col_y, col_id, fill_by = 'last_variable'
-                     , col_vector_flow = rev( RColorBrewer::brewer.pal(9, 'Purples') )
-                     , col_vector_value = rev( RColorBrewer::brewer.pal(9, 'Oranges') ) )
-
-f_plot_alluvial( data = data_tidy
-                , variables = variables
-                , max_variables = max_variables
-                , fill_by = 'first_variable' 
-                , col_vector_flow = rev( RColorBrewer::brewer.pal(9, 'Reds') )
-                , col_vector_value = rev( RColorBrewer::brewer.pal(9, 'Greens') )
-                )
-
-```
-
-### Missing Data
-
-Missing Data will automatically be labeled as `NA`. The label can be changed and it can be ordered as usual
-
-#### Gathered Data
-
-```{r}
-
-data = data_gath %>%
-  select(tailnum, qu, mean_arr_delay) %>%
-  sample_frac(0.9)
-
-f_plot_alluvial_1v1( data, col_x, col_y, col_id, fill_by = 'last_variable'
-                         , NA_label = 'none'
-                         , order_levels_y = 'none')
-
-```
-
-#### Tidy Data
-
-```{r}
-
-data = data_tidy
-data$cyl[1:4] = NA
-
-f_plot_alluvial( data = data
-                     , variables = variables
-                     , max_variables = max_variables
-                     , fill_by = 'first_variable'
-                     , NA_label = 'none'
-                     , order_levels = 'none' )
-
-```
-
-
-### Connect Flows to observations in original data
-
-```{r}
-
-link = file.path( system.file(package = 'oetteR')
-                  , 'Rmd vignettes'
-                  , 'vignette_visualising_regression_models.html' )
-
-```
-
-The plot objects returned by both functions have an attribute called `data_key` which is an x-y table arranged like the alluvial plot one column containing the original ID. See [vignette for visualising regression models](`r link`) for an example on how this is effectively used.
-
-#### tidy data
-
-```{r}
-
-p = f_plot_alluvial( data = data_tidy
-                , variables = variables
-                , max_variables = max_variables
-                , fill_by = 'first_variable' )
-
-p$data_key %>%
-  head(10) %>%
-  knitr::kable()
-
-```
-
-#### gathered data
-
-```{r}
-
-p = f_plot_alluvial_1v1( data_gath, col_x = 'qu', col_y = 'mean_arr_delay', col_id = 'tailnum', col_fill = 'carrier' )
-
-
-p$data_key %>%
-  head(10) %>%
+lasso$tib_all %>%
+  head(5) %>%
   knitr::kable()
 
 
 ```
 
-### The Plot objects can be manipulated like any other ggplot object
 
-#### Flip
+### Plot MSE
+
+In this plot we can see that the standard gaussian distribution has a much higher MSE than the tweedie distributions. We find the minimum MSE maked by the dashed horizontal line at the third lambda value meaning that for the gaussian distribution shrinkage of the initial coefficients improves the fit. The minimum lambda value that is still in 1SE range of the min MSE lambda value is at the eighth lambda value. Possibly this would already lead to some features beeing eliminated. 
+
+The tweedie distributions have their minimum MSE and their 1SE at the first lambda value (use the plotly graph to deselect the lines one by one). Zooming further in on that point we find that the distribution for p = 2, which is the gamma distribution performs the best as is to be expected since the response variable has a gamma distribution. 
+
+```{r}
+plotly::ggplotly(lasso$plot_mse)
+```
+
+## Plot coefficients
+
+Here we find that for the gaussian distribution at lambda 1SE 1 out of 5 coefficients is below zero which is the coefficient for exp3. Exp3 has been computed to be extremely colinear to exp2 thus carries only redundant information.
+
+For the tweedie distributions we find that all coefficients except for exp2 are already at zero in the initial fit. If we look at the simulated data we find that the formulations for all explanatory variables except exp2 carry some random element which make them less reliable predictors for the response compared to exp2 which has no random element. 
+
+```{r fig.height=10 }
+plotly::ggplotly(lasso$plot_coef)
+```
+
+## Get formulas
+
+The `lasso` object already has an attribute which returns a set of unique formulas which have worked best for each value of p.
 
 ```{r}
 
-p = p +
-  coord_flip()
-
-p
+lasso$formula_str_lambda_1se
 
 ```
 
-#### Title
+
+## Fit regression models
+
+We now will fit each formula to each distribution (gaussian, tweedie, gamma)
+
+
+### Prepare formulas and wrappers
+
+the `statmod::tweedie` function provides the distribution family for `glm`. As a control we will also use `HDtweedie` to check whether the results of these two methods are comparable. We will use the fixed `lambda` value of 0.001. Which was the minimum lambda we used previously and which was the min lambda 1SE value of all tweedie distributions tested. Note that `p_fact` and `var.power` are synonyms for the p parameter of the Tweedie distributions. Another control we will add is a `randomForest` regression.
+
+sometimes the fittings will not converge, we will thereofe also grid search different parameters for the link which can take values between -1 and 1
 
 ```{r}
 
-p = p +
-  ggtitle('Look at my flip')
+formulas_df = tibble( f_str = lasso$formula_str_lambda_1se ) %>%
+  mutate( f = map( f_str, as.formula ) )
 
-p
+
+
+wr_glm = function(formula, data, ... ){
+  
+  fit = function(){
+    m = glm(formula, data, family = statmod::tweedie( ... ))
+  }
+  
+  fit_safely = safely(fit)
+  
+  m = fit_safely()
+  
+  if( is.null(m$error) ){
+    return(m$result)
+  }else{
+    return(NULL)
+  }
+  
+}
+
+#this wrapper can be found in the internals of the f_train_lasso_function
+wr_tweedie = function( data, formula, lambda, p_fact ){
+
+  response_var = f_manip_get_response_variable_from_formula(formula)
+
+  y = data[[response_var]]
+  x = as.matrix( model.matrix(formula, data)[,-1] ) # will not return a matrix if x is only one column
+  
+  m = HDtweedie::HDtweedie(x,y, lambda = lambda, p = p_fact, alpha = 1, standardize = F )
+
+}
+
+
+```
+
+### Pipelearner
+
+```{r}
+
+pl = pipelearner(new_data) %>%
+  learn_cvpairs( pipelearner::crossv_kfold, k = 10 ) %>%
+  learn_models( lm, formulas = formulas_df$f ) %>%
+  learn_models( lm, formulas = resp ~ 1 ) %>%
+  learn_models( wr_glm
+                , formulas = formulas_df$f
+                , var.power = c( 1, 1.25, 1.5, 1.75, 2 )
+                , link.power = c( seq( -1 , 1, 0.25) )
+                ) %>%
+  learn_models( wr_tweedie
+                , formulas = formulas_df$f
+                , lambda = 0.001
+                , p_fact = c( 1, 1.25, 1.5, 1.75, 2 ) 
+                ) %>%
+  learn_models( randomForest::randomForest
+                , formulas = new_formula ) %>%
+  learn()
+
+
+pl_filt = pl %>%
+  mutate( not_converged = map_lgl( fit, is.null) ) %>%
+  filter( not_converged == F ) 
 
 ```
 
 
-#### Repel Labels
+### Label Models
 
-Unfortunately does not work yet
+```{r}
 
-```{r error=TRUE}
+pl_lab_lm = pl_filt %>%
+  filter( model == 'lm' ) %>%
+  mutate( form = map( params, 'formula')
+          , form = as.character(form)
+          , title = paste(model, form) )
 
-p = p %>%
-  ggrepel::geom_text_repel()
+pl_lab_glm = pl_filt %>%
+  filter( model == 'wr_glm' ) %>%
+  mutate( form = map( params, 'formula')
+          , form = as.character(form)
+          , var.power = map_dbl( params, 'var.power' )
+          , link.power = map_dbl( params, 'link.power' )
+          , title = paste(model, 'p:', round( var.power, 1), 'l:', round( link.power, 1 ) ,form) )
+
+
+pl_lab_HDtweedie = pl_filt %>%
+  filter( model == 'wr_tweedie' ) %>%
+  mutate( form = map( params, 'formula')
+          , form = as.character(form)
+          , p_fact = map_dbl( params, 'p_fact' )
+          , title = paste(model, 'p:', round( p_fact, 1 ), form) )
+
+pl_lab_forest = pl_filt %>%
+  filter( model == 'randomForest' ) %>%
+  mutate(  title = model )
+
+
+pl_lab = pl_lab_lm %>%
+  bind_rows( pl_lab_glm) %>%
+  bind_rows( pl_lab_HDtweedie ) %>%
+  bind_rows( pl_lab_forest )
+
+```
+
+
+### Add prediction
+
+`f_predict_pl_regression` is a wrapper that adds predictions to a modelling dataframe, its default parameters (naming of data, test and model columns) are set to work with pipelearner dataframes.
+
+```{r}
+
+
+pl_pred = pl_lab %>%
+  f_predict_pl_regression() 
+
+
 
 
 ```
 
+### Performance of all models
+
+`f_predict_pl_regression_summarize` is a function that generates a summary table of a modelling dataframe with unnested predictions with several performance parameters. 
+
+We can see that the best performing models are obtained using the `HDtweedie` function. Thus we were not able to replicate the fits using a `glm` apporach. Which means we cannot really eliminate the bias of the coefficients towards zero. Also I cannot fathom how resilient the optimal lambda values are in regards to changes in the data. Meaning that I am not sure whether it is enough to establish the tuning parameters once (features and lambda) and then use such a model in production without retuning. 
+
+```{r}
+
+pl_sum = pl_pred %>%
+  unnest(preds, .drop = F) %>%
+  f_predict_pl_regression_summarize() %>%
+  select( title, rtmse )
+
+f_datatable_universal(pl_sum)
+
+```
+
+
+### Visualisation of model performance
+
+We will select the best `glm` and all `HDtweedie` models and all of the `lm` models which serve as controls and visualis them.
+
+#### Selections
+
+```{r}
+
+
+title_best_glm = pl_sum %>%
+  filter( startsWith(title, 'wr_glm') ) %>%
+  filter( rtmse == min(rtmse) ) %>%
+  .$title
+
+
+pl_glm = pl_pred %>%
+  filter( title == title_best_glm )
+
+pl_tweedie = pl_pred %>%
+  filter( model == 'wr_tweedie' & form == "resp ~ exp2"  )
+  
+pl_lm_forest = pl_pred %>%
+  filter( model == 'lm' | model == 'randomForest' )
+
+pl_vis = pl_glm %>%
+  bind_rows( pl_tweedie) %>%
+  bind_rows( pl_lm_forest)
+
+
+
+```
+
+#### Visualisation
+
+##### Compare distribution of predictions
+
+`f_predict_plot_regression_distribution` can take care of that. We have to pass the column names for the predictions, the observations and the model titles. The default values againa are set to work with pipelearner defaults.
+
+Here we see that only the HDtweedie function produces responses that match the distribution of the observations.
+
+```{r}
+
+dist_prediction = pl_vis %>%
+  unnest(preds)
+
+f_predict_plot_regression_distribution(dist_prediction, col_title = 'title')
+
+dist_plots = dist_observed = tibble( title = 'observed'
+                                      , pred = new_data$resp )
+
+
+dist_plots
+
+```
+
+##### Visualize performance
+
+`f_predict_plot_model_performance_regression` builds an automated html output. We need to bin the predictions in order to look at the prediction qiuality of different ranges of the data. We can use `f_plot_obj_2_html` with `type = 'model_performance'` in order to generate a well-formated interactive html file from it. Using the additional argument `dist` we could even seemlessly integrate the distribution plots already displayed above. Additionally we can add an alluvial plot with `f_predict_plot_regression_alluvial`, which allows us to investigate which observations are being over and which are being under predicted by the differenct models. However this does not make much sense for the simulated dataset at hand.
+
+
+```{r}
+
+taglist = pl_vis %>%
+  unnest(preds, .drop = F) %>%
+  mutate( bins = cut(target1, breaks = 5) ) %>%
+  f_predict_plot_model_performance_regression()
+
+
+```
+
+
+We can now use the taglist which is a list generated with `htmltools::tagList` which can store `htmlwidgets` to either (i) create a new html document using `f_plot_obj_2_html` with `type = 'model_performance'`. or (ii) we could simply call it inside a Rmd document such as this one, or (iii) we could render it as html and then inegrate a screenshot into another document using the `webshot` package. Since we want to keep this document as a single file and do not want a lot of interactive tables and plots for performance reasons we chose the last option.
+
+*Note the commented out arguments for inserting the distribution and a potential alluvial plot into the model performance html.*
+
+```{r}
+
+link = f_plot_obj_2_html(taglist
+                         , type = 'model_performance'
+                         , output_file = 'model_performance'
+                         , title = 'Model Performance Gamma-Distributed Response Variable'
+                         #, dist = dist
+                         #, alluvial = alluvial
+                         )
+
+webshot::webshot(link)
+
+file.remove(link)
+file.remove('webshot.png')
+
+```
+
+
+# Alternative Dataset: Auto Data
+
+This Dataset comes with the HDtweedie package, the response variable has a typical tweedie p:1.5 distribution.
+
+```{r eval = F}
+
+library(HDtweedie)
+data('auto')
+
+
+data = tibble( resp = auto$y ) %>%
+  bind_cols( as_tibble( scale(auto$x) ) ) 
+
+
+```

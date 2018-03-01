@@ -245,41 +245,45 @@ f_train_lasso_manual_cv = function(data
 
   # learn lasso-----------------------------------------------------------
 
-  pl = pipelearner::pipelearner(data) %>%
-    pipelearner::learn_models(models = c(call_cont$make_call)
-                              , formulas = c(new_formula)
-                              , .f = c(wr_glmnet)
-                              , function_name = c('glmnet')
-                              , lambda = grid
-                              , family = family
+  suppressWarnings({
 
-    )
-
-  if( ! is.null(p) ){
-    pl = pl %>%
+    pl = pipelearner::pipelearner(data) %>%
       pipelearner::learn_models(models = c(call_cont$make_call)
                                 , formulas = c(new_formula)
-                                , .f = c(wr_tweedie)
-                                , function_name = c('tweedie')
+                                , .f = c(wr_glmnet)
+                                , function_name = c('glmnet')
                                 , lambda = grid
-                                , p_fact = p
+                                , family = family
 
       )
-  }
 
-  if( k == 1){
-    pl = pl %>%
-      pipelearner::learn_cvpairs( pipelearner::crossv_mc, n = 1, test = 0.01)
-  }else{
-    pl = pl %>%
-      pipelearner::learn_cvpairs( pipelearner::crossv_kfold, k = k )
-  }
+    if( ! is.null(p) ){
+      pl = pl %>%
+        pipelearner::learn_models(models = c(call_cont$make_call)
+                                  , formulas = c(new_formula)
+                                  , .f = c(wr_tweedie)
+                                  , function_name = c('tweedie')
+                                  , lambda = grid
+                                  , p_fact = p
 
-  pl = pl %>%
-    pipelearner::learn() %>%
-    mutate(  lambda = map_dbl(params, 'lambda')
-             , function_name = map_chr(params, 'function_name')
-    )
+        )
+    }
+
+    if( k == 1){
+      pl = pl %>%
+        pipelearner::learn_cvpairs( pipelearner::crossv_mc, n = 1, test = 0.01)
+    }else{
+      pl = pl %>%
+        pipelearner::learn_cvpairs( pipelearner::crossv_kfold, k = k )
+    }
+
+    pl = pl %>%
+      pipelearner::learn() %>%
+      mutate(  lambda = map_dbl(params, 'lambda')
+               , function_name = map_chr(params, 'function_name')
+      )
+
+  })
 
   pl_glm = pl %>%
     filter( function_name == 'glmnet') %>%
@@ -558,31 +562,37 @@ f_train_lasso = function(data
 
   # learn lasso-----------------------------------------------------------
 
-  pl = pipelearner::pipelearner(data) %>%
-    pipelearner::learn_models(models = c(call_cont$make_call)
-                              , formulas = c(new_formula)
-                              , .f = c(wr_glmnet)
-                              , function_name = c('glmnet')
-                              , family = family
-                              , k = k
-    )
+  suppressWarnings({
 
-  if( ! is.null(p) ){
-    pl = pl %>%
+
+    pl = pipelearner::pipelearner(data) %>%
       pipelearner::learn_models(models = c(call_cont$make_call)
                                 , formulas = c(new_formula)
-                                , .f = c(wr_tweedie)
-                                , function_name = c('tweedie')
-                                , p_fact = p
+                                , .f = c(wr_glmnet)
+                                , function_name = c('glmnet')
+                                , family = family
                                 , k = k
       )
-  }
 
-  pl = pl %>%
-    pipelearner::learn_cvpairs( pipelearner::crossv_mc, n = 1, test = 0.00000001) %>%
-    pipelearner::learn() %>%
-    mutate(  function_name = map_chr(params, 'function_name')
-    )
+    if( ! is.null(p) ){
+      pl = pl %>%
+        pipelearner::learn_models(models = c(call_cont$make_call)
+                                  , formulas = c(new_formula)
+                                  , .f = c(wr_tweedie)
+                                  , function_name = c('tweedie')
+                                  , p_fact = p
+                                  , k = k
+        )
+    }
+
+
+    pl = pl %>%
+      pipelearner::learn_cvpairs( pipelearner::crossv_mc, n = 1, test = 0.00000001) %>%
+      pipelearner::learn() %>%
+      mutate(  function_name = map_chr(params, 'function_name')
+      )
+
+  })
 
   pl_glm = pl %>%
     filter( function_name == 'glmnet') %>%

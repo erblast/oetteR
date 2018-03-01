@@ -182,20 +182,24 @@ f_stat_chi_square = function(data_ls, col_group) {
 
   if(purrr::is_empty(variables)) return()
 
-  df_chi = data %>%
-    as_tibble() %>%
-    select( one_of( c(col_group, variables) ) ) %>%
-    gather(key = 'variable', value = 'value', one_of( variables  ) ) %>%
-    group_by( variable ) %>%
-    nest( one_of( col_group ), value) %>%
-    mutate(  model_chi = purrr::map( data, ~chisq.test(x = .[[col_group]]
-                                                       , y = .[['value']]
-                                                       )
-                                     )
-              ,chi_pval  = purrr::map_dbl(model_chi, 'p.value')
-              ,diff_df   = purrr::map(data, f_stat_max_diff_of_freq, col_group, 'value')  ) %>%
-    unnest(diff_df) %>%
-    select(variable, chi_pval, max_diff_freq, max_diff_freq_perc)
+  suppressWarnings({
+
+    df_chi = data %>%
+      as_tibble() %>%
+      select( one_of( c(col_group, variables) ) ) %>%
+      gather(key = 'variable', value = 'value', one_of( variables  ) ) %>%
+      group_by( variable ) %>%
+      nest( one_of( col_group ), value) %>%
+      mutate(  model_chi = purrr::map( data, ~chisq.test(x = .[[col_group]]
+                                                         , y = .[['value']]
+                                                         )
+                                       )
+                ,chi_pval  = purrr::map_dbl(model_chi, 'p.value')
+                ,diff_df   = purrr::map(data, f_stat_max_diff_of_freq, col_group, 'value')  ) %>%
+      unnest(diff_df) %>%
+      select(variable, chi_pval, max_diff_freq, max_diff_freq_perc)
+
+  })
 
   return(df_chi)
 }
@@ -291,6 +295,7 @@ f_stat_combine_anova_with_chi_square = function(df_anova = NULL, df_chi_square =
 #'  values can be comfortably viewed on a 1920 x 1080 screen resolution. Default: 16
 #'@param fig.height integer height of Alluvial and Tabplot in inches. Default
 #'  values can be comfortably viewed on a 1920 x 1080 screen resolution. Default: 10
+#'@param quiet booloean, suppress render markdown output to console, Default: FALSE
 #'@return file path to html file / or taglist
 #' @examples
 #' \dontrun{
@@ -325,6 +330,7 @@ f_stat_group_ana = function(data_ls
                               , return_taglist = F
                               , fig.width = 16
                               , fig.height = 10
+                              , quiet = FALSE
                               ){
 
   df_anova = f_stat_anova( data_ls, col_group )
@@ -346,21 +352,32 @@ f_stat_group_ana = function(data_ls
 
     if(var %in% data_ls$numericals){
 
+      # ggplotly throws a warning when trying to convert geom_sign..
+      suppressWarnings({
 
-      p = f_plot_hist( var, data_ls, col_group, graph_type = 'violin') %>%
-        plotly::ggplotly( tooltip = c('y','fill') )
+        p = f_plot_hist( var, data_ls, col_group, graph_type = 'violin') %>%
+          plotly::ggplotly( tooltip = c('y','fill') )
+
+      })
 
       taglist = f_html_padding(p, 4, title, caption = caption )
 
     }else{
 
-      p = f_plot_hist( var, data_ls, col_group, graph_type = 'bar' , y_axis = 'count' ) %>%
-        plotly::ggplotly( tooltip = c('y','fill') )
+      # ggplotly throws a warning when trying to convert geom_sign..
+      suppressWarnings({
 
-      l1 = f_html_padding(p, 4, title, subtitle = 'Counts' )
+        p = f_plot_hist( var, data_ls, col_group, graph_type = 'bar' , y_axis = 'count' ) %>%
+          plotly::ggplotly( tooltip = c('y','fill') )
 
-      p = f_plot_hist( var, data_ls, col_group, graph_type = 'bar' , y_axis = 'density' ) %>%
-        plotly::ggplotly( tooltip = c('y','fill') )
+
+        l1 = f_html_padding(p, 4, title, subtitle = 'Counts' )
+
+        p = f_plot_hist( var, data_ls, col_group, graph_type = 'bar' , y_axis = 'density' ) %>%
+          plotly::ggplotly( tooltip = c('y','fill') )
+
+      })
+
 
       l2 = f_html_padding(p, subtitle = 'Probabilities', caption = caption )
 
@@ -392,8 +409,13 @@ f_stat_group_ana = function(data_ls
   p_group_count = f_plot_hist( col_group, data_ls, y_axis = 'count')
   p_group_perc  = f_plot_hist( col_group, data_ls, y_axis = 'density')
 
-  taglist_group = htmltools::tagList( list(plotly::ggplotly(p_group_count)
-                                     , plotly::ggplotly(p_group_perc) ) )
+  ## ggplotly throws a warning when trying to convert geom_sign
+  suppressWarnings({
+
+    taglist_group = htmltools::tagList( list(plotly::ggplotly(p_group_count)
+                                       , plotly::ggplotly(p_group_perc) ) )
+
+  })
 
   # Make Plots -----------------------------------------------------------------------
 
@@ -407,7 +429,10 @@ f_stat_group_ana = function(data_ls
             , plot_ggplot = map2( variable, title, f_plot_ggplot, col_group, data_ls )
             )
 
-  plots_plotly = plots$plot_plotly
+  # no plotly implementation for geom_GeomSignif() throws warning
+  suppressWarnings({
+      plots_plotly = plots$plot_plotly
+  })
 
   # f_plot_ggplot returns NULL if variable is not numeric
   plots_ggplot = plots %>%
@@ -422,6 +447,7 @@ f_stat_group_ana = function(data_ls
     link_ggplot = f_plot_obj_2_html( plots_ggplot, 'plots'
                                      , output_file = paste0(output_file, '_stat_plots')
                                      , title = paste('Differences Between ', col_group, ' Groups - Static Plots')
+                                     , quiet = quiet
                                      )
 
     html_link = f_html_filename_2_link(file_path = link_ggplot
@@ -473,6 +499,7 @@ f_stat_group_ana = function(data_ls
                                                          ,')')
                                          , fig.width = fig.width
                                          , fig.height = fig.height
+                                         , quiet = quiet
                                          )
 
       html_link_alluvial = f_html_filename_2_link( file_path = link_alluvial
@@ -535,6 +562,7 @@ f_stat_group_ana = function(data_ls
                                     , titles = titles
                                     , fig.width = fig.width
                                     , fig.height = fig.height
+                                    , quiet = quiet
     )
 
     html_link_tabplot = f_html_filename_2_link( file_path = link_tabplot
@@ -590,7 +618,11 @@ f_stat_group_ana = function(data_ls
 
   }else{
 
-    link_taglist = f_plot_obj_2_html( taglist, 'taglist', output_file = output_file, title = 'Group Analysis')
+    link_taglist = f_plot_obj_2_html( taglist
+                                      , 'taglist'
+                                      , output_file = output_file
+                                      , title = 'Group Analysis'
+                                      , quiet = quiet )
 
     return( link_taglist )
   }
@@ -675,6 +707,9 @@ f_stat_group_counts_percentages = function(data_ls, col_group){
 
   sym_group = as.name(col_group)
 
+  # gather() with variables of different types produces warning
+  suppressWarnings({
+
   df = data_ls$data %>%
     select( one_of(data_ls$categoricals, col_group) ) %>%
     gather( key = 'variable', value = 'value' , -one_of(col_group) ) %>%
@@ -682,6 +717,8 @@ f_stat_group_counts_percentages = function(data_ls, col_group){
     group_by_( col_group, 'variable', 'value' ) %>%
     count() %>%
     group_by_( col_group )
+
+  })
 
   df_n = df %>%
     ungroup() %>%

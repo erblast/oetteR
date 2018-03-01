@@ -1,0 +1,64 @@
+---
+title: "Webshot"
+author: "OEB"
+date: "February 20, 2018"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r webshot_setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r webshot_lib }
+suppressPackageStartupMessages( require(tidyverse) )
+suppressPackageStartupMessages( require(webshot) )
+suppressPackageStartupMessages( require(rmarkdown) )
+
+
+```
+
+
+Here we want to try out the `webshot` package in order to integrate htmlwidgets rendered as `.png` or similar into `.Rmd` documents.
+
+# Render Plotly normally
+
+```{r webshot_render }
+
+p = ggplot(mtcars, aes(disp, mpg) ) +
+  geom_point()
+
+plotly::ggplotly(p)
+
+```
+
+
+# Render as png using chunk option `screenshot.force = TRUE`
+
+```{r webshot_screenshot, screenshot.force = TRUE }
+
+p = ggplot(mtcars, aes(disp, mpg) ) +
+  geom_point()
+
+plotly::ggplotly(p)
+
+```
+
+
+# Render another `.Rmd` with webshot
+
+*we will use `example_ggpubr.Rmd`*
+
+```{r webshot_markdown }
+
+file_path = file.path( system.file(package = 'oetteR')
+                                   , 'Rmd examples'
+                                   , 'example_ggpubr.Rmd')
+
+rmdshot( file_path  )
+
+```
+
+
+

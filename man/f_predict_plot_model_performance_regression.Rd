@@ -10,7 +10,20 @@ f_predict_plot_model_performance_regression(data)
 \item{data}{dataframe with the columns title, bins, resid_abs, resid_squ, ape}
 }
 \value{
-taglist
+taglist \describe{
+  \item{[1]}{Headline summary Plots }
+  \item{[2]}{Residuals Pointplot}
+  \item{[3]}{Residuals Boxplot}
+  \item{[4]}{APE Pointplot}
+  \item{[5]}{APE Boxplot}
+  \item{[6]}{MAPE, MSE, MAE, Binning }
+  \item{[7]}{Headline Performance Measures Summary}
+  \item{[8]}{Summary MAPE, MSE, MAE with SE }
+  \item{[9]}{Summary MAPE, MSE, MAE with CI95 }
+  \item{[10]}{Headline Summary Tables}
+  \item{[11]}{Summary Table}
+  \item{[12]}{Table Binning}
+}
 }
 \description{
 add predictions to modelling dataframe and unnest, create a title column and a bins column

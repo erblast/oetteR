@@ -89,9 +89,14 @@ f_clean_data = function(data
 
   if( replace_neg_values_with_zero == T){
 
-    data = data %>%
-      dplyr::mutate_at( vars( numericals, - one_of(allow_neg_values)),
-                 function(x) ifelse( x<0, 0, x ) )
+    #throws warning if allow_neg_values == NULL
+    suppressWarnings({
+
+      data = data %>%
+        dplyr::mutate_at( vars( numericals, - one_of(allow_neg_values)),
+                   function(x) ifelse( x<0, 0, x ) )
+
+    })
   }
 
   # convert all non numericals and grouping variables to factors

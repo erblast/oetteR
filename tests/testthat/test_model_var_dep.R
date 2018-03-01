@@ -39,6 +39,8 @@ test_that('f_model_plot_variable_dependency_regression'
     variable_color_code = f_plot_color_code_variables(data_ls)
     limit            = 10
 
+    suppressWarnings({
+
     pl = pipelearner::pipelearner( data_ls$data ) %>%
       pipelearner::learn_models( rpart::rpart, form ) %>%
       pipelearner::learn_models( randomForest::randomForest, form ) %>%
@@ -53,6 +55,8 @@ test_that('f_model_plot_variable_dependency_regression'
                             , limit = limit
                             )
               )
+
+    })
 
 })
 

@@ -131,7 +131,20 @@ f_predict_pl_regression_summarize = function( pl ){
 #' @title plot model performance
 #' @description add predictions to modelling dataframe and unnest, create a title column and a bins column
 #' @param data dataframe with the columns title, bins, resid_abs, resid_squ, ape
-#' @return taglist
+#' @return taglist \describe{
+#'   \item{[1]}{Headline summary Plots }
+#'   \item{[2]}{Residuals Pointplot}
+#'   \item{[3]}{Residuals Boxplot}
+#'   \item{[4]}{APE Pointplot}
+#'   \item{[5]}{APE Boxplot}
+#'   \item{[6]}{MAPE, MSE, MAE, Binning }
+#'   \item{[7]}{Headline Performance Measures Summary}
+#'   \item{[8]}{Summary MAPE, MSE, MAE with SE }
+#'   \item{[9]}{Summary MAPE, MSE, MAE with CI95 }
+#'   \item{[10]}{Headline Summary Tables}
+#'   \item{[11]}{Summary Table}
+#'   \item{[12]}{Table Binning}
+#' }
 #' @examples
 #' \dontrun{
 #'form = as.formula( 'displacement~cylinders+mpg')
@@ -185,6 +198,9 @@ f_predict_plot_model_performance_regression = function(data){
 
   taglist = htmltools::tagList()
 
+
+  # Residuals-------------------------------------------------------------------------
+
   p = f_plot_pretty_points(data
                            , 'target1'
                            , 'resid'
@@ -216,6 +232,8 @@ f_predict_plot_model_performance_regression = function(data){
   p = plotly::ggplotly(p,  height = nrows * 200 )
   taglist[[3]] = f_html_padding(p, pad_before = 3, title = 'Residuals Boxplot')
 
+  # APE-------------------------------------------------------------------------
+
   p = f_plot_pretty_points(data
                            , 'target1'
                            , 'ape'
@@ -240,6 +258,9 @@ f_predict_plot_model_performance_regression = function(data){
 
   p = plotly::ggplotly(p,  height = nrows * 200, tooltip = c('x','y') )
   taglist[[5]] = f_html_padding(p, pad_before = 3, title = 'APE Boxplot')
+
+
+  # Bins-------------------------------------------------------------------------
 
   data_sum1 = data %>%
     group_by( title, bins )  %>%
@@ -267,6 +288,7 @@ f_predict_plot_model_performance_regression = function(data){
   p = plotly::ggplotly( p, height = 600 )
   taglist[[6]] = f_html_padding(p, pad_before = 3, title = 'Performance Measures Binning')
 
+  # Summary Plots-------------------------------------------------------------------------
 
   data_sum2 = data %>%
     group_by( title )  %>%
@@ -287,6 +309,7 @@ f_predict_plot_model_performance_regression = function(data){
     labs( y = 'mean + SEM', x = '', color = '') +
     scale_color_manual(values = f_plot_col_vector74() )
 
+
   taglist[[7]] = f_html_padding(htmltools::h3('Performance Measures Summary'), pad_before = 3)
 
   p = plotly::ggplotly( p, height = 600 )
@@ -303,6 +326,8 @@ f_predict_plot_model_performance_regression = function(data){
 
   p = plotly::ggplotly(p, height = 600)
   taglist[[9]] = f_html_padding(p, pad_before = 3, title = 'CI95')
+
+  # Summary Tables-------------------------------------------------------------------------
 
   taglist[[10]] = f_html_padding(htmltools::h2('Summary Tables'), pad_before = 3)
 
@@ -410,7 +435,213 @@ f_predict_regression_add_predictions = function(data_test
 }
 
 
+#' @title Plot distribution of model predictions vs observed
+#' @description takes a dataframe with predictions and a title column and
+#'   returns a list with one violin and one histogram plot to compare
+#'   distributions.
+#' @param data dataframE
+#' @param col_title character vector denoting title column, Default: 'title'
+#' @param col_pred character vector denoting column with predictions, Default:
+#'   'preds'
+#' @param col_obs character vecor denoting column with observed values, Default:
+#'   'target1'
+#' @param bins number of bins used for histograms, Default: 60
+#' @param ... additional arguments passed to the facet_wrap function of the
+#'   histogramss
+#' @return list with two plots
+#' @examples
+#'
+#'   form = as.formula( 'displacement~cylinders+mpg')
+#'
+#'   df = ISLR::Auto %>%
+#'     pipelearner::pipelearner() %>%
+#'     pipelearner::learn_models( rpart::rpart, form ) %>%
+#'     pipelearner::learn_models( randomForest::randomForest, form ) %>%
+#'     pipelearner::learn_models( e1071::svm, form ) %>%
+#'     pipelearner::learn() %>%
+#'     f_predict_pl_regression( 'name' ) %>%
+#'     unnest(preds)
+#'
+#'   f_predict_plot_regression_distribution(df
+#'                                          , col_title = 'model'
+#'                                          , col_pred = 'pred'
+#'                                          , col_obs = 'target1')
+#'
+#' @seealso \code{\link[rlang]{UQ}} \code{\link[RColorBrewer]{brewer.pal}}
+#' @rdname f_predict_plot_regression_distribution
+#' @export
+#' @importFrom rlang UQ
+#' @importFrom RColorBrewer brewer.pal
+f_predict_plot_regression_distribution = function( data
+                                                  , col_title = 'title'
+                                                  , col_pred = 'pred'
+                                                  , col_obs = 'target1'
+                                                  , bins = 60
+                                                  , ... ){
 
 
+  if( ! all( c( col_title, col_pred, col_obs) %in% names(data) ) ){
+    stop('col_title, col_pred or col_obs not found')
+  }
+
+  dist_pred = data %>%
+    select( one_of( col_title, col_pred ) )
+
+  titles = unique( dist_pred[[col_title]] )
+
+  dist_obs = data %>%
+    filter( rlang::UQ( as.name(col_title) ) == "randomForest" ) %>%
+    select( one_of( col_title, col_obs ) ) %>%
+    mutate( !! as.name(col_pred) := !! as.name(col_obs)
+            , !! as.name(col_title) := 'observed' ) %>%
+    select( one_of( col_title, col_pred ) )
+
+  suppressWarnings({
+
+    dist = dist_pred %>%
+      bind_rows( dist_obs ) %>%
+      mutate( !! as.name(col_title) := as.factor( !! as.name(col_title) ) )
+
+  })
+
+  col_vec =  f_plot_adjust_col_vector_length( n = length(titles) + 1
+                                             ,  c( RColorBrewer::brewer.pal(n = 8,name = 'Dark2')
+                                                , f_plot_col_vector74() ) )
+
+  p_box = ggplot( dist, aes_string( col_title, col_pred, fill = col_title ) ) +
+    geom_violin() +
+    geom_boxplot( alpha = 0.4, fill = 'white', size = 1 )   +
+    coord_flip() +
+    theme( legend.position = 'none') +
+    scale_fill_manual( values = col_vec ) +
+    labs( y = '', x = '')
 
 
+  p_hist = ggplot( dist, aes_string( col_pred, fill = col_title ) ) +
+    geom_histogram( bins = bins ) +
+    facet_wrap( as.formula( paste( '~', col_title) ) , scales = 'free', ...)  +
+    scale_fill_manual( values = col_vec ) +
+    scale_color_manual( values = col_vec ) +
+    theme( legend.position = 'none') +
+    labs( x = '' ) +
+    geom_rug( aes_string(color = col_title ) )
+
+  return( list(p_box = p_box, p_hist = p_hist) )
+
+}
+
+#' @title plot residuals of different models as aaluvials
+#' @description Residuals will be  binned using boxplotstats with the
+#'   modification, that the median will be set to zero. If quantile boundaries
+#'   do not fall into sensible ranges they will be replaced by the standard
+#'   error (SE). For example if we have the following boxplotstats -2, 1, 3, 5,
+#'   8 with an SE of 0.5 we will modify the boundaries as following. -2, -0.5,
+#'   0, 3, 5 . The reason is that we want to be able to follow observations with
+#'   positive or negative residuals through the alluvial plot in order to judge
+#'   emerging patterns. The models will be sorted by MSE and the alluvial plot
+#'   will be flipped with the model with the lowest MSE on top.
+#' @param data dataframe
+#' @param col_id character vecotr dentoing id column
+#' @param col_title character vector denoting model title column, Default:
+#'   'title'
+#' @param col_pred character vector denoting prediciont column, Default: 'pred'
+#' @param col_obs character vector denoting column with observed values,
+#'   Default: 'target1'
+#' @param ... additional arguments passed to f_plot_alluvial_1v1
+#' @return plot
+#' @examples
+#'
+#'   form = as.formula( 'displacement~cylinders+mpg')
+#'
+#' df = ISLR::Auto %>%
+#'   mutate( name = paste( name, row_number() ) ) %>%
+#'   pipelearner::pipelearner() %>%
+#'   pipelearner::learn_models( rpart::rpart, form ) %>%
+#'   pipelearner::learn_models( randomForest::randomForest, form ) %>%
+#'   pipelearner::learn_models( e1071::svm, form ) %>%
+#'   pipelearner::learn() %>%
+#'   f_predict_pl_regression( 'name' ) %>%
+#'   unnest(preds)
+#'
+#' f_predict_plot_regression_alluvials(df
+#'                                     , col_id = 'name'
+#'                                     , col_title = 'model'
+#'                                     , col_pred = 'pred'
+#'                                     , col_obs = 'target1')
+#'
+#' @seealso \code{\link[RColorBrewer]{brewer.pal}}
+#' @rdname f_predict_plot_regression_alluvials
+#' @export
+#' @importFrom RColorBrewer brewer.pal
+f_predict_plot_regression_alluvials = function( data
+                                                , col_id
+                                                , col_title = 'title'
+                                                , col_pred = 'pred'
+                                                , col_obs = 'target1'
+                                                , ... ){
+
+  data$resid = data[[ col_pred ]] - data[[ col_obs ]]
+
+  order_models = data %>%
+    group_by( !! as.name( col_title) ) %>%
+    summarise( rMSE = mean(resid^2) )  %>%
+    arrange( desc(rMSE) ) %>%
+    .[[ col_title ]]
+
+
+  SEM = sd( data$resid )/ sqrt( nrow(data) )
+
+  avg = mean(data$resid)
+
+  med = median(data$resid)
+
+  stats = boxplot.stats(data$resid)$stats
+
+  #set median to zero
+
+  stats[3] = 0
+
+  #adjust other stat boundaries to new median
+
+  if( stats[2] >= 0 ) stats[2] = 0 - SEM
+  if( stats[1] >= stats[2] ) stats[1] = stats[2] - SEM
+
+  if( stats[4] <= 0 ) stats[4] = 0 + SEM
+  if( stats[5] <= stats[4] ) stats[5] = stats[4] + SEM
+
+
+  min_val = ifelse( stats[[1]] <= min(data$resid) - 1, stats[[1]], min(data$resid) - 1 )
+  max_val = ifelse( stats[[5]] >= max(data$resid) + 1, stats[[5]], max(data$resid) + 1 )
+
+  breaks = c( min_val, stats, max_val )
+  breaks = unique( breaks )
+
+  data$bin = cut( data$resid, breaks = breaks )
+
+  # cut will always return 6 levels even if some of them are empty
+
+  level_names = c('<<<', '<<', '< 0', '> 0', '>>', '>>>')
+
+  levels(data$bin) = level_names
+
+  #check annotation if outlier levels are missing
+
+  col_vec =  RColorBrewer::brewer.pal(n = 6,name = 'Dark2')
+
+  suppressWarnings({
+
+    p = f_plot_alluvial_1v1( data
+                         , col_x = col_title
+                         , col_y = 'bin'
+                         , col_id = col_id
+                         , col_vector_flow = col_vec
+                         , fill_by = 'last_variable'
+                         , order_levels_x = order_models
+                         , ...  )  +
+      theme( axis.text.x = element_text( angle = 0) ) +
+      coord_flip()
+
+  })
+
+  return(p)
+}

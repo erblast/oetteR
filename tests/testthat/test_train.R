@@ -37,20 +37,23 @@ test_that('test call container with pipelearner'
   call_cont = make_container_for_function_calls()
   call_cont$set_total(10)
 
+  suppressWarnings({
 
-  pl = pipelearner::pipelearner(mtcars) %>%
-    pipelearner::learn_models( models = c( call_cont$make_call )
-                               , formulas = c(disp~.)
-                               , .f = c( randomForest::randomForest )
-                               , function_name = 'randomForest'
-                                ) %>%
-    pipelearner::learn_models( models = c( call_cont$make_call )
-                               , formulas = c(disp~.)
-                               , .f = c( rpart::rpart )
-                               , function_name = 'rpart'
-    ) %>%
-    pipelearner::learn_cvpairs( pipelearner::crossv_kfold, k = 5 ) %>%
-    pipelearner::learn()
+    pl = pipelearner::pipelearner(mtcars) %>%
+      pipelearner::learn_models( models = c( call_cont$make_call )
+                                 , formulas = c(disp~.)
+                                 , .f = c( randomForest::randomForest )
+                                 , function_name = 'randomForest'
+                                  ) %>%
+      pipelearner::learn_models( models = c( call_cont$make_call )
+                                 , formulas = c(disp~.)
+                                 , .f = c( rpart::rpart )
+                                 , function_name = 'rpart'
+      ) %>%
+      pipelearner::learn_cvpairs( pipelearner::crossv_kfold, k = 5 ) %>%
+      pipelearner::learn()
+
+  })
 
   function_names = pl %>%
     mutate( function_names = map_chr(params, 'function_name') ) %>%

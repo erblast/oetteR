@@ -563,22 +563,183 @@ f_plot_time = function(variable
 }
 
 
-#' @title generate a separate html file from a shiny taglist
-#' @description lists of graphical objects like html(taglists), plots, tabplots, grids can
-#'   be converted to html files
+#' @title generate a separate html file from a list of various objects
+#' @description lists of graphical objects like html(taglists), plots, tabplots,
+#'   grids can be converted to html files
 #' @param obj_list htmltools::tagList
-#' @param type one of c('taglist','plots','tabplots','grids' )
+#' @param type one of c('taglist','plots','tabplots','grids' ,
+#'   'model_performance') some templates take additional arguments via the ...
+#'   argument \describe{
+#'   \item{taglist}{taglist ceated with htmltools::tagList,
+#'   a good container for html widgets}
+#'   \item{plots}{a list with ggplot objects,
+#'   takes additional arguments: \emph{fig.height: Default 5, fig.width: Default
+#'   7} }
+#'   \item{tabplots}{ a list of objects created with tabplot::tableplot,
+#'   takes additional arguments: \emph{fig.height: Default 5, fig.width: Default
+#'   7, titles: list of titles must be same length as obj_list} }
+#'   \item{grids}{a
+#'   list of grids created with gridExtra::arrangeGrob, takes additional
+#'   argument: \emph{height: Default 30} }
+#'   \item{model_performance}{takes a
+#'   taglist created with f_predict_plot_model_performance_regression, takes the
+#'   additional arguments: \emph{ alluvial, plot objec created with
+#'   f_predict_plot_regression_alluvials, dist, list of two plots created with
+#'   f_predict_plot_regression_distribution, render_points_as_png: Default:
+#'   TRUE, takes screenshots of point plots, otherwise plotly will load
+#'   all points into memory which is not compatible with large data sets} }
+#'   }
 #' @param output_file file_name of the html file, without .html suffix
 #' @param title character vector of html document title, Default: 'Plots'
+#' @param quiet bollean, suppress markdown console print output, Default: FALSE
 #' @examples
-#' #returns a htmltools::taglist with DT::datatables and plotly plots
+#'
+#' # type = taglist---------------------------------------------------------------
+#'
 #' taglist = f_clean_data(mtcars) %>%
 #'   f_boxcox() %>%
 #'   f_pca() %>%
 #'   f_pca_plot_components()
 #'
 #' f_plot_obj_2_html(taglist, type = "taglist", output_file =  'test_me', title = 'Plots')
+#'
 #' file.remove('test_me.html')
+#'
+#' #type = tabplot-----------------------------------------------------------------
+#'
+#' form = as.formula('disp~cyl+mpg+hp')
+#' pipelearner::pipelearner(mtcars) %>%
+#'   pipelearner::learn_models( rpart::rpart, form ) %>%
+#'   pipelearner::learn_models( randomForest::randomForest, form ) %>%
+#'   pipelearner::learn_models( e1071::svm, form ) %>%
+#'   pipelearner::learn() %>%
+#'   dplyr::mutate( imp = map2(fit, train, f_model_importance)
+#'                  , tabplot = pmap( list( data = train
+#'                                          , ranked_variables = imp
+#'                                          , response_var = target
+#'                                          , title = model
+#'                  )
+#'                  , f_model_importance_plot_tableplot
+#'                  , limit = 5
+#'                  )
+#'   )  %>%
+#'   .$tabplot %>%
+#'   f_plot_obj_2_html( type = "tabplots", output_file =  'test_me', title = 'Plots')
+#'
+#' file.remove('test_me.html')
+#'
+#' #type = plots --------------------------------------------------------------------
+#'
+#' data_ls = f_clean_data(mtcars)
+#' form = as.formula('disp~cyl+mpg+hp')
+#' variable_color_code = f_plot_color_code_variables(data_ls)
+#'
+#' pipelearner::pipelearner(data_ls$data) %>%
+#'  pipelearner::learn_models( rpart::rpart, form ) %>%
+#'  pipelearner::learn_models( randomForest::randomForest, form ) %>%
+#'  pipelearner::learn_models( e1071::svm, form ) %>%
+#'  pipelearner::learn() %>%
+#'  dplyr::mutate( imp = map2(fit, train, f_model_importance)
+#'                 , plots = pmap( list( m = fit
+#'                                         , ranked_variables = imp
+#'                                         , title = model
+#'                                         )
+#'                                    , f_model_plot_variable_dependency_regression
+#'                                    , formula = form
+#'                                    , data_ls = data_ls
+#'                                    , variable_color_code = variable_color_code
+#'                                   )
+#'  )  %>%
+#'  .$plots %>%
+#'  f_plot_obj_2_html( type = "plots"
+#'                     , output_file =  'test_me'
+#'                     , title = 'Plots'
+#'                     , fig.width = 30
+#'                     , fig.height = 21)
+#'
+#' file.remove('test_me.html')
+#'
+#' #type = grids -------------------------------------------------------------------
+#'
+#' data_ls = f_clean_data(mtcars)
+#'
+#' form = as.formula('disp~cyl+mpg+hp+am+gear+drat+wt+vs+carb')
+#'
+#' variable_color_code = f_plot_color_code_variables(data_ls)
+#'
+#' grids = pipelearner::pipelearner(data_ls$data) %>%
+#'   pipelearner::learn_models( rpart::rpart, form ) %>%
+#'   pipelearner::learn_models( randomForest::randomForest, form ) %>%
+#'   pipelearner::learn_models( e1071::svm, form ) %>%
+#'   pipelearner::learn() %>%
+#'   dplyr::mutate( imp = map2(fit, train, f_model_importance)
+#'                  , range_var = map_chr(imp, function(x) head(x,1)$row_names )
+#'                  , grid = pmap( list( m = fit
+#'                                       , title = model
+#'                                       , variables = imp
+#'                                       , range_variable = range_var
+#'                                       , data = test
+#'                  )
+#'                  , f_model_plot_var_dep_over_spec_var_range
+#'                  , formula = form
+#'                  , data_ls = data_ls
+#'                  , variable_color_code = variable_color_code
+#'                  , log_y = F
+#'                  , limit = 12
+#'                  )
+#'   )  %>%
+#'   .$grid
+#'
+#' f_plot_obj_2_html( grids
+#'                    , type = "grids"
+#'                    , output_file = 'test_me'
+#'                    , title = 'Grids'
+#'                    , height = 30 )
+#'
+#' file.remove('test_me.html')
+#'
+#'#' #type = model_performance -------------------------------------------------------
+#'
+#' form = displacement ~ cylinders + mpg
+#'
+#' df = ISLR::Auto %>%
+#'  mutate( name = paste( name, row_number() ) ) %>%
+#'  pipelearner::pipelearner() %>%
+#'  pipelearner::learn_models( rpart::rpart, form ) %>%
+#'  pipelearner::learn_models( randomForest::randomForest, form ) %>%
+#'  pipelearner::learn_models( e1071::svm, form ) %>%
+#'  pipelearner::learn() %>%
+#'  f_predict_pl_regression( 'name' ) %>%
+#'  unnest(preds) %>%
+#'  mutate( bins = cut(target1, breaks = 3 , dig.lab = 4)
+#'          , title = model )
+#'
+#' dist = f_predict_plot_regression_distribution(df
+#'                                              , col_title = 'title'
+#'                                              , col_pred = 'pred'
+#'                                              , col_obs = 'target1')
+#'
+#'
+#' alluvial = f_predict_plot_regression_alluvials(df
+#'                                               , col_id = 'name'
+#'                                               , col_title = 'title'
+#'                                               , col_pred = 'pred'
+#'                                               , col_obs = 'target1')
+#'
+#'
+#' taglist = f_predict_plot_model_performance_regression(df)
+#'
+#' f_plot_obj_2_html( taglist
+#'                   , type = 'model_performance'
+#'                   , output_file = 'test_me'
+#'                   , dist = dist
+#'                   , alluvial = alluvial
+#'                   , render_points_as_png = TRUE
+#'                  )
+#'
+#'
+#' file.remove('test_me.html')
+#'
 #' @rdname f_plot_obj_2_html
 #' @export
 #' @importFrom readr read_file write_file
@@ -586,14 +747,24 @@ f_plot_time = function(variable
 #' @importFrom stringr str_replace
 #' @import tabplot
 #'
-f_plot_obj_2_html = function(obj_list, type, output_file, title = 'Plots', ...){
+f_plot_obj_2_html = function(obj_list
+                             , type
+                             , output_file
+                             , title = 'Plots'
+                             , quiet = FALSE
+                             , ...){
 
   file_name_template = switch(type
                              , taglist  = 'taglist_2_html_template.Rmd'
                              , plots    = 'plots_2_html_template.Rmd'
                              , tabplots = 'tabplots_2_html_template.Rmd'
                              , grids    = 'grids_2_html_template.Rmd'
+                             , model_performance = 'model_perf_2_html_template.Rmd'
                              )
+
+  if( is.null(file_name_template) ){
+    stop( paste( 'No Rmd template found for type:', type) )
+  }
 
   path_template = file.path( system.file(package = 'oetteR')
                              , 'templates'
@@ -607,6 +778,7 @@ f_plot_obj_2_html = function(obj_list, type, output_file, title = 'Plots', ...){
   rmarkdown::render( file_name_template
                      , output_file = paste0( output_file, '.html')
                      , params      = list(obj_list = obj_list, ... )
+                     , quiet       = quiet
                      )
 
 

@@ -87,10 +87,11 @@ test_that('f_stat_group'
   tresh_p_val = 0.05
   thresh_diff_perc = 3
   output_file = 'test_me'
-  f_stat_group_ana(data_ls, col_group, tresh_p_val, thresh_diff_perc, output_file)
+  f_stat_group_ana(data_ls, col_group, tresh_p_val, thresh_diff_perc, output_file, quiet = TRUE)
 
   f_stat_group_ana(data_ls, col_group, tresh_p_val, thresh_diff_perc, output_file
-                   , max_alluvial_flows = 20)
+                   , max_alluvial_flows = 20
+                   , quiet = TRUE)
 
   file.remove('test_me.html')
   file.remove('test_me_stat_plots.html')

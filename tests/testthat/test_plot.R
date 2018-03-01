@@ -37,11 +37,16 @@ test_that('plot histogram'
               )
 
   # test n_breaks
-  f_plot_hist('disp', data_ls, n_breaks = 100)
-  f_plot_hist('disp', data_ls, n_breaks = 10)
 
-  f_plot_hist('disp', data_ls, n_breaks = 100, group = 'cyl', graph_type = 'bar')
-  f_plot_hist('disp', data_ls, n_breaks = 10, group = 'cyl', graph_type = 'bar')
+  suppressWarnings({
+
+    f_plot_hist('disp', data_ls, n_breaks = 100)
+    f_plot_hist('disp', data_ls, n_breaks = 10)
+
+    f_plot_hist('disp', data_ls, n_breaks = 100, group = 'cyl', graph_type = 'bar')
+    f_plot_hist('disp', data_ls, n_breaks = 10, group = 'cyl', graph_type = 'bar')
+
+  })
 
 })
 
@@ -127,42 +132,57 @@ test_that('f_plot_obj_2_html'
     f_pca() %>%
     f_pca_plot_components()
 
-  f_plot_obj_2_html(taglist, type = "taglist", output_file =  'test_me', title = 'Plots')
+  f_plot_obj_2_html(taglist
+                    , type = "taglist"
+                    , output_file =  'test_me'
+                    , title = 'Plots'
+                    , quiet = TRUE)
+
   file.remove('test_me.html')
 
   # list( tabplot::tableplot ) ---------------------------------------
+
   form = as.formula('disp~cyl+mpg+hp')
-  pipelearner::pipelearner(mtcars) %>%
-    pipelearner::learn_models( twidlr::rpart, form ) %>%
-    pipelearner::learn_models( twidlr::randomForest, form ) %>%
-    pipelearner::learn_models( twidlr::svm, form ) %>%
-    pipelearner::learn() %>%
-    dplyr::mutate( imp = map2(fit, train, f_model_importance)
-            , tabplot = pmap( list( data = train
-                                   , ranked_variables = imp
-                                   , response_var = target
-                                   , title = model
-                                   )
-                           , f_model_importance_plot_tableplot
-                           , limit = 5
-                           )
-    )  %>%
-    .$tabplot %>%
-    f_plot_obj_2_html( type = "tabplots", output_file =  'test_me', title = 'Plots')
+
+  suppressWarnings({
+
+    pipelearner::pipelearner(mtcars) %>%
+      pipelearner::learn_models( rpart::rpart, form ) %>%
+      pipelearner::learn_models( randomForest::randomForest, form ) %>%
+      pipelearner::learn_models( e1071::svm, form ) %>%
+      pipelearner::learn() %>%
+      dplyr::mutate( imp = map2(fit, train, f_model_importance)
+              , tabplot = pmap( list( data = train
+                                     , ranked_variables = imp
+                                     , response_var = target
+                                     , title = model
+                                     )
+                             , f_model_importance_plot_tableplot
+                             , limit = 5
+                             )
+      )  %>%
+      .$tabplot %>%
+      f_plot_obj_2_html( type = "tabplots"
+                         , output_file =  'test_me'
+                         , title = 'Plots'
+                         , quiet = TRUE)
+
+  })
+
+  file.remove('test_me.html')
 
 
-    file.remove('test_me.html')
+  #list(ggplot2)---------------------------------------------------
+  data_ls = f_clean_data(mtcars)
+  form = as.formula('disp~cyl+mpg+hp')
+  variable_color_code = f_plot_color_code_variables(data_ls)
 
-
-    #list(ggplot2)---------------------------------------------------
-    data_ls = f_clean_data(mtcars)
-    form = as.formula('disp~cyl+mpg+hp')
-    variable_color_code = f_plot_color_code_variables(data_ls)
+  suppressWarnings({
 
     pipelearner::pipelearner(data_ls$data) %>%
-      pipelearner::learn_models( twidlr::rpart, form ) %>%
-      pipelearner::learn_models( twidlr::randomForest, form ) %>%
-      pipelearner::learn_models( twidlr::svm, form ) %>%
+      pipelearner::learn_models( rpart::rpart, form ) %>%
+      pipelearner::learn_models( randomForest::randomForest, form ) %>%
+      pipelearner::learn_models( e1071::svm, form ) %>%
       pipelearner::learn() %>%
       dplyr::mutate( imp = map2(fit, train, f_model_importance)
               , tabplot = pmap( list( m = fit
@@ -179,21 +199,26 @@ test_that('f_plot_obj_2_html'
       f_plot_obj_2_html( type = "plots"
                          , output_file =  'test_me'
                          , title = 'Plots'
+                         , quiet = TRUE
                          , fig.width = 30
                          , fig.height = 21)
 
-    file.remove('test_me.html')
+  })
 
-    #list(grids)---------------------------------------------------
+  file.remove('test_me.html')
 
-    data_ls = f_clean_data(mtcars)
-    form = as.formula('disp~cyl+mpg+hp+am+gear+drat+wt+vs+carb')
-    variable_color_code = f_plot_color_code_variables(data_ls)
+  #list(grids)---------------------------------------------------
+
+  data_ls = f_clean_data(mtcars)
+  form = as.formula('disp~cyl+mpg+hp+am+gear+drat+wt+vs+carb')
+  variable_color_code = f_plot_color_code_variables(data_ls)
+
+  suppressWarnings({
 
     grids = pipelearner::pipelearner(data_ls$data) %>%
-      pipelearner::learn_models( twidlr::rpart, form ) %>%
-      pipelearner::learn_models( twidlr::randomForest, form ) %>%
-      pipelearner::learn_models( twidlr::svm, form ) %>%
+      pipelearner::learn_models( rpart::rpart, form ) %>%
+      pipelearner::learn_models( randomForest::randomForest, form ) %>%
+      pipelearner::learn_models( e1071::svm, form ) %>%
       pipelearner::learn() %>%
       dplyr::mutate( imp = map2(fit, train, f_model_importance)
                      , range_var = map_chr(imp, function(x) head(x,1)$row_names )
@@ -213,9 +238,69 @@ test_that('f_plot_obj_2_html'
       )  %>%
       .$grid
 
-      f_plot_obj_2_html( grids,  type = "grids", output_file =  'test_me', title = 'Grids', height = 30 )
+  })
 
-    file.remove('test_me.html')
+  f_plot_obj_2_html( grids
+                     ,  type = "grids"
+                     , output_file =  'test_me'
+                     , title = 'Grids'
+                     , quiet = TRUE
+                     , height = 30 )
+
+  file.remove('test_me.html')
+
+  #model_performance---------------------------------------------------------------
+
+  form = as.formula( 'displacement~cylinders+mpg')
+
+  suppressWarnings({
+
+    df = ISLR::Auto %>%
+      mutate( name = paste( name, row_number() ) ) %>%
+      pipelearner::pipelearner() %>%
+      pipelearner::learn_models( rpart::rpart, form ) %>%
+      pipelearner::learn_models( randomForest::randomForest, form ) %>%
+      pipelearner::learn_models( e1071::svm, form ) %>%
+      pipelearner::learn() %>%
+      f_predict_pl_regression( 'name' ) %>%
+      unnest(preds) %>%
+      mutate( bins = cut(target1, breaks = 3 , dig.lab = 4)
+              , title = model )
+
+  })
+
+  dist = f_predict_plot_regression_distribution(df
+                                         , col_title = 'title'
+                                         , col_pred = 'pred'
+                                         , col_obs = 'target1')
+
+
+  alluvial = f_predict_plot_regression_alluvials(df
+                                      , col_id = 'name'
+                                      , col_title = 'title'
+                                      , col_pred = 'pred'
+                                      , col_obs = 'target1')
+
+
+  taglist = f_predict_plot_model_performance_regression(df)
+
+  f_plot_obj_2_html( taglist
+                     , type = 'model_performance'
+                     , output_file = 'test_me'
+                     , quiet = TRUE
+                     , dist = dist
+                     , alluvial = alluvial
+                     , render_points_as_png = TRUE )
+
+  f_plot_obj_2_html( taglist
+                     , type = 'model_performance'
+                     , output_file = 'test_me'
+                     , quiet = TRUE
+                     #, dist = dist
+                     #, alluvial = alluvial
+                     , render_points_as_png = FALSE )
+
+  file.remove('test_me.html')
 
 })
 

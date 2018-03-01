@@ -79,10 +79,12 @@ f_pca = function( data_ls
 
    }
 
-   pca = prcomp(x        = data
-                , scale. = scale
-                , center = center) %>%
-     map( f_manip_matrix_2_tibble )
+   suppressWarnings({
+     pca = prcomp(x        = data
+                  , scale. = scale
+                  , center = center) %>%
+       map( f_manip_matrix_2_tibble )
+   })
 
    pca$cos2 = pca$rotation %>%
      mutate_if( is.numeric, function(y) y^2)

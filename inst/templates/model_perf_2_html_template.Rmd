@@ -1,0 +1,167 @@
+---
+title: "template"
+output: 
+  html_document:
+    toc: true
+    toc_depth: 3
+    toc_float: 
+     collapsed: false
+     smooth_scroll: false
+params:
+  obj_list: !r c()
+  alluvial: !r c()
+  dist: !r c()
+  render_points_as_png: TRUE
+editor_options: 
+  chunk_output_type: console
+---
+**Date: `r lubridate::today()`**
+
+```{r taglist_2_html_chunk1, include=FALSE}
+# headers in taglist will appear in toc but they will not be numbered, numbering is added by rmarkdown
+knitr::opts_chunk$set(echo = TRUE
+                      , warning = FALSE
+                      , message = FALSE
+                      , include = TRUE
+                      , echo = FALSE
+                      , results = 'markdown')
+```
+
+
+```{r taglist_2_html_chunk2, results='asis'}
+
+if( ! is_empty(params$dist) & length(params$dist) == 2 ){
+  
+  print( htmltools::h1('Distributions of Model Predictions') )
+  
+  print( htmltools::h2('Boxplots') )
+  
+  print( params$dist[[1]] )
+  
+  print( htmltools::h2('Histograms') )
+  
+  print( params$dist[[2]] )
+  
+}
+
+```
+
+```{r taglist_2_html_chunk3, results='asis' }
+
+#header
+print( params$obj_list[[1]] )
+
+```
+
+```{r taglist_2_html_chunk4a, results='asis'}
+
+
+# residual point plot headers
+
+params$obj_list[[2]][[1]][[1]]
+
+params$obj_list[[2]][[1]][[1]]
+
+
+```
+
+
+```{r taglist_2_html_chunk4b, screenshot.force = params$render_points_as_png }
+
+
+# residual point plot, screenshot only works if html widget is not insidel taglist
+
+params$obj_list[[2]][[1]][[3]]
+
+```
+
+
+```{r taglist_2_html_chunk5 }
+
+# residual boxplots
+
+params$obj_list[[3]]
+
+```
+
+```{r taglist_2_html_chunk6a, results='asis'}
+
+# ape point plots, headers
+
+params$obj_list[[4]][[1]][[1]]
+
+params$obj_list[[4]][[1]][[2]]
+
+
+```
+
+
+```{r taglist_2_html_chunk6b, screenshot.force = params$render_points_as_png }
+
+# ape point plots, are too memory intensive, so we use screenshot
+#screenshot only works if html widget is outside taglist
+
+params$obj_list[[4]][[1]][[3]]
+
+
+```
+
+```{r taglist_2_html_chunk7 }
+
+# rest of the summary plots
+
+params$obj_list[[5]]
+params$obj_list[[6]]
+params$obj_list[[7]]
+params$obj_list[[8]]
+params$obj_list[[9]]
+
+
+
+```
+
+
+```{r taglist_2_html_chunk8a }
+
+if( ! is_empty(params$alluvial) & inherits( params$alluvial, 'ggplot' ) ){
+
+  #calculate alluvial fig.height
+  
+  n_levels = length( levels( params$alluvial$data$x ) )
+  
+  fig_height = 5/3 * n_levels
+
+}else{
+  
+  fig_height = 5
+  
+}
+
+```
+
+
+```{r taglist_2_html_chunk8b, results = 'asis', fig.height = fig_height }
+
+if( ! is_empty(params$alluvial) & inherits( params$alluvial, 'ggplot' ) ){
+  
+  print( htmltools::h1('Alluvial Plot of Residuals') )
+  
+  print( params$alluvial )
+  
+}
+
+```
+
+```{r taglist_2_html_chunk9 }
+
+
+params$obj_list[[10]]
+params$obj_list[[11]]
+params$obj_list[[12]]
+
+
+
+```
+
+
+

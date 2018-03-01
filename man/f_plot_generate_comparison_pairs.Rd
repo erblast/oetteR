@@ -19,7 +19,7 @@ f_plot_generate_comparison_pairs(data, col_var, col_group, thresh = 0.05)
 list
 }
 \description{
-generates all possible pairs and filters according to t-test p_value
+generates all possible pairs and filters according to wilcox p_value
 }
 \examples{
 

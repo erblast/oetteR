@@ -59,7 +59,7 @@ test_that('f_plot_alluvial'
 
     # check NA behavoir, rename label ando order to front
 
-    data$cyl[1:4] = NA
+    data$cylinders[1:4] = NA
 
     p = f_plot_alluvial( data = data
                          , variables = variables
