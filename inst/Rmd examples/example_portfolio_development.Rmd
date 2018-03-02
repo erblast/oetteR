@@ -69,14 +69,50 @@ knitr::kable(tab)
 
 ```{r}
 
+calc_accounts = function( iter = 10
+                          , start_accounts = 1000
+                          , growth_accounts = 500
+                          , retention = 0.8 
+                          ){
+  
+  if( iter == 0){
+    return( start_accounts )
+  }
+  
+  results = c(start_accounts)
+  
+  for ( i in 1:iter ){
+    
+    len_results = length(results)
+    
+    results[ len_results+1 ] = results[len_results] * retention + growth_accounts
+  }
+  
+  return( results[ length(results) ] )
+  
+}
 
-tib_n = tibble(
-  years = seq(0,10)
-  , pres_rates_wo_acqui = n_customers * retention_rate^years
-  , pres_rates_wi_acqui = ( n_customers + nca_per_year * years) * retention_rate^years
-  , opt_rates_wo_acqui = n_customers *  retention_rate_common^years
-  , opt_rates_wi_acqui = ( n_customers + nca_per_year_opt * years) *  retention_rate_common^years
-)
+tib_n = tibble( years = 0:10 ) %>%
+  mutate( pres_rates_wo_acqui = map_dbl(years, calc_accounts
+                                        , n_customers
+                                        , 0, retention_rate )
+          , pres_rates_wi_acqui = map_dbl(years, calc_accounts
+                                          , n_customers
+                                          , nca_per_year
+                                          , retention_rate )
+          , opt_rates_wo_acqui = map_dbl(years, calc_accounts
+                                        , n_customers
+                                        , 0, retention_rate_common )
+          , opt_rates_wi_acqui = map_dbl(years, calc_accounts
+                                          , n_customers
+                                          , nca_per_year_opt
+                                          , retention_rate_common )
+          )
+
+
+
+
+
 
 p = tib_n %>%
   gather( key = 'calculation', value = 'customer', - years  ) %>%
@@ -136,15 +172,20 @@ plotly::ggplotly(p)
 
 profitability_in_x_years = function(x){
 
+  # create value pairs
   grid = expand.grid( retention_rate = seq(.70, .975, .005)
                       , nca_per_year = seq(1000, 20000, 1000) )
   
+  #calculate profit and make groupings
   grid = grid %>%
     as_tibble() %>%
-    mutate( profit_net_5th_year = ( n_customers + nca_per_year * x) * retention_rate^x * profit_cm1_per_customer - fix_cost
-            , group = cut(profit_net_5th_year, c( min(profit_net_5th_year) - 1 
+    mutate( n_accounts_xth_year = map2_dbl( nca_per_year, retention_rate 
+                                            , function( nca, retention) calc_accounts( x, n_customers, nca, retention)
+                                            )
+            , profit_net_xth_year = n_accounts_xth_year * profit_cm1_per_customer - fix_cost
+            , group = cut(profit_net_xth_year, c( min(profit_net_xth_year) - 1 
                                                   , -5e6, -1e6, -1e5, 1e5, 1e6, 5e6
-                                                  , max(profit_net_5th_year) + 1 ) 
+                                                  , max(profit_net_xth_year) + 1 ) 
                           )
             , group = fct_rev(group)
             )
