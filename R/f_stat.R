@@ -475,10 +475,10 @@ f_stat_group_ana = function(data_ls
 
     df_alluf = p_alluv$data_key
 
-    n_flows    = nrow(df_alluf)
-    reduced_to = round( n_flows/sum(df_alluf$n) * 100, 1 )
+    n_flows    = max( f_manip_factor_2_numeric( df_alluf$alluvial_id) )
+    reduced_to = round( n_flows/nrow(df_alluf) * 100, 1 )
     max_weight = max( df_alluf$n )
-    max_weight_perc = round( max_weight/nrow(data) * 100, 1 )
+    max_weight_perc = round( max_weight/nrow(df_alluf) * 100, 1 )
 
     line1 = paste('Number of flows:', n_flows)
     line2 = paste('Original Dataframe reduced to', reduced_to, '%' )

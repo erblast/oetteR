@@ -1,5 +1,5 @@
 ---
-title: "Alluvial Plots"
+title: "Leakage and variable importance for modelling"
 author: "Bjoern Oettinghaus"
 date: "`r Sys.Date()`"
 output: 
@@ -31,312 +31,216 @@ suppressPackageStartupMessages( require(oetteR) )
 suppressPackageStartupMessages( require(tidyverse) )
 ```
 
-# Introduction
+# Introduction Leakage
 
-Alluvial Plots can be a powerfull tool to visualise categorical data. It will group observations that have similar values across a set of dimensions and visualise them as flows. The individual flows can be emphasised through different colouring methods.
+When you are trying to build a model the first step is to prepare your dataset and to decide which variables you should include. A common modelling problem could be that you want to predict future customer behaviour based on how they behaved in the past. Theoretically you would want to include as many variables into your analysis as you can to cover all possibilites. In selecting those variables we have to make sure that none of the variables carry any information about the future period. For example a score in our database connected to the customer could be calculated on the basis of recent events. In this case we have to look for an archived historic version of that score. The term for information from the test data (the future) that is carried into the training data (past) is leakage. We can also call it leakage if variables carry coincidental information that makes them good predictors but are unlikely to carry the same information in the future. If we for example have recruited a couple of very good customers at an event they share adjacent customer IDs and a similar recruitment date. The model is then likely to use customer ID or recruitment date as a predictor, however the event might not be repeated next year rednering those predictors useless.
 
-# Alluvial Plots
+One can find more information on leakage in this kaggle [post](https://www.kaggle.com/wiki/Leakage)
 
-## Visualize Data in a tidy data format
+# Detecting Leakage
 
-For this dataformat the `f_plot_alluvial` function is suitable. Also see the help documentation and the examples of that function.
+Usually leaking variables are very strong predictors. One method for detecting them is to train a few models on the preselected variables and then look at the importance of each variable for each model. In most cases a leaking variable stands out because it is a much stronger predictor than other variables and that it is almost equally important in all models tested.
 
-### Data
+# Generating a leaking variable
 
-```{r}
-
-data_ls = mtcars %>%
-  f_clean_data()
-
-data_tidy = data_ls$data
-max_variables = 5
-variables = c( data_ls$categoricals[1:3], data_ls$numericals[1:3] )
-
-head(data_tidy, 10) %>%
-  knitr::kable()
-
-```
-
-### Colouring
+We sort the data set by the response variable and create a ID based on row_number
 
 ```{r}
 
-f_plot_alluvial( data = data_tidy
-                , variables = variables
-                , max_variables = max_variables
-                , fill_by = 'first_variable' )
-
-f_plot_alluvial( data = data_tidy
-                , variables = variables
-                , max_variables = max_variables
-                , fill_by = 'last_variable' )
-
-f_plot_alluvial( data = data_tidy
-                , variables = variables
-                , max_variables = max_variables
-                , fill_by = 'all_flows' )
-
-f_plot_alluvial( data = data_tidy
-                , variables = variables
-                , max_variables = max_variables
-                , fill_by = 'values' )
-
-```
-
-### Ordering
-
-The order of the variables on the x axis is determined by the parameter variables. The order of any y values can be changed using the oder_levels argument. Simply pass the values you want to reorder as a character vector.
-
-```{r}
-
-f_plot_alluvial( data = data_tidy
-                , variables = variables
-                , max_variables = max_variables
-                , fill_by = 'values'
-                , order_levels = c('1', '0') )
-
-
-```
-
-## Visualize data in the 'gathered' format
-
-### Data
-
-Here we have more than one row for each observation and measurements that belong to the same group such as mean arrival delay is gathered in one column, which is indexed by the quarter column. In an alluvial Plot we might want to add another independent variable for coloring like in this case `carrier`.
-
-```{r}
-
-monthly_flights = nycflights13::flights %>%
-  group_by(month, tailnum, origin, dest, carrier) %>%
-  summarise() %>%
-  group_by( tailnum, origin, dest, carrier) %>%
-  count() %>%
-  filter( n == 12 ) %>%
-  select( - n ) %>%
-  left_join( nycflights13::flights ) %>%
-  .[complete.cases(.), ] %>%
-  ungroup() %>%
-  mutate( tailnum = pmap_chr(list(tailnum, origin, dest, carrier), paste )
-          , qu = cut(month, 4)) %>%
-  group_by(tailnum, carrier, origin, dest, qu ) %>%
-  summarise( mean_arr_delay = mean(arr_delay) ) %>%
-  ungroup() %>%
-  mutate( mean_arr_delay = ifelse( mean_arr_delay < 10, 'on_time', 'late' ) )
-
-levels(monthly_flights$qu) = c('Q1', 'Q2', 'Q3', 'Q4')
-
-data_gath = monthly_flights
-
-head(data_gath, 10) %>%
-knitr::kable()
-
-col_x = 'qu'
-col_y = 'mean_arr_delay'
-col_fill = 'carrier'
-col_id = 'tailnum'
-
+data = ISLR::Auto %>%
+  arrange( displacement ) %>%
+  mutate( id = row_number() )
 
 ```
 
 
-### Coloring
+# Creating Regression models
 
-#### color by independent variable `carrier`
+Here we create `randomForest`,`rpart` and a `svm` model because these models do not require feature selection and usually performance does not decrease if you use a lot of variables. As long as we have more observations than predictors. It comes in handy that they all use the same modelling syntax so we can train the models easily in a modelling tibble. 
 
-```{r}
-
-f_plot_alluvial_1v1( data_gath, col_x = 'qu', col_y = 'mean_arr_delay', col_id = 'tailnum', col_fill )
-
-```
-
-##### Move colored independent variable to the left
+Here we do not use `pipelearner` since we do not have to do cross validation or parameter tuning at this stage we can easily build our own modelling tibble. 
 
 ```{r}
 
-f_plot_alluvial_1v1( data_gath, col_x, col_y, col_id, col_fill, fill_right = F )
+data_ls = f_clean_data( data, min_number_of_levels_nums = 10 )
 
-```
+# some of the functions I extract variables from the formula and thus only work if it is constructed without the '.'
+form =  paste( data_ls$all_variables[ data_ls$all_variables != 'displacement' ], collapse = ' + ' ) %>%
+  paste( 'displacement ~', . ) %>%
+  as.formula()
 
 
-#### Other coloring options
+tib = tibble( f = c( randomForest::randomForest
+                      , rpart::rpart 
+                      , e1071::svm )
+              , name = c('randomForest'
+                       , 'rpart'
+                       , 'e1071' )
+              , data = list( modelr::resample( data_ls$data, idx = c(1:nrow(data_ls$data) ) ) ) 
+              )
 
-```{r}
 
-f_plot_alluvial_1v1( data_gath, col_x = 'qu', col_y = 'mean_arr_delay', col_id = 'tailnum', fill_by = 'last_variable' )
-f_plot_alluvial_1v1( data_gath, col_x = 'qu', col_y = 'mean_arr_delay', col_id = 'tailnum', fill_by = 'first_variable' )
-f_plot_alluvial_1v1( data_gath, col_x = 'qu', col_y = 'mean_arr_delay', col_id = 'tailnum', fill_by = 'all_flows' )
-f_plot_alluvial_1v1( data_gath, col_x = 'qu', col_y = 'mean_arr_delay', col_id = 'tailnum', fill_by = 'value' )
+tib_train = tib %>%
+  mutate( m = map2( f, data, function(f, data) f( form, as.data.frame(data) ) ) )
 
-```
-
-### Ordering
-
-#### Y levels of dependent variable
-
-```{r}
-f_plot_alluvial_1v1( data_gath, col_x, col_y, col_id, fill_by = 'first_variable'
-                     , order_levels_y = c('on_time', 'late') )
-
-```
-
-#### Y levels of independent color variable `carrier`
-
-```{r}
-
-order_by_carrier_size = data_gath %>%
-  group_by(carrier) %>%
-  count() %>%
-  arrange( desc(n) ) %>%
-  .[['carrier']]
-
-f_plot_alluvial_1v1( data_gath, col_x, col_y, col_id, col_fill
-                     , order_levels_fill = order_by_carrier_size )
 
 
 ```
 
+# Adding variable importance
 
-#### X levels
+In `oetteR` I have three functions that extract variable importance in a unified format
+
+- `f_model_importance_randomForest()`
+- `f_model_importance_rpart()`
+- `f_model_importance_svm()`
+
+We also have a wrapper for those three formulas that detects the model class and calls the correct function so we can use it in a modelling tibble `f_model_importance()`
 
 ```{r}
-f_plot_alluvial_1v1( data_gath, col_x, col_y, col_id, fill_by = 'first_variable'
-                     , order_levels_x = c('Q4', 'Q3', 'Q2', 'Q1') )
+
+tib_imp = tib_train %>%
+  mutate( imp = map(m, f_model_importance, data_ls$data ) )
+
+tib_imp
+
+```
+
+# Investigating variable importance
+
+## Bar Plots
+
+`f_model_importance_plot` returns a `plotly` graph
+
+```{r}
+
+tib_plot = tib_imp %>%
+  mutate( plot = map2( imp, name, f_model_importance_plot) )
+
+
+htmltools::tagList( tib_plot$plot )
+
+```
+
+As expected we find that the leaking variable is the best predictor for all three models
+
+## Tabplots
+
+If we find other doubtfull variables in our plots we might want to invesigate them in a tableplot using `f_model_importance_plot_tableplot`
+
+We have to use the `tabplot:::plot.tabplot` function to properly add a title to the plot
+
+```{r}
+
+tib_plot = tib_plot %>%
+  mutate(  tabplot = pmap( list( data, imp)
+                          , f_model_importance_plot_tableplot
+                          , response_var = 'displacement'
+                          , print = F
+                          )  )
+
+
+pwalk( list( x = tib_plot$tabplot, title = tib_plot$name), tabplot:::plot.tabplot)
 
 ```
 
 
-## General
+## Variable Dependency
 
-### Change the colors
+We might also want to know how the important variables are effecting the response in the right way. The idea is here again to test the quality of our dataset. For example does an increase in purchase frequency effect overall net spend of a customer. If this is not the case or if it is reverted the variable might have the wrong algebraic sign(+/-). For this we will simulate a artifical dataset in which all variables but one are kept at median value (or most common level). The one not kept constant will represent an evenly spaced sequence over its range. We will generate one of those grids for the most important variables and feed it into the model. Then we plot the response. 
 
-Any color palette can be passed to both functions.
 
-```{r}
+- `f_model_seq_range()` will generate an evenly spaced sequence of one variable over its range, for factors and numericals
 
-f_plot_alluvial_1v1( data_gath, col_x, col_y, col_id, fill_by = 'last_variable'
-                     , col_vector_flow = rev( RColorBrewer::brewer.pal(9, 'Purples') )
-                     , col_vector_value = rev( RColorBrewer::brewer.pal(9, 'Oranges') ) )
+- `f_model_data_grid()` will apply `f_model_seq_range` to build a grid
 
-f_plot_alluvial( data = data_tidy
-                , variables = variables
-                , max_variables = max_variables
-                , fill_by = 'first_variable' 
-                , col_vector_flow = rev( RColorBrewer::brewer.pal(9, 'Reds') )
-                , col_vector_value = rev( RColorBrewer::brewer.pal(9, 'Greens') )
-                )
-
-```
-
-### Missing Data
-
-Missing Data will automatically be labeled as `NA`. The label can be changed and it can be ordered as usual
-
-#### Gathered Data
+- `f_model_plot_variable_dependency_regression()` will use both previous functions to generate a plot
 
 ```{r}
 
-data = data_gath %>%
-  select(tailnum, qu, mean_arr_delay) %>%
-  sample_frac(0.9)
-
-f_plot_alluvial_1v1( data, col_x, col_y, col_id, fill_by = 'last_variable'
-                         , NA_label = 'none'
-                         , order_levels_y = 'none')
-
-```
-
-#### Tidy Data
-
-```{r}
-
-data = data_tidy
-data$cyl[1:4] = NA
-
-f_plot_alluvial( data = data
-                     , variables = variables
-                     , max_variables = max_variables
-                     , fill_by = 'first_variable'
-                     , NA_label = 'none'
-                     , order_levels = 'none' )
+f_model_data_grid(col_var = 'mpg', formula = form, data_ls = data_ls, n = 20 )
 
 ```
 
 
-### Connect Flows to observations in original data
 
 ```{r}
 
-link = file.path( system.file(package = 'oetteR')
-                  , 'Rmd vignettes'
-                  , 'vignette_visualising_regression_models.html' )
-
-```
-
-The plot objects returned by both functions have an attribute called `data_key` which is an x-y table arranged like the alluvial plot one column containing the original ID. See [vignette for visualising regression models](`r link`) for an example on how this is effectively used.
-
-#### tidy data
-
-```{r}
-
-p = f_plot_alluvial( data = data_tidy
-                , variables = variables
-                , max_variables = max_variables
-                , fill_by = 'first_variable' )
-
-p$data_key %>%
-  head(10) %>%
-  knitr::kable()
-
-```
-
-#### gathered data
-
-```{r}
-
-p = f_plot_alluvial_1v1( data_gath, col_x = 'qu', col_y = 'mean_arr_delay', col_id = 'tailnum', col_fill = 'carrier' )
+tib_plot = tib_plot %>%
+  mutate( var_dep = map2( m, imp
+                          , f_model_plot_variable_dependency_regression
+                          , formula = form
+                          , data_ls = data_ls) )
 
 
-p$data_key %>%
-  head(10) %>%
-  knitr::kable()
-
-
-```
-
-### The Plot objects can be manipulated like any other ggplot object
-
-#### Flip
-
-```{r}
-
-p = p +
-  coord_flip()
-
-p
-
-```
-
-#### Title
-
-```{r}
-
-p = p +
-  ggtitle('Look at my flip')
-
-p
+tib_plot$var_dep %>%
+  walk( print )
 
 ```
 
 
-#### Repel Labels
+# Wrap everything up
 
-Unfortunately does not work yet
+I have two functions that integrate the functions from above in a `pipelearner` based workflow. They however can be adapted to other modelling dataframes/tibbles. 
 
-```{r error=TRUE}
+-`f_model_importance_pl_add_plots_regression()` adds all three plot types to the dataframe. Here I use `dplyr` style symbols instead of strings to denote column names as arguments. I dont really get the advantage fo symbols over using strings. Symbols have an advantage when writing code in the console, but are quite irritating to program with and write functions for. SO I never fully adapted the habit of using symbols for my functions.
 
-p = p %>%
-  ggrepel::geom_text_repel()
+-`f_model_importance_pl_plots_as_html()` creates three seperate html files. Since I would like to limit this vignette to only one document I will use the `webeshot` package to insert screenshots instead.
 
+## Add plots
+
+```{r}
+
+tib_plot = tib_imp %>%
+  mutate( response_var = 'displacment'
+          , title = name ) %>%
+  f_model_importance_pl_add_plots_regression( data, m, imp, response_var, title
+                                              , formula = form
+                                              , data_ls = data_ls
+                                              )
+
+
+tib_plot %>%
+  select( imp_plot, imp_tabplot, imp_plot_dep, everything() )
+
+```
+
+
+## Create Htmls
+
+Note `f_model_importance_pl_plots_as_html` is not so flexible when it comes to the column names. It expects a column named 'title', 'imp_plot', 'imp_plot_dep' and 'imp_tabplot'.
+
+```{r}
+
+f_model_importance_pl_plots_as_html( tib_plot, prefix = 'vignette_' , quiet = TRUE )
+
+```
+
+
+```{r w1}
+
+webshot::webshot( 'vignette_importance_variable_dependencies.html'  )
+
+file.remove( 'vignette_importance_variable_dependencies.html' )
+
+```
+
+```{r w2}
+
+webshot::webshot( 'vignette_importance_plots.html'  )
+
+file.remove( 'vignette_importance_plots.html' )
+
+
+```
+
+```{r w3}
+
+webshot::webshot( 'vignette_importance_tabplots.html'  )
+
+file.remove( 'vignette_importance_tabplots.html' )
+
+file.remove('webshot.png')
 
 ```
 
