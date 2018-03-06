@@ -43,9 +43,11 @@ thought-through.
 
 - [Data Perparation and PCA](http://rpubs.com/erblast/365505)
 
-## Data Exploration and Visualisation `f_pca_*`, f_stat_*, f_plot_*
+## Data Exploration and Visualisation `f_pca_*`, `f_stat_*`, `f_plot_*`
 
 - [Alluvial Plots](http://rpubs.com/erblast/365703)
+- [Group Analysis](http://rpubs.com/erblast/366964)
+
 
 ## Feature Testing `f_model_importance_*`
 
