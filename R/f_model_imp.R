@@ -19,7 +19,7 @@
 #'
 #' @rdname f_model_importance_randomForest
 #' @export
-f_model_importance_randomForest = function(m, ...){
+f_model_importance_randomForest = function(m){
 
   if( ! inherits(m, 'randomForest') ){
     warning('model is not of class randomForest returning NULL')
@@ -142,7 +142,7 @@ f_model_importance_svm = function(m, data){
 #'
 #' @rdname f_model_importance_rpart
 #' @export
-f_model_importance_rpart = function(m, ...){
+f_model_importance_rpart = function(m){
 
   if( ! inherits(m, 'rpart') ){
     warning('model is not of class rpart returning NULL')
@@ -217,11 +217,8 @@ f_model_importance = function(m, data){
 #' @title plot model importance
 #' @description optimised for usage in pipelearner dataframe
 #' @param importance dataframe importance created by f_model_importance()
-#' @param model_name character vector (model column in pipelearner dataframe)
+#' @param title character vector (model column in pipelearner dataframe)
 #'   will be pasted for plot title
-#' @param models.id character vector will be pasted for plot title
-#' @param cv_pairs.id character vector will be pasted for plot title
-#' @param train_p character vector will be pasted for plot title
 #' @param variable_color_code dataframe created by f_plot_color_code_variables()
 #' @param ... additional character vectors to be pasted to plot title
 #' @return plotly graph
@@ -304,6 +301,7 @@ f_model_importance_plot = function( importance
 #' @param ranked_variables datafram as returned by f_model_importance()
 #' @param response_var character vector denoting response variable
 #' @param limit integer limit the number of variables , Default: 10
+#' @param print boolean, print tabplot when generating tabplot object
 #' @param ... pass kwargs to tabplot::tableplot
 #' @return tabplot::tableplot object
 #' @examples

@@ -450,7 +450,6 @@ f_train_lasso_manual_cv = function(data
 #'   behaviour for all distributions.
 #' @param data dataframe
 #' @param formula formula
-#' @param grid grid values for lambda, Default: 10^seq(4, -4, length = 100)
 #' @param p p parameter for tweedie distributions, set p = NULL for not
 #'   performing lasso for tweedie distributions, Default: c(1, 1.25, 1.5, 1.75,
 #'   2)

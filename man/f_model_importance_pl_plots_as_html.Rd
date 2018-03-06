@@ -4,12 +4,14 @@
 \alias{f_model_importance_pl_plots_as_html}
 \title{print plots of variable importance in modelling dataframe to html}
 \usage{
-f_model_importance_pl_plots_as_html(pl, prefix = NULL)
+f_model_importance_pl_plots_as_html(pl, prefix = NULL, quiet = FALSE)
 }
 \arguments{
 \item{pl}{modelling dataframe containing the following columns 'imp_plot', 'imp_plot_dep', 'imp_tabplot', 'title'}
 
 \item{prefix}{character vector file name prefix for html files, Default: NULL}
+
+\item{quiet}{boolean, suppresses output to console by render function, Default: FALSE}
 }
 \value{
 html files in working directory

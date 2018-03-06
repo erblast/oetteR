@@ -16,6 +16,8 @@ f_model_importance_plot_tableplot(data, ranked_variables, response_var,
 
 \item{limit}{integer limit the number of variables , Default: 10}
 
+\item{print}{boolean, print tabplot when generating tabplot object}
+
 \item{...}{pass kwargs to tabplot::tableplot}
 }
 \value{

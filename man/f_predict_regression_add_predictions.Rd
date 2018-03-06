@@ -9,18 +9,26 @@ f_predict_regression_add_predictions(data_test, m, col_target,
   data_train = NULL, cols_id = NULL, formula = NULL, ...)
 }
 \arguments{
+\item{data_test}{dataframe containing data to be used as the basis for prediction.
+Can also be a modelR resample object}
+
 \item{m}{regression model}
 
 \item{col_target}{character vector naming target/response variable}
+
+\item{data_train}{dataframe with trainig data, Default: 'NULL'}
 
 \item{cols_id}{character vector naming id columns, if specified non_id
 columns will be dropped from dataframe, in order to be more memory
 efficient.}
 
-\item{df}{dataframe containing data to be used as the basis for prediction.
-Can also be a modelR resample object}
+\item{formula}{Default NULL}
+
+\item{...}{additional arguments passed to HDtweedie and glmnet predict functions}
 }
 \value{
+dataframe
+
 dataframe
 }
 \description{

@@ -9,16 +9,10 @@ f_model_importance_plot(importance, title, variable_color_code = NULL)
 \arguments{
 \item{importance}{dataframe importance created by f_model_importance()}
 
-\item{variable_color_code}{dataframe created by f_plot_color_code_variables()}
-
-\item{model_name}{character vector (model column in pipelearner dataframe)
+\item{title}{character vector (model column in pipelearner dataframe)
 will be pasted for plot title}
 
-\item{models.id}{character vector will be pasted for plot title}
-
-\item{cv_pairs.id}{character vector will be pasted for plot title}
-
-\item{train_p}{character vector will be pasted for plot title}
+\item{variable_color_code}{dataframe created by f_plot_color_code_variables()}
 
 \item{...}{additional character vectors to be pasted to plot title}
 }

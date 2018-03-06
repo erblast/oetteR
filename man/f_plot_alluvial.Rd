@@ -16,6 +16,8 @@ f_plot_alluvial(data, variables = names(data), col_id = NULL,
 \item{variables}{vector denoting names and order of the plotted variables,
 Default: names(data)}
 
+\item{col_id}{character vector denoting id column}
+
 \item{max_variables}{maximum number of variables, Default: 20}
 
 \item{bins}{number of bins for numerical variables, Default: 5}
@@ -30,8 +32,11 @@ Default: names(data)}
 \item{fill_by}{one_of(c('first_variable', 'last_variable', 'all_flows',
 'values')), Default: 'first_variable'}
 
-\item{col_vector}{vector with HEX color codes, Default:
-RColorBrewer::brewer.pal(name = "Dark2", n = 8)}
+\item{col_vector_flow}{HEX colors for flows, Default:
+f_plot_col_vector74(faint = F, greys = F)}
+
+\item{col_vector_value}{Hex colors for y levels/values, Default:
+RColorBrewer::brewer.pal(9, "Greys")[c(3, 6, 4, 7, 5)]}
 }
 \value{
 OUTPUT_DESCRIPTION

@@ -15,6 +15,8 @@ f_manip_bin_numerics(df, bins = 5, bin_labels = c("LL", "ML", "M", "MH",
 \item{bin_labels}{labels for the bins from low to high, Default: c("LL",
 "ML", "M", "MH", "HH")#' @param center boolean, Default: T}
 
+\item{center}{boolean, Default: T}
+
 \item{scale}{boolean, Default: T}
 
 \item{transform}{boolean, Default: T}

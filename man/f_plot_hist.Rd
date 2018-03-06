@@ -35,16 +35,19 @@ variable, Default: NULL}
 
 \item{x_max}{double, requires aut_range == F,  Default: 100}
 
+\item{y_max}{double, requires aut_range == F,  Default: 100}
+
 \item{title}{character vector plot title}
 
 \item{col_vector}{vector with RGB colors, Default:
 f_plot_adjust_col_vector_length(100, RColorBrewer::brewer.pal(name =
 "Dark2", n = 8))}
 
-\item{p_val}{boolean, Default: T#'@param ... additional arguments
-passed to labs()}
+\item{p_val}{boolean, Default: T}
 
 \item{add}{character vector one_of( c('mean','median','none') ) , Default: 'mean'}
+
+\item{...}{additional arguments passed to labs()}
 }
 \value{
 plot object

@@ -1,41 +1,42 @@
 
-#' @title plot alluvial of gathered data
-#' @description Plots two variables of a dataframe on an alluvial plot. A third
-#'   variable can be added either two the left or the right of the alluvial plot
-#'   to provide coloring of the flows. All numerical variables are scaled,
-#'   centered and YeoJohnson transformed before binning.
-#' @param data a dataframe
-#' @param col_x character vector denoting column for the x axis variable
-#' @param col_y character vector denoting column for the y axis variable
-#' @param col_id character vector denoting id column
-#' @param col_fill character vector denoting color fill variable for flows,
-#'   Default: NULL
-#' @param fill_right logical, TRUE fill variable is added to the right FALSE to
-#'   the left, Default: T
-#' @param bins number of bins for automatic binning of numerical variables,
-#'   Default: 5
-#' @param bin_labels labesl for bins, Default: c("LL", "ML", "M", "MH", "HH")
-#' @param order_levels_y character vector denoting order of y levels from low to
-#'   high, does not have to be complete can also just be used to bring levels to
-#'   the front, Default: NULL
-#' @param order_levels_x character vector denoting order of x levels from low to
-#'   high, does not have to be complete can also just be used to bring levels to
-#'   the front, Default: NULL
-#' @param order_levels_fill character vector denoting order of color fill
-#'   variable levels from low to high, does not have to be complete can also
-#'   just be used to bring levels to the front, Default: NULL
-#' @param NA_label character vector define label for missing data
-#' @param fill_by one_of(c('first_variable', 'last_variable', 'all_flows',
-#'   'values')), Default: 'first_variable'
-#' @param col_vector_flow HEX colors for flows, Default: f_plot_col_vector74(faint
-#'   = F, greys = F)
-#' @param col_vector_value Hex colors for y levels/values, Default:
-#'   RColorBrewer::brewer.pal(9, "Greys")[c(3, 6, 4, 7, 5)]
-#' @return plot
-#' @seealso \code{\link[RColorBrewer]{brewer.pal}}
-#'   \code{\link[forcats]{fct_relevel}},\code{\link[forcats]{fct_rev}}
-#'   \code{\link[rlang]{UQ}}
-#'   \code{\link[ggalluvial]{geom_flow}},\code{\link[ggalluvial]{geom_stratum}}
+#'@title plot alluvial of gathered data
+#'@description Plots two variables of a dataframe on an alluvial plot. A third
+#'  variable can be added either two the left or the right of the alluvial plot
+#'  to provide coloring of the flows. All numerical variables are scaled,
+#'  centered and YeoJohnson transformed before binning.
+#'@param data a dataframe
+#'@param col_x character vector denoting column for the x axis variable
+#'@param col_y character vector denoting column for the y axis variable
+#'@param col_id character vector denoting id column
+#'@param col_fill character vector denoting color fill variable for flows,
+#'  Default: NULL
+#'@param fill_right logical, TRUE fill variable is added to the right FALSE to
+#'  the left, Default: T
+#'@param bins number of bins for automatic binning of numerical variables,
+#'  Default: 5
+#'@param bin_labels labesl for bins, Default: c("LL", "ML", "M", "MH", "HH")
+#'@param order_levels_y character vector denoting order of y levels from low to
+#'  high, does not have to be complete can also just be used to bring levels to
+#'  the front, Default: NULL
+#'@param order_levels_x character vector denoting order of x levels from low to
+#'  high, does not have to be complete can also just be used to bring levels to
+#'  the front, Default: NULL
+#'@param order_levels_fill character vector denoting order of color fill
+#'  variable levels from low to high, does not have to be complete can also just
+#'  be used to bring levels to the front, Default: NULL
+#'@param complete boolean, insert implicitly missing observations, Default: TRUE
+#'@param NA_label character vector define label for missing data
+#'@param fill_by one_of(c('first_variable', 'last_variable', 'all_flows',
+#'  'values')), Default: 'first_variable'
+#'@param col_vector_flow HEX colors for flows, Default:
+#'  f_plot_col_vector74(faint = F, greys = F)
+#'@param col_vector_value Hex colors for y levels/values, Default:
+#'  RColorBrewer::brewer.pal(9, "Greys")[c(3, 6, 4, 7, 5)]
+#'@return plot
+#'@seealso \code{\link[RColorBrewer]{brewer.pal}}
+#'  \code{\link[forcats]{fct_relevel}},\code{\link[forcats]{fct_rev}}
+#'  \code{\link[rlang]{UQ}}
+#'  \code{\link[ggalluvial]{geom_flow}},\code{\link[ggalluvial]{geom_stratum}}
 #' @examples
 #' \dontrun{
 #' if(interactive()){
@@ -99,12 +100,12 @@
 #'
 #' }
 #' }
-#' @rdname f_plot_alluvial_1v1
-#' @export
-#' @importFrom RColorBrewer brewer.pal
-#' @importFrom forcats fct_relevel fct_rev
-#' @importFrom rlang UQ
-#' @importFrom ggalluvial geom_flow geom_stratum
+#'@rdname f_plot_alluvial_1v1
+#'@export
+#'@importFrom RColorBrewer brewer.pal
+#'@importFrom forcats fct_relevel fct_rev
+#'@importFrom rlang UQ
+#'@importFrom ggalluvial geom_flow geom_stratum
 f_plot_alluvial_1v1 = function( data
                             , col_x
                             , col_y
@@ -396,8 +397,11 @@ f_plot_alluvial_1v1 = function( data
 #' @param order_levels character vector denoting levels to be reorderer from low to high
 #' @param fill_by one_of(c('first_variable', 'last_variable', 'all_flows',
 #'   'values')), Default: 'first_variable'
-#' @param col_vector vector with HEX color codes, Default:
-#'   RColorBrewer::brewer.pal(name = "Dark2", n = 8)
+#'@param col_vector_flow HEX colors for flows, Default:
+#'  f_plot_col_vector74(faint = F, greys = F)
+#'@param col_vector_value Hex colors for y levels/values, Default:
+#'  RColorBrewer::brewer.pal(9, "Greys")[c(3, 6, 4, 7, 5)]
+#'@param col_id character vector denoting id column
 #' @return OUTPUT_DESCRIPTION
 #' @details DETAILS
 #' @examples

@@ -30,8 +30,6 @@ numerical columns>) - The data_ls object provides the entire dataset}
 \item{log_y}{boolean log_scale for y axis}
 
 \item{limit}{integer limit the number of variables to be plotted, Default: 12}
-
-\item{data_ls}{PARAM_DESCRIPTION}
 }
 \value{
 grid can be printed with gridExtra::grid.arrange()

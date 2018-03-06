@@ -42,14 +42,16 @@ high, does not have to be complete can also just be used to bring levels to
 the front, Default: NULL}
 
 \item{order_levels_fill}{character vector denoting order of color fill
-variable levels from low to high, does not have to be complete can also
-just be used to bring levels to the front, Default: NULL}
+variable levels from low to high, does not have to be complete can also just
+be used to bring levels to the front, Default: NULL}
+
+\item{complete}{boolean, insert implicitly missing observations, Default: TRUE}
 
 \item{fill_by}{one_of(c('first_variable', 'last_variable', 'all_flows',
 'values')), Default: 'first_variable'}
 
-\item{col_vector_flow}{HEX colors for flows, Default: f_plot_col_vector74(faint
-= F, greys = F)}
+\item{col_vector_flow}{HEX colors for flows, Default:
+f_plot_col_vector74(faint = F, greys = F)}
 
 \item{col_vector_value}{Hex colors for y levels/values, Default:
 RColorBrewer::brewer.pal(9, "Greys")[c(3, 6, 4, 7, 5)]}
@@ -59,9 +61,9 @@ plot
 }
 \description{
 Plots two variables of a dataframe on an alluvial plot. A third
-  variable can be added either two the left or the right of the alluvial plot
-  to provide coloring of the flows. All numerical variables are scaled,
-  centered and YeoJohnson transformed before binning.
+ variable can be added either two the left or the right of the alluvial plot
+ to provide coloring of the flows. All numerical variables are scaled,
+ centered and YeoJohnson transformed before binning.
 }
 \examples{
 \dontrun{
@@ -129,7 +131,7 @@ f_plot_alluvial_1v1( data, col_x, col_y, col_id, col_fill
 }
 \seealso{
 \code{\link[RColorBrewer]{brewer.pal}}
-  \code{\link[forcats]{fct_relevel}},\code{\link[forcats]{fct_rev}}
-  \code{\link[rlang]{UQ}}
-  \code{\link[ggalluvial]{geom_flow}},\code{\link[ggalluvial]{geom_stratum}}
+ \code{\link[forcats]{fct_relevel}},\code{\link[forcats]{fct_rev}}
+ \code{\link[rlang]{UQ}}
+ \code{\link[ggalluvial]{geom_flow}},\code{\link[ggalluvial]{geom_stratum}}
 }

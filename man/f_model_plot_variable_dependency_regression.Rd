@@ -30,6 +30,8 @@ numerical columns>)}
 
 \item{limit}{integer limit the number of variables to be plotted, Default: 12}
 
+\item{log_y}{boolean log_scale for y axis}
+
 \item{set_manual}{named list, set some variables manually instead of
 defaulting to median or most common factor. !! Values need to be of the same
 variable type as in the original data.}

@@ -11,10 +11,17 @@ f_predict_pl_regression(pl, cols_id = NULL, formula = NULL,
 \arguments{
 \item{pl}{learned pipelearner dataframe}
 
-\item{cols_id}{character vector naming id columns}
-}
-\value{
-dataframe
+\item{cols_id}{character vector naming id column}
+
+\item{formula}{Default: NULL}
+
+\item{col_model}{character vector naming model column, Default: 'fit'}
+
+\item{col_target}{character vector naming target column, Default: 'target'}
+
+\item{data_test}{character vector naming test data column, Default: 'test'}
+
+\item{data_train}{character vector naming train data column, Default: 'train'#' @return dataframe}
 }
 \examples{
 form = as.formula( 'disp~cyl+mpg')

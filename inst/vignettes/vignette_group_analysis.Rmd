@@ -160,7 +160,7 @@ For demsonstration purposes we will generate 4 html files with rather high p val
 f_stat_group_ana( data_ls, col_group
                   , thresh_p_val = 0.0001, thresh_diff_perc = 30
                   # it ususally makes sense to increase limit the amount of variables in an alluvial plot
-                  , alluvial_thresh_p_val = 0.0001, alluvial_thres_diff_perc = 30
+                  , alluvial_thresh_p_val = 0.0001, alluvial_thresh_diff_perc = 30
                   , alluvial = T
                   , static_plots = T
                   , tabplot = T 

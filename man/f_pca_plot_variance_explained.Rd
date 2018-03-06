@@ -8,6 +8,9 @@ f_pca_plot_variance_explained(pca_ls, threshold_vae_for_pc_perc = 2.5)
 }
 \arguments{
 \item{pca_ls}{list created by f_pca()}
+
+\item{threshold_vae_for_pc_perc}{double, filter principle components that
+explain a lesser percentage of the variance than this threshold, Default: 2.5}
 }
 \value{
 plotly graph

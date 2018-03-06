@@ -3,8 +3,12 @@
 
 #' @title adds predictions to learned pipelearner dataframe
 #' @param pl learned pipelearner dataframe
-#' @param cols_id character vector naming id columns
-#' @return dataframe
+#' @param cols_id character vector naming id column
+#' @param formula  Default: NULL
+#' @param col_model character vector naming model column, Default: 'fit'
+#' @param col_target character vector naming target column, Default: 'target'
+#' @param data_test character vector naming test data column, Default: 'test'
+#' @param data_train character vector naming train data column, Default: 'train'#' @return dataframe
 #' @examples
 #' form = as.formula( 'disp~cyl+mpg')
 #'
@@ -344,13 +348,17 @@ f_predict_plot_model_performance_regression = function(data){
 #' @title adds predictions, residuals, abolute residuals, squared residuals and
 #'   absolute percent error to a dataframe.
 #' @description absolute percent error = (abs(resid/pred)*100 )
-#' @param df dataframe containing data to be used as the basis for prediction.
+#' @param data_test dataframe containing data to be used as the basis for prediction.
 #'   Can also be a modelR resample object
 #' @param m regression model
 #' @param col_target character vector naming target/response variable
 #' @param cols_id character vector naming id columns, if specified non_id
 #'   columns will be dropped from dataframe, in order to be more memory
 #'   efficient.
+#' @param formula Default NULL
+#' @param data_train dataframe with trainig data, Default: 'NULL'
+#' @param ... additional arguments passed to HDtweedie and glmnet predict functions
+#' @return dataframe
 #' @return dataframe
 #' @examples
 #' df = mtcars %>%

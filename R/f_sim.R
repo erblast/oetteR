@@ -14,6 +14,7 @@
 #'  }
 #' @param output_file PARAM_DESCRIPTION, Default: 'profit_simulation'
 #' @param path PARAM_DESCRIPTION, Default: '.'
+#' @param params list params passed to rmarkdown::render(), see example, Default: 'ask'
 #' @return OUTPUT_DESCRIPTION
 #' @details DETAILS
 #' @examples

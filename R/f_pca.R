@@ -12,6 +12,7 @@
 #'@param use_boxcox_tansformed_vars boolean, Default: T
 #'@param center boolean, Default: T
 #'@param scale boolean, Default: T
+#'@param include_ordered_categoricals boolean, Default: T
 #'@return a list with the original data complemented with the principle
 #'  component vector data of each observation and an object returned by prcomp()
 #'  supplemented with some extra features \item{data}{dataframe} \item{pca}{pca
@@ -43,7 +44,6 @@ f_pca = function( data_ls
                   , scale = T
                   , use_boxcox_tansformed_vars = T
                   , include_ordered_categoricals = T
-                  , threshold_vae_for_pc_perc = 2.5
                   ){
 
 
@@ -193,18 +193,20 @@ f_pca_plot_components = function(pca_ls
   return(tagl)
 }
 
-#' @title plot varaince explained of principle components
-#' @param pca_ls list created by f_pca()
-#' @return plotly graph
+#'@title plot varaince explained of principle components
+#'@param pca_ls list created by f_pca()
+#'@param threshold_vae_for_pc_perc double, filter principle components that
+#'  explain a lesser percentage of the variance than this threshold, Default: 2.5
+#'@return plotly graph
 #' @examples
 #' p = f_clean_data(mtcars) %>%
 #'   f_boxcox() %>%
 #'   f_pca() %>%
 #'   f_pca_plot_variance_explained()
 #'p
-#' @rdname f_pca_plot_variance_explained
-#' @export
-#' @importFrom forcats fct_reorder
+#'@rdname f_pca_plot_variance_explained
+#'@export
+#'@importFrom forcats fct_reorder
 f_pca_plot_variance_explained = function(pca_ls
                                          , threshold_vae_for_pc_perc = 2.5){
 

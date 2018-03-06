@@ -4,7 +4,8 @@
 \alias{f_plot_obj_2_html}
 \title{generate a separate html file from a list of various objects}
 \usage{
-f_plot_obj_2_html(obj_list, type, output_file, title = "Plots", ...)
+f_plot_obj_2_html(obj_list, type, output_file, title = "Plots",
+  quiet = FALSE, ...)
 }
 \arguments{
 \item{obj_list}{htmltools::tagList}
@@ -15,10 +16,10 @@ argument \describe{
 \item{taglist}{taglist ceated with htmltools::tagList,
 a good container for html widgets}
 \item{plots}{a list with ggplot objects,
-takes additional arguments: \emph{fig.height: Default 5, fig_width: Default
+takes additional arguments: \emph{fig.height: Default 5, fig.width: Default
 7} }
 \item{tabplots}{ a list of objects created with tabplot::tableplot,
-takes additional arguments: \emph{fig.height: Default 5, fig_width: Default
+takes additional arguments: \emph{fig.height: Default 5, fig.width: Default
 7, titles: list of titles must be same length as obj_list} }
 \item{grids}{a
 list of grids created with gridExtra::arrangeGrob, takes additional
@@ -35,6 +36,10 @@ all points into memory which is not compatible with large data sets} }
 \item{output_file}{file_name of the html file, without .html suffix}
 
 \item{title}{character vector of html document title, Default: 'Plots'}
+
+\item{quiet}{bollean, suppress markdown console print output, Default: FALSE}
+
+\item{...}{additional arguments passed to rmarkdown::render argument params}
 }
 \description{
 lists of graphical objects like html(taglists), plots, tabplots,

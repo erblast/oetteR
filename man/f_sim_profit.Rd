@@ -11,6 +11,8 @@ f_sim_profit(output_file = "profit_simulation", path = ".",
 \item{output_file}{PARAM_DESCRIPTION, Default: 'profit_simulation'}
 
 \item{path}{PARAM_DESCRIPTION, Default: '.'}
+
+\item{params}{list params passed to rmarkdown::render(), see example, Default: 'ask'}
 }
 \value{
 OUTPUT_DESCRIPTION

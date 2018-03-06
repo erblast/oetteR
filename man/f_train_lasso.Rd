@@ -22,8 +22,6 @@ performing lasso for tweedie distributions, Default: c(1, 1.25, 1.5, 1.75,
 'gaussian'}
 
 \item{...}{arguments passed to cv.glmnet, cv.HDtweedie such as lambda or n_lambda}
-
-\item{grid}{grid values for lambda, Default: 10^seq(4, -4, length = 100)}
 }
 \value{
 list()

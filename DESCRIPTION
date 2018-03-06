@@ -1,7 +1,7 @@
 Package: oetteR
 Type: Package
 Title: Collection of personal R functions
-Version: 0.1.0
+Version: 0.2.0
 Author: Bjoern Oettinghaus
 Maintainer: Bjoern Oettinghaus <bjoern.oettinghaus@gmail.com>
 Description: Collection of functions I frequently use
@@ -40,6 +40,16 @@ Imports:
   , tabplot
   , tibble
   , tidyr
+  , webshot
+  , ISLR
+  , e1071
+  , gamlss
+  , randomForest
+  , rpart
+  , ROCR
+  , caret
+  , rpart.plot
+  , RColorBrewer
 Suggests: testthat,
     knitr,
     rmarkdown

@@ -18,6 +18,12 @@ f_plot_pretty_points(df, col_x, col_y, col_facet = NULL, size = 4,
 
 \item{size}{size of points, Default: 4}
 
+\item{title}{character vector, Default: NULL}
+
+\item{x_title}{character vector, Default: col_x}
+
+\item{y_title}{character vector, Default: col_y}
+
 \item{...}{arguments passed to facet_wrap()}
 }
 \value{

@@ -374,6 +374,7 @@ f_manip_data_2_model_matrix_format = function(data
 #' @param bin_labels labels for the bins from low to high, Default: c("LL",
 #'   "ML", "M", "MH", "HH")#' @param center boolean, Default: T
 #' @param scale boolean, Default: T
+#' @param center boolean, Default: T
 #' @param transform boolean, Default: T
 #' @return dataframe
 #' @examples

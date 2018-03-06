@@ -324,7 +324,7 @@ f_stat_group_ana = function(data_ls
                               , static_plots = T
                               , alluvial = T
                               , alluvial_thresh_p_val = 0.05
-                              , alluvial_thres_diff_perc = 7.5
+                              , alluvial_thresh_diff_perc = 7.5
                               , max_alluvial_flows = 1500
                               , tabplot = T
                               , return_taglist = F
@@ -462,7 +462,7 @@ f_stat_group_ana = function(data_ls
 
     var_alluvial = df_comb %>%
       arrange( desc(diff_perc) ) %>%
-      filter( p_value <= alluvial_thresh_p_val, diff_perc >= alluvial_thres_diff_perc ) %>%
+      filter( p_value <= alluvial_thresh_p_val, diff_perc >= alluvial_thresh_diff_perc ) %>%
       .$variable
 
     var_alluvial = c( col_group, var_alluvial )
@@ -495,7 +495,7 @@ f_stat_group_ana = function(data_ls
                                          , title = paste('Alluvial Plot ( P <'
                                                          , alluvial_thresh_p_val
                                                          , ', difference % >'
-                                                         , alluvial_thres_diff_perc
+                                                         , alluvial_thresh_diff_perc
                                                          ,')')
                                          , fig.width = fig.width
                                          , fig.height = fig.height

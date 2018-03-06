@@ -5,8 +5,14 @@
 
 #' @title generate a most distinctive color scale
 #' @description based on RColorBrewer colours of length 74
-#' for RGB colors see {rapidtables}(https://www.rapidtables.com/web/color/index.html)
-#' @param  colors boolean include color
+#' for RGB colors see {rapidtables}(https://www.rapidtables.com/web/color/index.html).
+#' Basically strings a couple of RColorBrewer palettes together.
+#' @param greys boolean, include grey colors, Default: TRUE
+#' @param reds boolean, include red colors, Default: TRUE
+#' @param blues boolean, include blue colors, Default: TRUE
+#' @param greens boolean, include green colors, Default: TRUE
+#' @param faint boolean, include faint colors, Default: TRUE
+#' @param only_unique boolean, do not allow color repetitions, Default: FALSE
 #' @return vector with HEX colours
 #' @rdname f_plot_col_vector74
 #' @export
@@ -167,8 +173,9 @@ f_plot_adjust_col_vector_length = function( n = 74, col_vector = f_plot_col_vect
 #'@param col_vector vector with RGB colors, Default:
 #'  f_plot_adjust_col_vector_length(100, RColorBrewer::brewer.pal(name =
 #'  "Dark2", n = 8))
-#'@param p_val boolean, Default: T#'@param ... additional arguments
-#'  passed to labs()
+#'@param p_val boolean, Default: T
+#'@param y_max double, requires aut_range == F,  Default: 100
+#'@param ... additional arguments passed to labs()
 #'@return plot object
 #' @examples
 #' \dontrun{
@@ -592,6 +599,7 @@ f_plot_time = function(variable
 #' @param output_file file_name of the html file, without .html suffix
 #' @param title character vector of html document title, Default: 'Plots'
 #' @param quiet bollean, suppress markdown console print output, Default: FALSE
+#' @param ... additional arguments passed to rmarkdown::render argument params
 #' @examples
 #'
 #' # type = taglist---------------------------------------------------------------
@@ -797,6 +805,9 @@ f_plot_obj_2_html = function(obj_list
 #' @param col_y character vector denoting y axis values
 #' @param col_facet character vector denoting facetting column
 #' @param size size of points, Default: 4
+#' @param title character vector, Default: NULL
+#' @param x_title character vector, Default: col_x
+#' @param y_title character vector, Default: col_y
 #' @param ... arguments passed to facet_wrap()
 #' @return plot
 #' @details Code adapted from \url{https://drsimonj.svbtle.com/pretty-scatter-plots-with-ggplot2}
