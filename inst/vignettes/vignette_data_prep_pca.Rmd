@@ -82,8 +82,7 @@ pca_ls = f_pca( data_ls
              , scale = T
              , use_boxcox_tansformed_vars = T
              , include_ordered_categoricals = T
-             # drop components that explain less variance than the threshold
-             , threshold_vae_for_pc_perc = 0 )
+             )
 
 
 ```
