@@ -13,6 +13,13 @@ output:
     theme: sandstone
     df_print: kable  
     code_folding: show 
+params:
+  map_dimension: 20
+  n_iterations: 1000
+  recalculate_map: F
+  recalculate_no_cluters: F
+  
+  
 ---
 
 ```{r setup, include=FALSE}
@@ -56,8 +63,8 @@ We will work with the `kohonen` package documentation in order to get it to work
 ```{r packages_n_stuff}
 require(tidyverse)
 require(magrittr)
-
-setwd('C:\\Users\\erbla\\OneDrive\\R\\SOM')
+require(factoextra)
+require(kohonen)
 
 #source('hclust R Version.R')
 
@@ -71,20 +78,27 @@ col_vector = unlist(mapply(brewer.pal, qual_col_pals$maxcolors, rownames(qual_co
 
 ```{r variables}
 
-# data = ISLR::Auto %>%
-#   select(-name) %>%
-#   mutate(origin = as.factor(origin) )
 
 data = diamonds 
 
+map_dimension           = params$map_dimension 
+n_iterations            = params$n_iterations
+recalculate_map         = params$recalculate_map
+recalculate_no_clusters = params$recalculate_no_clusters
 
-map_dimension = 20
 
-n_iterations = 1000
+# print parameters
+tibble( variables = c('map_dimension'
+                  , 'n_iterations'
+                  , 'recalculate_map'
+                  , 'recalculate_no_clusters')
+        , values = c(map_dimension
+                  , n_iterations
+                  , recalculate_map
+                  , recalculate_no_clusters) ) %>%
+  knitr::kable()
 
-recalculate_map = T
 
-recalculate_no_clusters = T
 
 ```
 
@@ -374,29 +388,6 @@ pred = tibble( map_loc = m$unit.classif) %>%
 data_pred = data %>%
   bind_cols(pred)
 
-# plot numericals absolute values
-
-# d_plot = data_pred %>%
-#   as_tibble() %>%
-#   select( one_of(numerics), cluster ) %>%
-#   gather(key = 'key', value = 'value', one_of(numerics) )
-# 
-# medians = d_plot %>%
-#   group_by(key, cluster) %>%
-#   summarize_all( median)
-# 
-# ggplot(d_plot, aes(x = as.factor(cluster)
-#                    , y = value) ) +
-#   geom_violin( aes( fill = as.factor(cluster)) ) +
-#   geom_crossbar( data = medians
-#                  , mapping = aes(x = as.factor(cluster)
-#                                  ,ymin = value
-#                                  ,ymax = value)) +
-#   facet_wrap(~key
-#              , scales = 'free_y'
-#              , ncol = 1)+
-#   labs(title = 'Absolute Values of\nnumeric variables'
-#        ) 
 
 # plot numericals scaled values
 

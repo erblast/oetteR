@@ -25,6 +25,10 @@ f_html_filename_2_link()
 dir()[1:5]
 f_html_filename_2_link(dir()[1:5])
 
+file_path = dir( getwd(), full.names=TRUE)[2]
+file_path
+f_html_filename_2_link(file_path = file_path)
+
 }
 \seealso{
 \code{\link[stringr]{str_replace_all}}

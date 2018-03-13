@@ -102,3 +102,24 @@ f_datatable_universal = function(df
   return(dt)
 }
 
+#' @title convert dataframe to DT:datatable with minimal features
+#' @param df PARAM_DESCRIPTION
+#' @param escape boolean, escape html content, Default:FALSE
+#' @return DT::datatable
+#' @examples
+#' f_datatable_minimal(mtcars)
+#' @seealso
+#'  \code{\link[DT]{datatable}}
+#' @rdname f_datatable_minimal
+#' @export
+#' @importFrom DT datatable
+f_datatable_minimal = function(df, escape = F ){
+
+  dt = DT::datatable( df , escape = escape, rownames = FALSE, options = list( dom = ''
+                                                                              , page_length = length(df)) )
+
+  return(dt)
+}
+
+
+

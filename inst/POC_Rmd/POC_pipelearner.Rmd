@@ -1,0 +1,421 @@
+---
+title: "Pipelearner for classification"
+author: "OEB"
+date: "April 25, 2017"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    toc_depth: 3
+    collapsed: false
+    smooth_scroll: false
+    number_sections: true
+    theme: sandstone
+    df_print: tibble  
+    code_folding: show 
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+```{r install, eval=FALSE}
+
+# install.packages("devtools")
+# devtools::install_github("drsimonj/pipelearner")
+
+```
+
+
+```{r libraries, message=FALSE, warning=F, echo=F}
+
+require(pipelearner)
+require(tidyverse)
+require(knitr)
+require(modelr)
+require(randomForest)
+require(ROCR)
+require(gbm)
+require(xgboost)
+require(stringr)
+require(e1071)
+
+```
+
+# Introduction
+
+This is an example on how we could use `pipelearner` for a classification modelling pipeline. `pipelearner` has some limitations but it provides a good syntax and an introduction to working with modelling pipelines inside dataframes. We can also write thes modelling dataframes ourselves using `rsample`. Then we have more control over what is actually going on. And control how many models we keep in memory. There is a good introduction to pipelearner on its [github page](https://github.com/drsimonj/pipelearner).
+
+
+# Sample Data
+
+## Table
+
+```{r, message=T, cache=TRUE}
+
+data_url <- 'https://archive.ics.uci.edu/ml/machine-learning-databases/breast-cancer-wisconsin/breast-cancer-wisconsin.data'
+
+d <- read_csv(
+  data_url,
+  col_names = c('id', 'thickness', 'size_uniformity',
+                'shape_uniformity', 'adhesion', 'epith_size',
+                'nuclei', 'chromatin', 'nucleoli', 'mitoses', 'cancer')) %>% 
+  select(-id) %>%            # Remove id; not useful here
+  filter(nuclei != '?') %>%  # Remove records with missing data
+  mutate_all(as.numeric) %>%
+  mutate(cancer = cancer == 4,
+         cancer = as.numeric(cancer),
+         cancer = as.factor(cancer) )  # one-hot encode 'cancer' as 1=malignant;0=benign
+
+d = as_tibble(d)
+```
+
+## Histograms
+
+```{r histograms for classifier, out.width='50%',  warning=FALSE, message=FALSE, fig.show='hold'}
+
+y_scale = scale_y_continuous( limits = c(0,nrow( filter(d, cancer==1)) ))
+
+for(col in names(d)[-ncol(d)] ) {
+  print(col)
+  p = ggplot(d) +
+    geom_freqpoly(aes_string(col, colour = 'cancer'), size = 1.5) +
+    labs ( x = col) +
+    y_scale
+  
+  print(p)
+
+}
+
+```
+
+
+# Pipelearner
+
+Here we create the `pipelearner` object and add the cross validation pairs. We have to use `set.seed()` here in order to maintain consistent results. As we will see further down the performance of each model is very similar and depending on how the data is split to create the cross validation pairs a different model might come out on top. In practice one would have to do 10 times 10 validation pairs to confirm the results. `pipelearner` does not offer this functionality but `rsample` and `caret` do.
+
+```{r}
+
+set.seed(1)
+
+pl= pipelearner(d) %>%
+  learn_cvpairs( crossv_kfold, k = 10 ) 
+
+pl
+```
+
+
+```{r cache= T}
+
+no_vars = ncol(d)-1
+mtry_vec = c(no_vars/3, no_vars/4, no_vars/5, sqrt(no_vars))
+
+pl_m = pl %>%
+  learn_models( glm, cancer~., family = 'binomial' ) %>%
+  learn_models(randomForest::randomForest,cancer~.
+               , ntree = 1000
+               , mtry = mtry_vec)%>%
+  learn_models(svm, cancer~.
+               , cost = c(.001,0.1,1,10,100)
+               , kernel = c('linear', 'radial')
+               , probability = T ) %>%
+  learn_models(naiveBayes, cancer~.)
+  # learn_models(gbm, cancer~., distribution = 'bernoulli', n.trees = 5000, interaction.depth = c(4,6), shrinkage = c(0.001, 0.01, 0.1, 0.2, 1)) %>%
+    
+
+pl_m
+```
+
+Note that you can pass arguments to the model kwargs passed via the `...` argument
+
+## Adding models that do not support a formula syntax such as `xgboost`
+
+We have to write a wrapper that translates the formula syntax to a matrix synthax.
+
+```{r}
+
+wr_xgboost = function(data, formula, diagnose = F, ... ){
+  
+  if(diagnose){
+    print(data)
+    print(formula)
+  }
+  
+  data_matrix = model.matrix( formula, data)
+  
+  col_label = oetteR::f_manip_get_response_variable_from_formula(formula) %>%
+    as.character()
+  
+  #xgb wants numeric 0,1 
+  label = oetteR::f_manip_factor_2_numeric( data[[col_label]] )
+  
+  m = xgboost( data_matrix, label, ... )
+
+}
+
+pl_m_xgb = pl_m %>%
+  learn_models( wr_xgboost, cancer~., nrounds = 5, objective = 'binary:logistic', diagnose = F )
+
+```
+
+
+`learn()` starts the final training of the models
+
+
+```{r}
+
+pl_learn = pl_m_xgb %>%
+  learn()
+
+```
+
+
+## Adding model performance metrics
+
+### Predictions
+
+Adding predictions to the dataframe using `modelR::add_predictions()` does not return predictions in a uniform way when predicting categorical variables. We therefore have to write out own function in which we adjust `predict()` according to the fitted model. Ideally for categorical variables we would like to have the propability. The following function uses the correct `predict()` function for each model with the parameters to return class propabilities.
+
+```{r}
+
+return_predictions = function(test, fit, model_type, formula, diagnose = F){
+  
+  if(diagnose == T){
+    print(model_type)
+    print(names(fit))
+    print(nrow(test))
+  }
+  
+  test_df = as.data.frame(test)
+  
+  if(model_type == 'glm'){
+    preds = predict(fit, newdata =  test_df, type = 'response') 
+  }
+  
+  if(model_type == 'randomForest'){
+    preds = predict(fit, newdata = test_df, type = 'prob')[,2] 
+  }
+  
+  if(model_type == 'wr_xgboost'){
+    
+    data_matrix = model.matrix( formula, test_df )
+    
+    preds = predict(fit, data_matrix)
+  }
+  
+  if(model_type == 'svm'){
+    pred_obj = predict(fit, newdata = test_df, probability = T )
+    at = attributes(pred_obj)
+    preds = at$probabilities[,2]
+  }
+  
+  if(model_type == 'naiveBayes'){
+    preds = predict(fit, newdata = test_df, type = 'raw' )[,2]
+  }
+  
+  # this does not work yet
+  if(model_type == 'gbm'){
+    preds = predict(fit, newdata = test_df, type = 'response' )
+  }
+  
+  if(! length(preds) == nrow(test_df)){
+    print(model_type)
+    print(length(preds))
+    print(nrow(test_df))
+    print(preds)
+    stop('predictions and testdata do not have same lengths')
+  }
+  
+
+  return( preds )
+}
+
+
+
+```
+
+### Model Metrics
+
+The `broom` package is not compatible yet with all modelling packages. We therefore need to write our own performance metric functions, preferrably based on the actual predictions. For categorical response variables the AUC of an ROC plot is best used if true negative are equallally important as true positive predictions. We can easily modify the function below since the `ROC` package supports a number of preformance metrics. See `?ROC::performance()`
+
+```{r}
+
+return_auc = function(pred, test, response_var) {
+  
+  #untangle test and pred objects
+  
+  if(is.tibble(pred)){
+    pred = pred[[1]]
+  }
+  
+  
+  pred_vals = pred
+
+  test_vals = as.vector( test$data[test$idx, response_var] )
+  test_vals = test_vals[[1]]
+
+
+  pr = prediction( pred_vals, test_vals )
+
+  p = performance( pr, measure='auc')
+  return( p@y.values[[1]] )
+
+}
+
+
+```
+
+
+### Visualisation of Model Performance
+
+Here we visualise the auc of each cross validation pair for each model
+
+```{r}
+pl_m_t = pl_learn %>%
+  mutate( pred = pmap( list(test = test, fit = fit, model_type = model)
+                       , return_predictions
+                       , formula = cancer~.
+                       , diagnose = F)
+          , models.id = as.integer(models.id)
+          , models.id = as.factor(models.id)
+          ) 
+
+
+pl_m_t = pl_m_t %>%
+  mutate( auc = pmap( list(pred, test, target), return_auc )) %>%
+  unnest(auc)
+
+# this funciton looks for pairings with significant differences
+oetteR::f_plot_generate_comparison_pairs( pl_m_t, 'auc', 'models.id')
+
+pl_m_t %>%
+  ggplot( aes(models.id, auc ) ) +
+  geom_boxplot( aes( fill = model ), color = 'black' ) +
+  ggbeeswarm::geom_beeswarm( aes(color = cv_pairs.id), priority='density', cex=1.5 ) +
+  ggpubr::stat_compare_means( ) +
+  scale_fill_brewer( palette = 'Greys') +
+  scale_color_manual( values = oetteR::f_plot_col_vector74(greys = F, only_unique = T) ) +
+  ylim( c (0.95, 1.01) )
+
+
+
+```
+
+The high p value tells us that the performance of all models is within the same range and none is significantly better than the other. However, there seem to be some subtle differences.  We see a difference between the various versions of the `svm` models which at first glance also seem to be the best performing models while `naiveBayes` seems to have the worst performance. In this case we would chose one of the simpler models `glm` or `naiveBayes`, since `glm` also has the best overall performance we would go with `glm`
+
+Recall the model performances are really close. If we were to resplit our dataset into a new set of cross vlaidation pairs the performance ranking is sure to shift.
+
+
+
+# Calling a vote
+
+Different models might catch different aspects of the data and like random forest or xgb asks all the trees they generate for their vote we can do this with our set of models that we just generated.
+Why this works most of the time is described [here](https://mlwave.com/kaggle-ensembling-guide/).
+
+This practice is usually used in machine learning competitions, but it leaves you with a model that is really hard to interpret and will be difficult to put in production.
+
+## Select the best models
+
+```{r}
+pl_top = pl_m_t %>%
+  group_by( models.id, model ) %>%
+  summarise( mean_auc = mean(auc) ) %>%
+  group_by( model ) %>%
+  mutate( rank = rank( desc(mean_auc) ) ) %>%
+  filter( rank == 1) %>%
+  arrange( desc(mean_auc) )
+
+pl_top %>%
+  select( models.id, model, mean_auc) %>%
+  knitr::kable()
+```
+
+## Vote
+
+We first have to unnest the predictions for each cross validation pair, then we assign an id to each prediction. Then by grouping over the cross validation pair id and the observation id we can calculate a mean prediction for each single observation in the data.
+
+Finally we add the test data for each cross validation pair and the target column to use `return_auc`
+
+```{r}
+
+pl_top_vote = pl_top %>%
+  left_join( pl_m_t ) %>%
+  unnest(pred, .drop = FALSE) %>%
+  group_by( model, cv_pairs.id) %>%
+  mutate( id = row_number() ) %>%
+  group_by( cv_pairs.id, id ) %>%
+  summarise( mean_pred = mean(pred) )
+
+# we cannot group on lists so we have to extract the info an rejoin
+pl_cv_info = pl_top %>%
+  left_join( pl_m_t ) %>%
+  ungroup() %>%
+  select( cv_pairs.id, test, target) %>%
+  group_by(cv_pairs.id) %>%
+  mutate( rwn = row_number() ) %>%
+  filter( rwn == 1) %>%
+  select( - rwn )
+
+pl_vote_auc = pl_top_vote %>%
+  group_by(cv_pairs.id) %>%
+  nest( mean_pred, .key = 'pred' ) %>%
+  left_join( pl_cv_info ) %>%
+  mutate( auc = pmap_dbl( list(pred, test, target), return_auc)
+          , models.id = 'Vote'
+          , model = 'Vote' )  %>%
+  select(cv_pairs.id, models.id, model, auc )
+
+# rowbind with previous results
+
+pl_vote = pl_m_t %>%
+  select(cv_pairs.id, models.id, model, auc ) %>%
+  bind_rows(pl_vote_auc) %>%
+  mutate( models.id = oetteR::f_manip_factor_2_numeric(models.id)
+          , models.id = as.factor(models.id )
+          , model = fct_relevel( model, 'glm', 'randomForest', 'svm', 'naiveBayes', 'wr_xgboost') )
+
+
+
+```
+
+
+## Plot Vote
+
+```{r}
+
+pl_vote %>%
+  ggplot( aes(models.id, auc ) ) +
+  geom_boxplot( aes( fill = model ), color = 'black' ) +
+  ggbeeswarm::geom_beeswarm( aes(color = cv_pairs.id), priority='density', cex=1.5 ) +
+  ggpubr::stat_compare_means( ) +
+  scale_fill_brewer( palette = 'Greys') +
+  scale_color_manual( values = oetteR::f_plot_col_vector74(greys = F, only_unique = T) ) +
+  ylim( c (0.95, 1.01) )
+
+
+```
+
+## Means
+
+```{r}
+
+pl_top = pl_vote %>%
+  group_by( models.id, model ) %>%
+  summarise( mean_auc = mean(auc) ) %>%
+  group_by( model ) %>%
+  mutate( rank = rank( desc(mean_auc) ) ) %>%
+  filter( rank == 1) %>%
+  arrange( desc(mean_auc) )
+
+pl_top %>%
+  select( models.id, model, mean_auc) %>%
+  knitr::kable()
+
+
+```
+
+In this particular case voting did not improve but only averaged the results. One possibility for it failing could be, that if we look at the performance of the single cross validation pairs that they rank very similar for each model. For example the test set for `cv_pairs.id == 1` seems to be particularly hard to predict.

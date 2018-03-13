@@ -1,0 +1,106 @@
+---
+title: "Content"
+author: "Bjoern Oettinghaus"
+date: "27 Dezember 2017"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
+
+```
+
+
+```{r}
+
+suppressPackageStartupMessages( require(tidyverse) )
+suppressPackageStartupMessages( require(oetteR) )
+
+```
+
+# Github
+
+[link to the oetteR github page](https://github.com/erblast/oetteR)
+
+here you can find an introduction to the package functions and links to rendered versions of the vignettes and rendered versions of most of the Rmd POCs
+
+# Vignettes
+
+These vignettes give you an overview about what functions are in the package and how you can use them
+
+```{r}
+
+wd = file.path( system.file(package = 'oetteR') )
+folder_Rmd = 'vignettes'
+folder_html = 'vignettes'
+
+f_html_table_html_and_rmd_link( wd, folder_Rmd, folder_html )
+
+```
+
+# POC Rmd
+
+These are some proof of concepts that I have drafted as Rmd files.
+
+```{r}
+
+wd = file.path( system.file(package = 'oetteR') )
+folder_Rmd = 'POC_Rmd'
+folder_html = 'POC_Rmd'
+
+f_html_table_html_and_rmd_link( wd, folder_Rmd, folder_html )
+
+```
+
+# POC R
+
+These are some proof of concepts that I have drafted out as plain R files
+
+They can be found [here]( `r file.path( wd, 'POC_R' )` )
+
+```{r}
+
+R_files = tibble( file = dir( file.path( wd, 'POC_R' ), pattern = '\\.R', full.names = FALSE ) ) %>%
+  mutate( path = dir( file.path( wd, 'POC_R'  ), pattern = '\\.R', full.names = TRUE )
+          , link =  map_chr( path, function(x) f_html_filename_2_link( file_path = x ) )
+          , file_prefix = str_split(file, '\\.')
+          , file_prefix = map_chr( file_prefix, function(x) x[[1]] )
+  ) %>%
+  select(link)
+
+
+f_datatable_minimal(R_files)
+
+```
+
+# POC Rmd Shiny
+
+These are some proof of concepts for shiny functionality which I drafted as Rmd files.
+
+They can be found [here]( `r file.path( wd, 'POC_Rmd_shiny' )` )
+
+```{r}
+
+R_files = tibble( file = dir( file.path( wd, 'POC_Rmd_shiny' ), pattern = '\\.R', full.names = FALSE ) ) %>%
+  mutate( path = dir( file.path( wd, 'POC_Rmd_shiny'  ), pattern = '\\.R', full.names = TRUE )
+          , link =  map_chr( path, function(x) f_html_filename_2_link( file_path = x ) )
+          , file_prefix = str_split(file, '\\.')
+          , file_prefix = map_chr( file_prefix, function(x) x[[1]] )
+  ) %>%
+  select(link)
+
+
+f_datatable_minimal(R_files)
+
+```
+
+
+<br></br>
+<br></br>
+<br></br>
+<br></br>
+<br></br>
+<br></br>

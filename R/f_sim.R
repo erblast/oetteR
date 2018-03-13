@@ -39,9 +39,9 @@ f_sim_profit = function( output_file = 'profit_simulation'
                          , params = 'ask'){
 
   path_rmd = file.path( system.file(package = 'oetteR')
-                        , 'Rmd examples' )
+                        , 'simulations' )
 
-  file_rmd = file.path( path_rmd, 'example_portfolio_development.Rmd' )
+  file_rmd = file.path( path_rmd, 'simulation_portfolio_development.Rmd' )
 
   output_file_html = paste0( output_file, '.html')
 
@@ -58,4 +58,6 @@ f_sim_profit = function( output_file = 'profit_simulation'
   suppressMessages(
     file.remove( file.path( path_rmd, output_file_html ) )
   )
+
+  browseURL( file.path( '.', output_file_html) )
 }
