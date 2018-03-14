@@ -13,6 +13,7 @@ output:
     theme: sandstone
     df_print: tibble  
     code_folding: show 
+    self_contained: true
 editor_options: 
   chunk_output_type: console
 ---
@@ -55,7 +56,7 @@ This is an example on how we could use `pipelearner` for a classification modell
 
 ## Table
 
-```{r, message=T, cache=TRUE}
+```{r, message=T }
 
 data_url <- 'https://archive.ics.uci.edu/ml/machine-learning-databases/breast-cancer-wisconsin/breast-cancer-wisconsin.data'
 
@@ -109,7 +110,7 @@ pl
 ```
 
 
-```{r cache= T}
+```{r}
 
 no_vars = ncol(d)-1
 mtry_vec = c(no_vars/3, no_vars/4, no_vars/5, sqrt(no_vars))
@@ -154,6 +155,7 @@ wr_xgboost = function(data, formula, diagnose = F, ... ){
   label = oetteR::f_manip_factor_2_numeric( data[[col_label]] )
   
   m = xgboost( data_matrix, label, ... )
+  
 
 }
 
@@ -419,3 +421,12 @@ pl_top %>%
 ```
 
 In this particular case voting did not improve but only averaged the results. One possibility for it failing could be, that if we look at the performance of the single cross validation pairs that they rank very similar for each model. For example the test set for `cv_pairs.id == 1` seems to be particularly hard to predict.
+
+
+```{r}
+
+# xgboost() saves its models on disk
+if( file.exists('xgboost.model') ) file.remove('xgboost.model')
+
+```
+

@@ -14,12 +14,14 @@ output:
     df_print: kable  
     code_folding: show 
 params:
+  
+  
   map_dimension: 20
   n_iterations: 1000
-  recalculate_map: F
-  recalculate_no_cluters: F
-  
-  
+  recalculate_map: FALSE
+  recalculate_no_clusters: FALSE
+editor_options: 
+  chunk_output_type: inline
 ---
 
 ```{r setup, include=FALSE}
@@ -61,6 +63,7 @@ http://en.proft.me/2016/11/29/modeling-self-organising-maps-r/) does not explain
 We will work with the `kohonen` package documentation in order to get it to work for mixed (contineous and categorical) datasets. 
 
 ```{r packages_n_stuff}
+
 require(tidyverse)
 require(magrittr)
 require(factoextra)
@@ -154,6 +157,8 @@ names(data_list)
 distances
 
 # weight_layers = c( length(numerics), rep( 1, length(factors) ) )
+
+
 ```
 
 ## SOM

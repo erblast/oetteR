@@ -53,10 +53,12 @@ plotly::ggplotly(p)
 ```{r webshot_markdown }
 
 file_path = file.path( system.file(package = 'oetteR')
-                                   , 'Rmd examples'
-                                   , 'example_ggpubr.Rmd')
+                                   , 'POC_Rmd'
+                                   , 'POC_ggpubr.Rmd')
 
 rmdshot( file_path  )
+
+file.remove('webshot.png')
 
 ```
 

@@ -65,7 +65,7 @@ These functions start a shinyserver and let you run a simulation or a shiny app.
 - `f_shiny_multiview` runs a tool for analysing labeled groups in a data set  
 - `f_shiny_som` runs a tool for training self organizing maps. The subsequent clustering algorithm allows you to cluster only adjacent areas of the map.  
 
-You can pass your own data via the `data` argument to both functions. Or select from a variety of sample datasets if `data == NULL`.
+You can pass your own data via the `data` argument to both functions, or select from a variety of sample datasets if `data == NULL`.
 
 # Additional Content
 
@@ -74,6 +74,12 @@ When I try out a new package or get stuck somewhere with a problem I like to wri
 
 Some of the POCs are also posted on Rpubs
 
+- [Pipelearner for classification](http://rpubs.com/erblast/369542)  
+- [clickable file links in DT::datatable](http://rpubs.com/erblast/369527)  
+- [mix taglist and plots](http://rpubs.com/erblast/369525)  
+- [ggalluvial](http://rpubs.com/erblast/369522)  
+- [ggpubr](http://rpubs.com/erblast/369520)  
+- [SOM with connectivity restrains](http://rpubs.com/erblast/SOM)  
 
 
 

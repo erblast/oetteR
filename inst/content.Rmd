@@ -19,6 +19,9 @@ knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
 suppressPackageStartupMessages( require(tidyverse) )
 suppressPackageStartupMessages( require(oetteR) )
 
+wd = file.path( system.file(package = 'oetteR') )
+
+
 ```
 
 # Github
@@ -31,9 +34,11 @@ here you can find an introduction to the package functions and links to rendered
 
 These vignettes give you an overview about what functions are in the package and how you can use them
 
+They can be found [here]( `r file.path( wd, 'vignettes' )` )
+
+
 ```{r}
 
-wd = file.path( system.file(package = 'oetteR') )
 folder_Rmd = 'vignettes'
 folder_html = 'vignettes'
 
@@ -45,9 +50,11 @@ f_html_table_html_and_rmd_link( wd, folder_Rmd, folder_html )
 
 These are some proof of concepts that I have drafted as Rmd files.
 
+They can be found [here]( `r file.path( wd, 'POC_Rmd' )` )
+
+
 ```{r}
 
-wd = file.path( system.file(package = 'oetteR') )
 folder_Rmd = 'POC_Rmd'
 folder_html = 'POC_Rmd'
 

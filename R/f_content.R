@@ -51,9 +51,6 @@ f_content_render = function( overwrite = F
   rmds = f_content_get_file_type( 'Rmd' , folder = folder)
   htmls = f_content_get_file_type( 'html' , folder = folder)
 
-  print(rmds)
-  print(path_vign)
-
   if( overwrite ){
     render = rmds
   }else{
@@ -84,7 +81,7 @@ f_content_render = function( overwrite = F
 #' }
 #' @rdname f_content
 #' @export
-f_content = function( render_missing = F ){
+f_content = function( render_missing = F, overwrite = T ){
 
   if(render_missing){
 
@@ -95,9 +92,11 @@ f_content = function( render_missing = F ){
 
   path_oetteR = system.file(package = 'oetteR')
 
-  if( ! file.exists( file.path( path_oetteR, 'content.html') ) ){
+  if( ! file.exists( file.path( path_oetteR, 'content.html') )
+      | overwrite == TRUE ){
 
-    rmarkdown::render( input = file.path( path_oetteR, 'content.Rmd') )
+    rmarkdown::render( input = file.path( path_oetteR, 'content.Rmd')
+                       , quiet = T)
 
   }
 
