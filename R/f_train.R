@@ -228,6 +228,13 @@ f_train_lasso_manual_cv = function(data
 
   # standardize data------------------------------------------------------
 
+  # if binomial distribution is asked of glmnet Tweedie distribution
+  # dont make sense.
+
+  if (family == 'binomial'){
+    p = NULL
+  }
+
   response_var = f_manip_get_response_variable_from_formula(formula)
   vars = f_manip_get_variables_from_formula(formula)
 
@@ -392,7 +399,7 @@ f_train_lasso_manual_cv = function(data
     mutate( lambda = log(lambda)
             , distribution = as.factor(distribution) )
 
-  p_rtmse = pl_pred_plot %>%
+  p_mse = pl_pred_plot %>%
     ungroup() %>%
     mutate( lambda = log(lambda)
             , distribution = as.factor(p) ) %>%
@@ -434,7 +441,7 @@ f_train_lasso_manual_cv = function(data
 
   # return --------------------------------------------------------------
 
-  ret = list( plot_rtmse = p_rtmse
+  ret = list( plot_rtmse = p_mse
               , plot_coef = p_coef
               , tib_all = pl_fin
               , tib_min = pl_min)
@@ -445,7 +452,7 @@ f_train_lasso_manual_cv = function(data
 
 #' @title wrapper for cv.glmnet and cv.HDtweedie
 #' @description performs lasso for different distributions, returns a list of
-#'   formulas that result in the lowest rtmse for at least one of the
+#'   formulas that result in the lowest mse for at least one of the
 #'   distributions. Graphical output allows side-by-side comparison of lasso
 #'   behaviour for all distributions.
 #' @param data dataframe
@@ -455,21 +462,54 @@ f_train_lasso_manual_cv = function(data
 #'   2)
 #' @param k fold cross validation, Default: 5
 #' @param family family parameter for glmnet, can be a vector, Default:
-#'   'gaussian'
+#'   'gaussian'. For classification use 'binomial'. Performance metric MSE will be
+#'   replaced with AUC.
 #' @param ... arguments passed to cv.glmnet, cv.HDtweedie such as lambda or n_lambda
 #' @return list()
 #' @details Columns containing NA will be removed, formula cannot be constructed
-#'   with '.'
-#' @examples
-#' data = MASS::quine
-#' formula = Days~.
+#'   with '.', use family = 'binomial for classification'.
 #'
-#' lasso = f_train_lasso(data, formula, p = NULL, k = 1
+#'   !!! Watchout the Data will not be scaled automatically.
+#'
+#' @examples
+#'
+#' #regular regression
+#'
+#' data = MASS::quine
+#' formula = Days ~ Eth + Sex + Age + Lrn
+#'
+#' # here we scale, center and create sensibly named dummy variables
+#' trans_ls = f_manip_data_2_model_matrix_format( data, formula )
+#'
+#'
+#' lasso = f_train_lasso(trans_ls$data, trans_ls$formula, p = NULL, k = 3
 #'                      , lambda = 10^seq(3,-3,length= 25) )
-#' lasso = f_train_lasso(data, formula, p = 1.5, k = 2
+#' lasso = f_train_lasso(trans_ls$data, trans_ls$formula, p = 1.5, k = 3
 #'                      , lambda = 10^seq(3,-3,length= 25) )
 #'
 #' lasso
+#'
+#'
+#' #classification
+#'
+#' # here we transform double to factor
+#' data_ls = mtcars %>%
+#'   f_clean_data()
+#'
+#' formula = vs ~ cyl + mpg + disp + hp + drat + wt + qsec + am + gear + carb
+#'
+#' # here we scale, center and create sensibly named dummy variables
+#' trans_ls = f_manip_data_2_model_matrix_format( data_ls$data, formula )
+#'
+#' lasso = f_train_lasso( trans_ls$data
+#'                       , trans_ls$formula
+#'                       , p = NULL
+#'                       , family = 'binomial'
+#'                       , k = 3
+#'  )
+#'
+#' lasso
+#'
 #' @seealso
 #',\code{\link[HDtweedie]{HDtweedie}}
 #',\code{\link[glmnet]{glmnet}}
@@ -525,11 +565,17 @@ f_train_lasso = function(data
     y = data[[response_var]]
     x = model.matrix(formula, data)[,-1]
 
+    if( family == 'binomial'){
+      type.measure = 'auc'
+    }else{
+      type.measure = 'deviance'
+    }
+
     m =glmnet::cv.glmnet( x, y
                           , alpha = 1
                           , family = family
                           , nfolds = k
-                          , type.measure = 'mse'
+                          , type.measure = type.measure
                           , standardize = FALSE
                           , ... )
 
@@ -692,7 +738,7 @@ f_train_lasso = function(data
   n_distributions = unique( pl_all$distribution ) %>% length
   n_coef          = unique( pl_all$coeff)         %>% length
 
-  p_rtmse = pl_all %>%
+  p_mse = pl_all %>%
     ungroup() %>%
     mutate( lambda = log(lambda)
             , distribution = as.factor(distribution) ) %>%
@@ -737,9 +783,26 @@ f_train_lasso = function(data
     labs( y = 'normalized coefficient values'
           ,x = 'log lambda')
 
+  # correct performance label for classification
+
+  if (family == 'binomial'){
+
+    pl_fin = pl_fin %>%
+      rename( auc = mse )
+
+    p_mse = p_mse +
+      labs( y = 'AUC' )
+
+    if( max(pl_fin$auc) > 1 ){
+      stop( 'maximum value of AUC > 1, reduce k, to reduce the numbe of cross validation sets' )
+    }
+
+  }
+
+
   # return --------------------------------------------------------------
 
-  ret = list( plot_mse = p_rtmse
+  ret = list( plot_mse = p_mse
               , plot_coef = p_coef
               , tib_all = pl_fin
               , formula_str_lambda_1se = formula_str_lambda_1se

@@ -82,4 +82,41 @@ test_that('lasso',{
   lasso
 })
 
+test_that( 'lasso classification',{
+
+  data_ls = mtcars %>%
+    f_clean_data()
+
+  formula = vs ~ cyl + mpg + disp + hp + drat + wt + qsec + am + gear + carb
+
+  trans_ls = f_manip_data_2_model_matrix_format( data_ls$data, formula )
+
+  lasso = f_train_lasso( trans_ls$data
+                         , trans_ls$formula
+                         , p = NULL
+                         , family = 'binomial'
+                         , k = 3
+                         )
+
+  lasso
+
+  expect_error({
+
+    lasso = f_train_lasso( trans_ls$data
+                           , trans_ls$formula
+                           , p = NULL
+                           , family = 'binomial'
+                           , k = 10
+    )
+
+  })
+
+
+  expect_true( max(lasso$tib_all$auc) <= 1 )
+
+
+})
+
+
+
 

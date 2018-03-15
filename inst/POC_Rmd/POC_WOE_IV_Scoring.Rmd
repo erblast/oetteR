@@ -1,0 +1,178 @@
+---
+title: "WOE, IV and Scorevalues"
+author: "OEB"
+date: "March 2018"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(echo = TRUE)
+
+```
+
+
+```{r libs}
+
+suppressPackageStartupMessages( require(scorecard) )
+suppressPackageStartupMessages( require(tidyverse) )
+suppressPackageStartupMessages( require(oetteR) )
+
+```
+
+
+# Introduction
+
+Weight of evidence (WOE), Information Value (IV) and Score values are common terms when you encounter credit risk modelling in the financial industry. Basically these terms describe certain practices when modelling credit risk with logistic regression and they have been around since the 1950. These techniques do not come up in more modern statistic books when teaching logistic regression, so I wonder what their advantages are. So I read up on them.
+
+## Sources
+
+### Low level introduction to WOE and IV
+- http://ucanalytics.com/blogs/data-visualization-case-study-banking/
+- http://ucanalytics.com/blogs/data-visualization-case-study-banking-part-2/
+- http://ucanalytics.com/blogs/case-study-example-banking-logistic-regression-3/
+- http://ucanalytics.com/blogs/information-value-and-weight-of-evidencebanking-case/
+
+### Scoring
+- http://ucanalytics.com/blogs/credit-scorecards-advanced-analytics-part-4/
+
+### Introduction to WOE and IV and a complementary R package
+- https://multithreaded.stitchfix.com/blog/2015/08/13/weight-of-evidence/
+
+
+## Weight of evidence
+
+This is basically a technique that can be applied if we have a binary response variable and any kind of predictor variable. We replace the response variable values with t
+
+TODO finish
+
+## Information Value
+
+```{r}
+
+tribble( ~`Information Value`, ~`Predictive Power`
+        , '< 0.02'          , 'useless for prediction'
+        , '0.02 - 0.1'      , 'weak predictor'
+        , '0.1 - 0.3'       , 'medium predictor'
+        , '0.3 - 0.5'       , 'strong predictor'
+        , '> 0.5'           , 'suspicious too good to be true') %>%
+  knitr::kable( align = c('cl') )
+
+```
+
+# WOE, IF, Scorecards implementation in R
+
+package: `scorecard`
+
+```{r}
+
+data('germancredit')
+
+data = germancredit %>%
+  as_tibble()
+
+summary(data)
+
+```
+
+# Missing Data
+
+No mising data in dataset
+
+```{r}
+
+Amelia::missmap(data)
+
+```
+
+
+# Select variables using information value
+
+```{r}
+
+iv = iv(data, y = 'creditability') %>%
+  as_tibble() %>%
+  mutate( info_value = round(info_value, 3) ) %>%
+  arrange( desc(info_value) )
+
+iv %>%
+  knitr::kable()
+
+
+vars = iv %>%
+  filter( info_value >= 0.02 )
+
+
+```
+
+
+# Weight of evidence binning
+
+```{r}
+
+bins = woebin(data, y = 'creditability')
+
+
+```
+
+## Examplatory Plot
+
+```{r}
+
+bins$duration.in.month %>%
+  knitr::kable()
+
+woebin_plot(bins$duration.in.month)
+
+```
+
+# Apply bins
+
+```{r}
+
+data_woe = woebin_ply( data, bins ) %>%
+  as_tibble()
+
+```
+
+
+# glm with lasso and crossvalidataion
+
+```{r}
+
+vars = names( select(data_woe, - creditability) )
+
+formula = as.formula( paste( 'creditability ~', paste(vars, collapse = '+') ) )
+
+lasso = oetteR::f_train_lasso( data = data_woe
+                               , p = NULL
+                               , formula = formula
+                               , k = 10
+                               , family = 'binomial'
+                               )
+
+
+```
+
+## Lasso vis 
+
+```{r}
+
+lasso$plot_mse
+
+lasso$plot_coef
+
+lasso$formula_str_lambda_1se
+
+lasso$tib_all %>%
+  filter(lambda == lambda_1se) %>%
+  select( lambda_1se, auc, n_coeff_before_lasso, n_coeff_after_lasso)
+
+```
+
+We can eliminate 6 out of 20 variables applying the lasso.
+
+
+

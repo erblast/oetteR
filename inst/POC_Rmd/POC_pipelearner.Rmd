@@ -48,7 +48,7 @@ require(e1071)
 
 # Introduction
 
-This is an example on how we could use `pipelearner` for a classification modelling pipeline. `pipelearner` has some limitations but it provides a good syntax and an introduction to working with modelling pipelines inside dataframes. We can also write thes modelling dataframes ourselves using `rsample`. Then we have more control over what is actually going on. And control how many models we keep in memory. There is a good introduction to pipelearner on its [github page](https://github.com/drsimonj/pipelearner).
+This is an example on how we could use `pipelearner` for a classification modelling pipeline. `pipelearner` has some limitations but it provides a good syntax and an introduction to working with modelling pipelines inside dataframes. We can also write thes modelling dataframes ourselves using `rsample`. Then we have more control over what is actually going on. And control how many models we keep in memory. There is a good introduction to `pipelearner` on its [github page](https://github.com/drsimonj/pipelearner).
 
 
 # Sample Data

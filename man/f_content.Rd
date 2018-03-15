@@ -4,7 +4,7 @@
 \alias{f_content}
 \title{opens an html index file for additional content}
 \usage{
-f_content(render_missing = F)
+f_content(render_missing = F, overwrite = T)
 }
 \arguments{
 \item{render_missing}{logical, Default: T}

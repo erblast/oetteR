@@ -1,4 +1,12 @@
 
+
+#==========================================================================================
+# These functions belwo have been written for e1071::tune, which make them a bot outdated,
+# nevertheless we might be able to reuse some of the code
+#
+
+
+
 f_rocr_get_optimal_cut_off_for_spec_tpr = function( rocr_performance_obj, min_tpr = 0.5 ){
   # calculates optimal cutoff value by maximizing the ratio between true positives
   # and false positives while preserving a minimum tpr percentage.

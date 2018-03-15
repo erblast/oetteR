@@ -19,7 +19,8 @@ performing lasso for tweedie distributions, Default: c(1, 1.25, 1.5, 1.75,
 \item{k}{fold cross validation, Default: 5}
 
 \item{family}{family parameter for glmnet, can be a vector, Default:
-'gaussian'}
+'gaussian'. For classification use 'binomial'. Performance metric MSE will be
+replaced with AUC.}
 
 \item{...}{arguments passed to cv.glmnet, cv.HDtweedie such as lambda or n_lambda}
 }
@@ -28,24 +29,55 @@ list()
 }
 \description{
 performs lasso for different distributions, returns a list of
-  formulas that result in the lowest rtmse for at least one of the
+  formulas that result in the lowest mse for at least one of the
   distributions. Graphical output allows side-by-side comparison of lasso
   behaviour for all distributions.
 }
 \details{
 Columns containing NA will be removed, formula cannot be constructed
-  with '.'
+  with '.', use family = 'binomial for classification'.
+
+  !!! Watchout the Data will not be scaled automatically.
 }
 \examples{
-data = MASS::quine
-formula = Days~.
 
-lasso = f_train_lasso(data, formula, p = NULL, k = 1
+#regular regression
+
+data = MASS::quine
+formula = Days ~ Eth + Sex + Age + Lrn
+
+# here we scale, center and create sensibly named dummy variables
+trans_ls = f_manip_data_2_model_matrix_format( data, formula )
+
+
+lasso = f_train_lasso(trans_ls$data, trans_ls$formula, p = NULL, k = 3
                      , lambda = 10^seq(3,-3,length= 25) )
-lasso = f_train_lasso(data, formula, p = 1.5, k = 2
+lasso = f_train_lasso(trans_ls$data, trans_ls$formula, p = 1.5, k = 3
                      , lambda = 10^seq(3,-3,length= 25) )
 
 lasso
+
+
+#classification
+
+# here we transform double to factor
+data_ls = mtcars \%>\%
+  f_clean_data()
+
+formula = vs ~ cyl + mpg + disp + hp + drat + wt + qsec + am + gear + carb
+
+# here we scale, center and create sensibly named dummy variables
+trans_ls = f_manip_data_2_model_matrix_format( data_ls$data, formula )
+
+lasso = f_train_lasso( trans_ls$data
+                      , trans_ls$formula
+                      , p = NULL
+                      , family = 'binomial'
+                      , k = 3
+ )
+
+lasso
+
 }
 \seealso{
 ,\code{\link[HDtweedie]{HDtweedie}}
