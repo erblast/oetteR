@@ -1,0 +1,111 @@
+---
+title: "regression with `caret`"
+author: "OEB"
+date: "December 29, 2017"
+output:
+  html_document:
+    toc: true
+    toc_depth: 3
+    toc_float: 
+      collapsed: false
+      smooth_scroll: false
+    number_sections: true
+    code_folding: show 
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+```
+
+```{r results = 'hide'}
+
+require(oetteR)
+require(tidyverse)
+
+```
+
+
+We will try out several regression models supported by caret and presented in `Applied Predictive Modelling`  
+
+- robust linear regression
+- lasso  
+- elastic net  
+- neuronal networks  
+- mars  
+- svm  
+
+# Data
+
+The `mlbench` package includes several simulated datasets that can be used as benchmarks
+
+```{r}
+
+set.seed(1)
+
+df = tibble( data = list(mlbench::mlbench.friedman1( 1000 )
+                         , mlbench::mlbench.friedman2( 1000 )
+                         , mlbench::mlbench.friedman3( 1000 ) 
+                        )
+  ) %>%
+  mutate( x = map(data, 'x')
+          , y = map(data, 'y')
+          , x = map( x, as_tibble )
+          , y = map( y, function(z) tibble(resp = z) )
+          , data = map2( y ,x, bind_cols) 
+          ) %>%
+  select(data) 
+
+```
+
+# x-Y Plots
+
+```{r}
+
+df_plot = df %>%
+  mutate( p = map(data, gather, key = 'key', value = 'value', - resp)
+          , p  = map(p, oetteR::f_plot_pretty_points, 'value','resp','key', scales = 'free_x')
+          , p  = map(p, function(x) x + geom_smooth() + geom_rug() + ggpubr::stat_cor() )
+          , hist = map( data, f_clean_data_no_changes )
+          , hist = map( hist, function(x) list( map( x$all_variables, f_plot_hist, x) ) )
+  )
+
+df_plot$p
+
+```
+
+
+# Histograms
+
+```{r}
+
+df_plot = df %>%
+  mutate( hist = map(data, gather, key = 'key', value = 'value')
+          , hist = map( hist, f_clean_data_no_changes )
+          , hist = map( hist, function(x) f_plot_hist('value', x , add = 'none')  )
+          , hist = map( hist, function(x) x = x + facet_wrap(~key, scales = 'free') )
+  ) 
+
+
+df_plot$hist
+
+```
+
+
+# robust linear regression
+
+Regular regression models seek to minimize SSE (squared standard error). This overpenalizes large errors over small errors which makes linear regression quite sensitive to outliers. The huber method counts smaller errors as squared errors and larger errors as absolute errors making regressions more robust. 
+
+```{r}
+
+```
+
+
+
+```{r}
+
+```
+
+
+

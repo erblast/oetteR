@@ -74,11 +74,19 @@ When I try out a new package or get stuck somewhere with a problem I like to wri
 
 Some of the POCs are also posted on Rpubs
 
-- [Pipelearner for classification](http://rpubs.com/erblast/369542)  
+## Visualisations
 - [clickable file links in DT::datatable](http://rpubs.com/erblast/369527)  
 - [mix taglist and plots](http://rpubs.com/erblast/369525)  
 - [ggalluvial](http://rpubs.com/erblast/369522)  
 - [ggpubr](http://rpubs.com/erblast/369520)  
+
+## Modelling
+- [Pipelearner for classification](http://rpubs.com/erblast/369542)  
+- [rsample](http://rpubs.com/erblast/370014)
+- [recipes](http://rpubs.com/erblast/recipes)
+- [caret](http://rpubs.com/erblast/caret)
+
+## Algorithms
 - [SOM with connectivity restrains](http://rpubs.com/erblast/SOM)  
 
 

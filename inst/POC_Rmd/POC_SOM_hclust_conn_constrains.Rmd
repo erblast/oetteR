@@ -14,8 +14,6 @@ output:
     df_print: kable  
     code_folding: show 
 params:
-  
-  
   map_dimension: 20
   n_iterations: 1000
   recalculate_map: FALSE

@@ -1,0 +1,132 @@
+---
+title: "rsample"
+author: "OEB"
+date: "December 21, 2017"
+output:
+  html_document:
+    toc: true
+    toc_depth: 3
+    toc_float: 
+      collapsed: false
+      smooth_scroll: false
+    number_sections: true
+    code_folding: show 
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = F, warning = F)
+```
+
+
+```{r}
+suppressPackageStartupMessages( require(tidyverse) )
+```
+
+
+This package which came out in July 2017, seems to be a good alternative to `piplearner`. It should work hand in hand with `recipes` amd `caret` and its sampling functions should be similar to the resample objects in `modelr`
+
+
+# example for 10 x 10-fold cross validation
+
+```{r}
+set.seed(4622)
+
+data = rsample::attrition
+
+formula = Attrition ~ JobSatisfaction + Gender + MonthlyIncome
+
+rs = rsample::vfold_cv( data, v = 10, repeats = 10)
+
+rs
+```
+
+##Sample
+
+It is basically just like the pipelearner object without the trained models. Similar to `modelr` resample objects we can convert the `rsample` splits to data using `as.data.frame()` . 
+
+```{r}
+split = rs$splits[[1]]
+
+dim( as.data.frame(split) )
+dim( as.data.frame(split, data = 'analysis') )
+dim( as.data.frame(split, data = 'assessment') )
+
+dim( rsample::analysis(split) )
+dim( rsample::assessment(split) )
+
+
+```
+
+## fit lm model
+
+```{r}
+
+rs_mod = rs %>%
+  mutate( formula = list(formula)
+          , fit = map2( formula, splits, glm, family = 'binomial' ) 
+          , preds = map2( fit, splits, function(x,y) predict(x, newdata = rsample::assessment(y)) )  
+          )
+
+
+```
+
+We can see that the rsample object increases the memory reserved for the data splits by a factor of 100 in this particular case. 
+
+## Memory allocation
+
+There are two functions for checking memory allocation. I dont understand the difference between them very well but. Max Kuhn claims that `pryr::object_size` is the function of choice for revealing the actual in memory size of `rsample` objects.
+
+```{r}
+
+memory_tib = tibble( object = list(data
+                      , rs
+                      , select(rs_mod, -formula, -preds)
+                      , select(rs_mod, -preds, - fit)
+                      , select(rs_mod, -formula, -fit) 
+                      )
+        , object_str = c('original data'
+                          , 'rsample object'
+                          , 'rsample object + fit'
+                          , 'rsample object + formula'
+                          , 'rsample object + preds'
+                          )
+        ) %>%
+  mutate( object_size = map_dbl(object, function(x) pryr::object_size(x) / pryr::object_size(data) )
+          , object.size = map_dbl(object, function(x) object.size(x) / object.size(data) ) ) %>%
+  select( object_str, object_size, object.size)
+
+print(memory_tib)
+
+```
+
+If we where to split the original data in a traditional non-index using way we would increase the memory need for the data by 100x. When using `pryr::object_size` we see that instead using `rsample` we can limit the addiotionally required memory to 3x. Further we see that keeping the model in the modelling dataframe is very costly and increases the memory need by 50-100x in this case however most models will not scale in proportion to the size of the data.
+
+# Using `broom`
+
+`broom` has several functions that are meant to tidy up R objects, here we will check whether it could make sense to keep a broom return value instead of a model
+
+```{r}
+
+require(pryr)
+
+m = rs_mod$fit[1]
+m = glm(formula, data, family = 'binomial')
+
+glance = broom::glance(m)
+tidy   = broom::tidy(m)
+augment = broom::augment(m, data)
+
+tib_broom = tibble( .f_broom = c(broom::glance
+                                 , broom::tidy
+                                 , broom::augment) ) %>%
+  mutate( .f_str = map(.f_broom, quote )
+          , .f_str = map_chr( .f_str, as.character )
+          , m = list(m)
+          , broom_return = map2(.f_broom, m, function(x,y) x(y) ) 
+          , object_size  = map2_dbl(broom_return, m, function(x,y) pryr::object_size(x)/ pryr::object_size(y)) )
+```
+
+By simply saving the broom returns and discarding the model we can save a lot of memory
+

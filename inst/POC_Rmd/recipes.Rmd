@@ -1,0 +1,323 @@
+---
+title: "recipes"
+author: "OEB"
+date: "December 21, 2017"
+output:
+  html_document:
+    toc: true
+    toc_depth: 3
+    toc_float: 
+      collapsed: false
+      smooth_scroll: false
+    number_sections: true
+    theme: sandstone
+    df_print: kable  
+    code_folding: show 
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = F, warning = F)
+```
+
+
+```{r}
+suppressPackageStartupMessages( require(tidyverse) )
+suppressPackageStartupMessages( require(recipes) )
+suppressPackageStartupMessages( require(mlbench) )
+
+
+```
+
+
+`recipes` is a package that is meant to simplify data preparation and transformation steps, as well as predefine the roles of each variable in the dataset (predictor and response).
+
+There is a very good [tutorial](https://topepo.github.io/recipes/reference/recipes.html)
+
+in this proof of concept we are going to perform several preparation steps using `recipes`.
+
+- filter near zero variance variables
+- filter correlating variables
+- transform skew data
+- impute missing values
+- center and scale
+
+Usually no dataset will require all of these preparation steps therefore we will use two different datasets.
+
+
+# Glass
+
+The dataset consists of a number of chemical elements and their conecntrations in different types of glass. The type of glass is the predictor.
+
+```{r}
+
+data(Glass)
+
+data = Glass %>%
+  as_tibble()
+
+summary(data)
+
+```
+
+## Investigate Skewness
+
+Skewed data can be a problem for all modelling algorithms that require normally distributed data. 
+
+- Values around zero are unskewed
+- Negative values are left skewed
+- Positive values are right skewes
+
+```{r}
+
+data %>%
+  summarise_if( is.numeric, e1071::skewness ) %>%
+  knitr::kable()
+
+```
+
+## Inverstigate Correlation
+
+Highly correlating variables are problematic for some modelling algorithms such as regressions. Even for tree-based ensembl methods such as randomforest which can handly highly correlating variables, they will have decreased importance when investigating the contribution of variables to the final model. So we might want to remove them. 
+
+The `corrplot` package offers different methods of ordering the variables on the correlation matrix plot. Here we chose `hclust`
+
+```{r}
+
+require(corrplot)
+
+correlations = cor( select_if( data, is.numeric )  )
+
+corrplot(correlations, method = 'number', order = 'hclust')
+
+```
+
+
+## Recipes
+
+We first build the recipe by adding the data. Adding a formula as well assigns the role of predictor and response to the variables
+
+```{r}
+
+rec = recipes::recipe(data, Type~.)
+
+summary(rec)
+```
+
+
+### Adding recipes steps
+
+We can add a number of transformation steps to the recipe
+
+#### Remove Skewness by Yeo-Johnson transformation
+
+The Yeo Johnson transformation is similar to the Box_Cox Transformation which one can think of a more fine-tuned version of a log transformation. However unlike BoxCox and log transformation Yeo-Johnson can handle negative data.
+
+Adding steps is as easy as that. We simply must not forget to specify which variables should be affected by the step. In order to provide an example for the (synthax)[https://topepo.github.io/recipes/reference/selections.html] we specify all numeric variables via `all_numeric()` and exclude the response via `all_outcomes()`. Since the response is a factor variable it would actually not be included in the `all_nzumerics()` select.
+
+
+```{r}
+
+rec = rec %>%
+  step_center( all_numeric(), - all_outcomes() ) %>%
+  step_scale( all_numeric(), - all_outcomes() ) %>%
+  step_YeoJohnson( all_numeric(), - all_outcomes() )
+
+
+```
+
+#### Remove strongly correlating variables
+
+- Calculate correlation matrix
+- Determine a threshold ( 0.5 )
+- Determine the two predictors with the largest absolute pairwise correlation that surpases the threshold
+- Calculate the average correlation of both variables with the other variables in the dataset
+- Remove the variable that has the higher correlation with the other variables in the dataset.
+- Repeat the above steps until no correlation pair surpasses the threshold.
+
+
+```{r}
+rec = rec %>%
+  step_corr( all_numeric(), - all_outcomes(), threshold = 0.5 )
+
+rec
+```
+
+### Prepare the recipe
+
+Here we can prepare the recipe, using a training dataset which in our case will be the full data set. We can use the same prepared recipe and apply it to future datasets. This comes in handy if we train a model on transformed data and then want to apply the same transformations on future data. This is especially relevant for the transformation steps. 
+
+
+```{r}
+
+prep_rec = prep( rec, training = data )
+
+
+prep_rec
+
+```
+
+
+### Apply the recipe
+
+```{r}
+
+data_trans = bake( prep_rec, data )
+
+```
+
+
+## Validate the effect of the transformations
+
+### Skewness
+
+```{r}
+
+sum_old = data %>%
+  summarise_if( is.numeric, e1071::skewness ) %>%
+  mutate( data = 'untransformed') %>%
+  select( data, everything() )
+
+sum_trans = data_trans %>%
+  summarise_if( is.numeric, e1071::skewness ) %>%
+  mutate( data = 'transformed') %>%
+  select( data, everything() )
+
+sum_old %>%
+  bind_rows( sum_trans) %>%
+  knitr::kable()
+
+```
+
+Here we can see a great reduction in skewness (all values are closer to zero after the transformation)
+
+### Correllations
+
+We can already see from the recipe summary that `Ca` and `Ba` have been removed, however lets look at the correlation matrix
+
+
+```{r}
+
+correlations = cor( select_if( data_trans, is.numeric ) )
+
+corrplot( correlations, method = 'number', order = 'hclust' )
+
+```
+
+Here we can see now that none of the correlations now are greater than 0.5 . For modelling we might want to reduce the threshold even further. 0.5 Is still a pretty high correlation factor.
+
+
+# Soybeans
+
+Here we have different attributes of different soybean plants. The response variable here is `Class` and most of the predictors are `factor` variables.
+
+```{r}
+
+data(Soybean)
+
+data = Soybean %>%
+  as_tibble()
+
+summary(data)
+
+```
+
+
+## Investigate Missing Data
+
+```{r}
+
+Amelia::missmap( data )
+
+```
+
+
+## Investigate Near zero variance variables (degenerate variables)
+
+Variables with near zero variance are pretty useless for modelling since when splitting the data into test and validation tests we always have a large chance that we end up with no occurrences of a specific class insideo one of the splits.
+
+We define a variable as degenerate if either is true
+
+- The ratio of the most common value to the second most common value is less than 95:5
+- The percentage of distinct values out of the number of total samples is less than 10
+
+```{r}
+
+summary( data[, caret::nearZeroVar(data) ] )
+
+```
+
+## Recipes
+
+```{r}
+
+rec = recipe(data, Class~.)
+
+```
+
+### Impute the missing data
+
+There are several techniques on how to deal with missing data. We can either drop the observations that have incomplete values or we drop the variables with incomplete mesaurements. Looking back at the missingness map that means for this dataset we have to drop almost all of the variables or one third of all observations. So we have can either assume that all missing values carry mean or median values or more elegantly we try to impute the missing values based on similar observations that cluster in the same way.
+
+```{r}
+
+rec = rec %>%
+  step_knnimpute( all_predictors() )
+
+```
+
+### Remove the degenerated variables
+
+```{r}
+
+rec = rec %>%
+  step_nzv( all_predictors(), options = list(freq_cut = 95/5, unique_cut = 10 ) )
+
+```
+
+### Prepare the recipe
+
+```{r}
+
+prep_rec = prep( rec, training = data )
+
+
+prep_rec
+
+```
+
+Note that one degenerate variable was not removed. Probably the imputation balanced it out.
+
+### Apply the recipe
+
+```{r}
+
+data_trans = bake( prep_rec, data )
+
+```
+
+## Validate the effect of the transformations
+
+### Degenerate Variables
+
+```{r}
+
+summary( data[, caret::nearZeroVar(data, freqCut = 96/5) ] )
+
+summary( data_trans[, caret::nearZeroVar(data_trans, freqCut = 95/5) ] )
+
+```
+
+Indeed it is as we suspected the imputation of the missing values has balanced out the other two variables.
+
+### Missing Values
+
+```{r}
+
+Amelia::missmap(data_trans)
+
+```
+
+
+
