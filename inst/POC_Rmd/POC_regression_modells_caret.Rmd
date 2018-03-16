@@ -13,8 +13,9 @@ knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
 
 ```{r results = 'hide'}
 
-require(oetteR)
-require(tidyverse)
+suppressPackageStartupMessages( require(oetteR) )
+suppressPackageStartupMessages( require(tidyverse) )
+suppressPackageStartupMessages( require(caret) )
 
 ```
 
@@ -51,7 +52,7 @@ df = tibble( data = list(mlbench::mlbench.friedman1( 1000 )
 
 ```
 
-# x-Y Plots
+# X-Y Plots
 
 ```{r}
 
@@ -85,11 +86,29 @@ df_plot$hist
 ```
 
 
+# Summary
+
+## Dataset 1
+All variables are normally distributed and scaled.
+- V4, V5 correlate with the response in a linear fashion
+- V1, V2 correlate almost linearly but in the higher ranges adop
+
+
 # robust linear regression
 
-Regular regression models seek to minimize SSE (squared standard error). This overpenalizes large errors over small errors which makes linear regression quite sensitive to outliers. The huber method counts smaller errors as squared errors and larger errors as absolute errors making regressions more robust. 
+Regular regression models seek to minimize SSE (squared standard error). This overpenalizes large errors over small errors which makes linear regression quite sensitive to outliers. The huber method counts smaller errors as squared errors and larger errors as absolute errors making regressions more robust. ![Huber method][POC_regression_models_caret_robust_linear_regression.png]
+
 
 ```{r}
+
+tribble( ~Property, ~Sensitivity
+         , 'Colinearity', 'sensitive'
+         , 'Outlier', 'less sensitive'
+         , 'Nonlinearity', 'sensitice'
+         , 'Irrelevant variables', 'sensitive'
+         , 'Unscaled variables', 'unsensitive'
+         ) %>%
+  knitr::kable( align = 'lc')
 
 ```
 
