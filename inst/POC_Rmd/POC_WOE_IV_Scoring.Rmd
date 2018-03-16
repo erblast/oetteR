@@ -73,6 +73,12 @@ data('germancredit')
 data = germancredit %>%
   as_tibble()
 
+#replace '.' in variable names not compatible with f_train_lasso
+vars = names(data) %>%
+  str_replace_all( '\\.', '_')
+
+names(data) <- vars
+
 summary(data)
 
 ```
@@ -121,10 +127,10 @@ bins = woebin(data, y = 'creditability')
 
 ```{r}
 
-bins$duration.in.month %>%
+bins$duration_in_month %>%
   knitr::kable()
 
-woebin_plot(bins$duration.in.month)
+woebin_plot(bins$duration_in_month)
 
 ```
 
@@ -142,13 +148,12 @@ data_woe = woebin_ply( data, bins ) %>%
 
 ```{r}
 
-vars = names( select(data_woe, - creditability) )
-
 formula = as.formula( paste( 'creditability ~', paste(vars, collapse = '+') ) )
+
 
 lasso = oetteR::f_train_lasso( data = data_woe
                                , p = NULL
-                               , formula = formula
+                               , formula = trans_ls$formula
                                , k = 10
                                , family = 'binomial'
                                )
@@ -173,6 +178,73 @@ lasso$tib_all %>%
 ```
 
 We can eliminate 6 out of 20 variables applying the lasso.
+
+
+# Build and interpret the model
+
+Formula logistic regression :
+
+$$ln\left(\frac{P(X)}{1-P(X)}\right) = intercept + \beta_1x + \beta_nx $$
+the term on the left is called the link function its result is the **logit** value
+
+We can convert the **logit** value to **odds** by $$e^{logit}$$
+
+The **odds** can be converted to probability *P* by $$P(X)=\frac{odds}{odds+1}$$
+
+Classically we woul use `predict()` with `type = 'response'` to directly get the porbability. However here we will do the calculations manually as described above.
+
+```{r}
+
+formula = as.formula( lasso$formula_str_lambda_1se )
+
+m = glm( formula, data_woe, family = 'binomial')
+
+
+pred = predict(m)
+resp = predict(m, type = 'response')
+
+res = tibble( logit = pred
+              , odds = exp(pred)
+              , prob = odds / (odds + 1)
+              , resp = resp )
+
+
+res %>%
+  head(10) %>%
+  knitr::kable()
+
+```
+
+# Score Card
+
+We can use `scorecard::scorecard()` in order to convert the **logit** to a contineous value.
+
+```{r}
+
+card = scorecard( bins , m
+                  , points0 = 600 ## target maximum score
+                  , pdo = 50 ## score points to double odds 
+                  )
+
+sc = scorecard_ply( data, card )
+
+res$score = sc[[1]]
+
+```
+
+# Plot Scores and Probabilities
+
+```{r}
+
+res
+  
+
+
+```
+
+
+
+
 
 
 
