@@ -2,15 +2,7 @@
 title: "regression with `caret`"
 author: "OEB"
 date: "December 29, 2017"
-output:
-  html_document:
-    toc: true
-    toc_depth: 3
-    toc_float: 
-      collapsed: false
-      smooth_scroll: false
-    number_sections: true
-    code_folding: show 
+output: html_document
 editor_options: 
   chunk_output_type: console
 ---
