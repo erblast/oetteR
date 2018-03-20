@@ -48,6 +48,31 @@ This is basically a technique that can be applied if we have a binary response v
 
 TODO finish
 
+
+## Convert Odds to Score
+
+(source)[https://www.analyticbridge.datasciencecentral.com/forum/topics/what-is-the-best-way-to]
+
+Define a target:
+**Target Score Value (tv):** 600
+**Target Odds (to):** 50
+
+Read as: at my target score 600 the ods should be 50:1
+
+Define slope:
+**points to double the odds (pdo):** 20
+
+Read as the odds should double every 20 points
+
+$$score = offset + factor\ ln(2\ odds)$$
+$$factor = \frac{pdo}{ln(2)}$$
+$$offset = ts - factor\ ln(to)$$ 
+replace **odds** with **logit**
+
+$$odds = e^{logit}$$
+
+$$score = offset + factor\ ln(2\ e^{logit})$$
+
 ## Information Value
 
 ```{r}
@@ -123,7 +148,7 @@ bins = woebin(data, y = 'creditability')
 
 ```
 
-## Examplatory Plot
+## Examplatory Plots
 
 ```{r}
 
@@ -131,6 +156,11 @@ bins$duration_in_month %>%
   knitr::kable()
 
 woebin_plot(bins$duration_in_month)
+
+bins$other_debtors_or_guarantors %>%
+  knitr::kable()
+
+woebin_plot(bins$other_debtors_or_guarantors)
 
 ```
 
@@ -177,7 +207,7 @@ lasso$tib_all %>%
 
 ```
 
-We can eliminate 6 out of 20 variables applying the lasso.
+We can eliminate 11 out of 20 variables applying the lasso.
 
 
 # Build and interpret the model
@@ -191,7 +221,7 @@ We can convert the **logit** value to **odds** by $$e^{logit}$$
 
 The **odds** can be converted to probability *P* by $$P(X)=\frac{odds}{odds+1}$$
 
-Classically we woul use `predict()` with `type = 'response'` to directly get the porbability. However here we will do the calculations manually as described above.
+Classically we would use `predict()` with `type = 'response'` to directly get the porbability. However here we will do the calculations manually as described above.
 
 ```{r}
 
@@ -209,9 +239,6 @@ res = tibble( logit = pred
               , resp = resp )
 
 
-res %>%
-  head(10) %>%
-  knitr::kable()
 
 ```
 
@@ -223,6 +250,7 @@ We can use `scorecard::scorecard()` in order to convert the **logit** to a conti
 
 card = scorecard( bins , m
                   , points0 = 600 ## target maximum score
+                  , odds0 = 1/20 ## target odds at maximum score, max(odds) = 103
                   , pdo = 50 ## score points to double odds 
                   )
 
@@ -230,17 +258,156 @@ sc = scorecard_ply( data, card )
 
 res$score = sc[[1]]
 
+
+res %>%
+  head(10) %>%
+  knitr::kable()
+
+
+summary(res)
 ```
 
-# Plot Scores and Probabilities
+As a control we are going to calculate them also manually using the formulas described above.
 
 ```{r}
 
-res
-  
+points0 = 600
+odds0 = 1/20
+pdo = 50
+
 
 
 ```
+
+
+# Plot 
+
+## Logit vs. Odds, Probabilities and Score
+
+```{r}
+res %>%
+  select( - resp ) %>%
+  gather( key = 'key', value = 'value', - logit ) %>%
+  ggplot( aes( logit, value, color = key) ) +
+  geom_point() +
+  geom_line() +
+  facet_wrap(~key, scales = 'free_y')
+
+```
+
+We can see that the score is perfectly linearly correlated with the logit
+
+## Odds vs. scaled Logit, Probabilities and Scores
+
+```{r}
+
+res %>%
+  select( - resp ) %>%
+  mutate( score = score * - 1 ) %>%
+  gather( key = 'key', value = 'value', - odds ) %>%
+  ggplot( aes( odds, value, color = key) ) +
+  geom_point() +
+  geom_line() +
+  facet_wrap(~key, scales = 'free_y')
+
+
+res %>%
+  select( - resp ) %>%
+  mutate( score = score * - 1 ) %>%
+  mutate_at( vars(logit, prob, score), scale ) %>%
+  gather( key = 'key', value = 'value', - odds ) %>%
+  ggplot( aes( odds, value, color = key) ) +
+  geom_point( alpha = 0.5 ) +
+  geom_line() 
+
+
+```
+
+We can see that the relationship between odds and score and odds and logit is identical
+
+## Histograms
+
+```{r}
+
+res %>%
+  select( - resp ) %>%
+  gather( key = 'key', value = 'value' ) %>%
+  ggplot( aes(value) ) +
+    geom_histogram( bins = 50
+                    , fill = 'aquamarine3'
+                    , color = 'black' ) +
+    geom_rug()+
+    facet_wrap(~key, scales = 'free')
+
+res %>%
+  select( - resp, - odds, -prob ) %>%
+  mutate_all( scale, center = T ) %>%
+  mutate_all( as.vector ) %>%
+  gather( key = 'key', value = 'value' ) %>%
+  ggplot( )+
+    geom_histogram( aes( x = value, fill = key )
+                    , bins = 50
+                    , position="identity"
+                    , alpha = 0.5 )
+
+
+
+```
+
+Score and Logit also have identical distributions
+
+
+# Assigning variable contributions
+
+## Variable importance for regression models
+
+$$link function(logit) = intercept + \beta_1x_1 + \beta_nx_n$$
+
+Clasically one would look at the P-values in the model`s sumamry statistics. However this is particularly flawed when you have colinear variables, which results in reduced P values for all affected variables. Also when having to pick one variable which maximally decreases modelling quality the variable with the lowest P Value is not always the best choice.
+
+A better method is to scale and center the variables before fitting and then rank the variables by their absolute coefficient values $$\beta$$. The interpretation being that a large absolute value of variable $$x$$ is higher the higher its absolute coefficient $$\beta$$. Categorical variables would be split into dummy variables so we intuitevely know their range as 1 or 0.
+
+However this is now a bit difficult since we replaced all our variable values with the WOE. We do not intuitively know the WOE range of each variable. Thus a high value of $$\beta$$ could theoretically be multiplied by any range of $$x$$. A suggestion that I could make is to multiply the coefficents witht he information value. 
+
+```{r}
+
+imp = tibble( variable = names( coef(m) )
+              , coef = coef(m) ) %>%
+  mutate( variable = map_chr( variable, function(x) unlist( str_split(x, '_woe') )[[1]]  ) ) %>%
+  left_join( iv ) %>%
+  mutate( imp = abs(coef) * info_value ) %>%
+  arrange( desc(imp) ) 
+
+knitr::kable( imp, align = 'lccc' )
+
+
+```
+
+
+The best method of ranking the variables by importance is to remove them from the model and measure the reduction im performance. This method could be applied to all type of models and allow comparisons. However this approach is computationally quite expensive.
+
+
+## Interpreting individual predictions
+
+In order to interpret the individual results for each customer we need to calculate the logit manually using the coefficients and look at the individual terms of the regression function.
+
+```{r}
+
+
+
+
+data_relevant = data_woe[, names( coef(m) )[-1] ]
+
+data_mult = as_tibble( data_relevant * coef(m)[-1] )
+
+```
+
+
+
+
+
+
+
 
 
 
