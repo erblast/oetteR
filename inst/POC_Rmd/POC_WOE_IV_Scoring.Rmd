@@ -697,9 +697,15 @@ We can eleminate 27 out of 48 variables, remember that we are now carrying dummy
 ```{r}
 
 tib = tribble( ~ data_name, ~ data, ~ formula
-               , 'woe'    , data_relevant, lasso$formula_str_lambda_1se
+               , 'woe'    , data_woe, lasso$formula_str_lambda_1se
                , 'regular', data_trans   , lasso_reg$formula_str_lambda_1se ) %>%
-  mutate( rs = map( data, rsample::vfold_cv, v = 10, repeats = 10) )
+  mutate( rs = map( data, rsample::vfold_cv, v = 10, repeats = 10)
+          , rs = map( rs, rsample::rsample2caret )
+          , method = 'glm'
+          , formula = map( formula, as.formula )
+          , data = map(data, mutate
+                       , creditability = ifelse(creditability == 1, 'bad', 'good')
+                       , creditability = as.factor(creditability) ) )
 
 tib
   
@@ -709,9 +715,33 @@ tib
 
 ```{r}
 
+car = function( formula, rsample, data, method ){
+  
+  grid = as.data.frame(grid)
+  
+  car = caret::train( formula
+                      , data
+                      , method = method
+                      , trControl = caret::trainControl(index = rsample$index
+                                                        , indexOut = rsample$indexOut
+                                                        , method = 'cv'
+                                                        , verboseIter = F
+                                                        , savePredictions = T
+                                                        , classProbs = T )
+                       )
+  return( as.tibble(car$pred) )
+}
 
 
 ```
 
+### Apply
+
+```{r}
+
+tib = tib %>%
+  mutate( fit = pmap( list(formula, rs, data, method), car ) )
+
+```
 
 
