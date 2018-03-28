@@ -10,8 +10,6 @@ output:
       collapsed: false
       smooth_scroll: false
     number_sections: true
-    theme: sandstone
-    df_print: kable  
     code_folding: show 
 editor_options: 
   chunk_output_type: console
@@ -53,30 +51,29 @@ Weight of evidence (WOE), Information Value (IV) and Score values are common ter
 
 # Definitions
 
-## Weight of evidence(WOE)
+## Weight of evidence (WOE)
 
-This is basically a technique that can be applied if we have a binary response variable and any kind of predictor variable. We perform a reasonable binning on the response variable. Then we decide which form of the binary response we count as positive and which as negative and then calculate the percentage positive cases in each bin of all positive cases 
-for example 20 out of 100 positive cases equals 20 %. Then we calculate the percentage of negative cases in each bin of all negative cases, for example 5 out of 50 cases equal 10%. Then we calculate the WOE by dividing the bin percentages of positive cases by the bin percentage of negative cases, and take the logarithm. log(20/10).
-
-**Rule of thump** If WOE values are negative, negative cases supersede the positive cases. If WOE values are positive, positive cases supersede the negative cases. 
-
-This serves the following purposes:
+This is basically a technique that can be applied if we have a binary response variable and any kind of predictor variable. First we perform a reasonable binning on the response variable and then decide which form of the binary response we count as positive and which as negative. Then we calculate the percentage positive cases in each bin of the total of all positive cases. For example 20 positive cases in bin A out of 100 total positive cases in all bins equals 20 %. Next we calculate the percentage of negative cases in each bin of the total of all negative cases, for example 5 negative cases in bin A out of a total of 50 negative cases in all bins equals 10%. Then we calculate the WOE by dividing the bin percentages of positive cases by the bin percentage of negative cases, and take the logarithm. For the described example log(20/10).
+  
+**Rule of thump:** If WOE values are negative, negative cases supersede the positive cases. If WOE values are positive, positive cases supersede the negative cases. 
+  
+**This serves the following purposes:**  
 - We eliminate any none-linear relationships  
 - We automatically scale all variables too some extend  
 - We convert categorical variables to contineous variables  
-- Missing Data can be handled as just another factor value
-- We can built a stand alone score card, that could be manually applied by a person with a pen and a printout of all relevant variables.
+- Missing Data can be handled as just another factor value  
+- We can built a stand alone score card, that could be manually applied by a person with a pen and a printout of all relevant variables.  
+  
+**It has the following disadvantages:**  
+- We always loose information via binning  
+- Score development along single variables is not contineous and occurs in steps  
+- Binning requires manual revision  
+- Calculating Variable importance is not as straight forward as with classical logistic regression with regularly scaled variables  
 
-It has the following disadvantages:
-- We always loose information via binning
-- Score development along single variables is not contineous and occurs in steps
-- Binning requires manual revision
-- Calculating Variable importance is not as straight forward as with classical logistic regression with regularly scaled variables
 
+## Information Value (IV)
 
-## Information Value
-
-By doing another sequence of calculations similar to the WOE calculation we can calculate the IV. Classically this serves as variable ranking and allows us to perform feature selection, which is less compuationally demanding as other methods.
+By doing another sequence of calculations similar to the WOE calculation we can calculate the IV. Classically this serves as variable ranking method and allows us to perform feature selection, which is less compuationally demanding as other methods.
 
 ```{r echo = F}
 
@@ -98,11 +95,12 @@ The score is the converted prediction of the model into a score value. The score
 The score comes with a scorecard in which all contibuting variables are represented and linked to a specific score value. The sum of all score values that can be attributed to each variable is the total score. For example the credit score of an 18-year-old customer falls into the 18-25 age bin, a group with increased credit risk which reduces the overall credit score by 50 points. Such a score card is sufficient to calculate the total score if one has the values of all variables that contribute to the score.
 
 
-# Proof of concept
+
+
+# WOE, IF, Scorecards implementation in R
 
 We will use the `scorecard` package and an example dataset to investigate the concepts of WOE, IV and Score and test its implementation in R
 
-# WOE, IF, Scorecards implementation in R
 
 ## Sample Data
 
@@ -140,7 +138,7 @@ Amelia::missmap(data)
 ```
 
 
-## Select variables using information value
+## Select variables using IV
 
 We can use `scorecard::iv()` to calculate the information values
 
@@ -170,7 +168,7 @@ bins = woebin(data, y = 'creditability')
 
 ### Examplatory Plots
 
-`scorecard::woebin()` returns a list with one element for each variable. There also is a plotting function that we can use to make meaninful plots and check the binning `scorecard::woebin_plot()`. 
+`scorecard::woebin()` returns a list with one element for each variable. There also is a plotting function that we can use to make meaningful plots and check the binning `scorecard::woebin_plot()`. 
 
 ```{r}
 
@@ -199,9 +197,19 @@ data_woe = woebin_ply( data, bins ) %>%
 
 ## Feature Selection
 
-We can reduce the variables that enter our feature selection process by filtering all variables with `IV < 0.02`. However we have enough computing power to use lasso on the full dataset, so we do not bother
+We can reduce the variables that enter our feature selection process by filtering all variables with `IV < 0.02`. 
+
+We would then procede to use forward or backward stepwise feature selection, which are somewhat deprecated methods. [wikipedia](https://en.wikipedia.org/wiki/Stepwise_regression)
+
+We prefer to use lasso for feature selection in this case, since we do not have the same computational problems as in the old days we can run the lasso algorithm on all features without prefiltering by IV.
 
 ### `glm` with lasso and crossvalidataion
+
+I prefer to use `oetteR::f_train_lasso` because it creates a more tidy output and figures and most noteworthy already returns a usable formula for the optimal features.
+
+A vignette for that function can be found [here](http://rpubs.com/erblast/366619)
+
+However `oetteR::f_train_lasso` it is simply a wrapper for `glmnet::glmnet()`
 
 
 ```{r}
@@ -224,7 +232,7 @@ lasso = oetteR::f_train_lasso( data = data_woe
 
 ```
 
-#### Lasso vis 
+#### Lasso Visualisation 
 
 
 ```{r}
@@ -238,7 +246,11 @@ plotly::ggplotly( p, tooltip = c('x','y','color'))
 
 ```
 
+the dashed line marks the lambda with min(MSE) the solid line marks lambda for which MSE is in range of min(MSE)+SEM.
+
 #### Formula 
+
+We select the highest lambda value whose MSE is in range of the min(MSE)+SEM.
 
 **`r lasso$formula_str_lambda_1se`**
 
@@ -246,7 +258,8 @@ plotly::ggplotly( p, tooltip = c('x','y','color'))
 
 lasso$tib_all %>%
   filter(lambda == lambda_1se) %>%
-  select( lambda_1se, auc, n_coeff_before_lasso, n_coeff_after_lasso)
+  select( lambda_1se, auc, n_coeff_before_lasso, n_coeff_after_lasso) %>%
+  knitr::kable()
 
 ```
 
@@ -269,7 +282,9 @@ formula = as.formula( lasso$formula_str_lambda_1se )
 
 m = glm( formula, data_woe, family = 'binomial')
 
-summary(m)
+broom::tidy( m ) %>%
+  mutate( star = oetteR::f_stat_stars(p.value) ) %>%
+  oetteR::f_datatable_universal( round_other_nums = 2, page_length = nrow(.) )
 
 ```
 
@@ -400,6 +415,8 @@ to calculate score values for any total logit value now with
 
 # Plot 
 
+Here we will compare the distributions and relationships between odds, score, logit and probability in order to better undestand the score values.
+
 ## Logit vs. Odds, Probabilities and Score
 
 ```{r}
@@ -489,6 +506,8 @@ A better method is to scale and center the variables before fitting and then ran
 
 However this is now a bit difficult since we replaced all our variable values with the WOE. We do not intuitively know the WOE range of each variable. We simply know that it follows a logarithmic distribution and values >1 and <-1 will be sparse. Thus a high value of $\beta$ could theoretically be multiplied by any range of $x$. 
 
+The best solution that we can come up with is to simply multiply coefficient and IV. Which returns sensible results.
+
 ```{r}
 
 imp = tibble( variable = names( coef(m) )
@@ -498,13 +517,13 @@ imp = tibble( variable = names( coef(m) )
   mutate( imp = abs(coef) * info_value ) %>%
   arrange( desc(imp) ) 
 
-knitr::kable( imp, align = 'lccc' )
+knitr::kable( imp, align = 'lccc', digits = 2 )
 
 
 ```
 
 
-The best method of ranking the variables by importance is to remove them from the model and measure the reduction im performance. This method could be applied to all type of models and allow comparisons. However this approach is computationally quite expensive.
+The actually best method of ranking the variables by importance is to remove them from the model and measure the reduction im performance. This method could be applied to all type of models and allow comparisons. However this approach is computationally quite expensive.
 
 
 ## Interpreting individual predictions
@@ -548,7 +567,8 @@ data_mult_score$score_ctrl = res$score
 
 data_mult_score %>%
   select( score, score_ctrl, intercept, everything() ) %>%
-  head(10)
+  head(10) %>%
+  knitr::kable()
 
 
 ```
@@ -598,7 +618,7 @@ obs1_score %>%
           , `score` = `1.x`
           , `woe` = `1.y`
           , `value` = `1`) %>%
-  knitr::kable()
+  knitr::kable( digits = 2, align = 'lcccc' )
 
 
 ```
@@ -609,7 +629,14 @@ obs1_score %>%
 
 ## Regular approach
 
-### Data Preparation
+We will build a small modelling dataframe, which consists of two differently transformed data sets, two individual formulas and a `rsample` object.
+
+- We will use `recipes` for data transformation
+- We will use `rsample` for 10 x 10 cross validation
+- We will use `glmnet` via `oetteR` for feature selection
+- We will use `caret` for modelling and performance prediction
+
+### Data Preparation with `recipes`
 
 We will create dummy variables and use Yeo Johnson (like BoxCox but is tolerant of negative values) transformation on the contineous variables.
 
@@ -647,7 +674,7 @@ formula = paste( 'creditability ~', formula ) %>%
   
 ```
 
-### Feature Selection
+### Feature Selection with lasso
 
 ```{r}
 
@@ -661,44 +688,35 @@ lasso_reg = f_train_lasso(data_trans
 
 ```
 
-#### Lasso Vis
-
-```{r}
-
-plotly::ggplotly( lasso$plot_mse )
-
-p = lasso$plot_coef +
-  theme( legend.position = 'none')
-
-plotly::ggplotly( p, tooltip = c('x','y','color'))
-
-
-
-```
 
 #### Formula
 
-**`lasso$formula_str_lambda_1se`**
+**`r lasso_reg$formula_str_lambda_1se`**
 
 ```{r}
-lasso$tib_all %>%
+
+lasso_reg$tib_all %>%
   filter(lambda == lambda_1se) %>%
-  select( lambda_1se, auc, n_coeff_before_lasso, n_coeff_after_lasso)
+  select( lambda_1se, auc, n_coeff_before_lasso, n_coeff_after_lasso) %>%
+  knitr::kable()
+
 ```
 
 
 We can eleminate 27 out of 48 variables, remember that we are now carrying dummy variables.
 
 
-## compare
+## Compare
 
 ### Build modelling dataframe
 
+We are using `rsample` for the 10 x 10 cross validation
+
 ```{r}
 
-tib = tribble( ~ data_name, ~ data, ~ formula
-               , 'woe'    , data_woe, lasso$formula_str_lambda_1se
-               , 'regular', data_trans   , lasso_reg$formula_str_lambda_1se ) %>%
+tib = tribble( ~ data_name, ~ data     , ~ formula
+               , 'woe'    , data_woe   , lasso$formula_str_lambda_1se
+               , 'regular', data_trans , lasso_reg$formula_str_lambda_1se ) %>%
   mutate( rs = map( data, rsample::vfold_cv, v = 10, repeats = 10)
           , rs = map( rs, rsample::rsample2caret )
           , method = 'glm'
@@ -715,7 +733,7 @@ tib
 
 ```{r}
 
-car = function( formula, rsample, data, method ){
+wr_car = function( formula, rsample, data, method, ... ){
   
   grid = as.data.frame(grid)
   
@@ -727,9 +745,13 @@ car = function( formula, rsample, data, method ){
                                                         , method = 'cv'
                                                         , verboseIter = F
                                                         , savePredictions = T
-                                                        , classProbs = T )
+                                                        , classProbs = T
+                                                        , allowParallel = F
+                                                        , summaryFunction = caret::twoClassSummary
+                                                        )
+                      , ...
                        )
-  return( as.tibble(car$pred) )
+  return( car )
 }
 
 
@@ -740,8 +762,71 @@ car = function( formula, rsample, data, method ){
 ```{r}
 
 tib = tib %>%
-  mutate( fit = pmap( list(formula, rs, data, method), car ) )
+  mutate( car = pmap( list(formula, rs, data, method), wr_car
+                      , family = 'binomial')
+          , results = map(car,'results' ) ) %>%
+  unnest( results , drop. = F )
+
 
 ```
+
+### Results
+
+```{r}
+
+tib_perf = tib  %>%
+  select( data_name, ROC, ROCSD ) %>%
+  gather( key = 'metric', value = 'value', - data_name, - ends_with('SD') ) %>%
+  gather( key = 'metric_SD', value = 'SD', - data_name, - metric, - value ) %>%
+  select( - metric_SD ) %>%
+  mutate( SEM = SD / sqrt(100) )  
+
+
+tib_perf %>%
+  knitr::kable( digits = 3, align = c('lcccccc') )
+
+
+tib_perf %>%
+  ggplot( ) +
+    geom_pointrange( aes( x = data_name
+                          , y = value
+                          , ymin = value - SEM
+                          , ymax = value + SEM
+                          , color = data_name ) ) +
+    labs( x = '', y = 'AUC')
+
+
+
+```
+
+
+The WOE method improves modelling performance by 1.5 %, which is not much but is considerable. 
+
+# Conclusion
+
+We find that tranforming logit, odds or pobabilities to a score value has its benefits when it comes to judging the contribution of each variable to the total score. Further we find that using WOE instead of a more modern approach of data preparation allows us build the model as a score card for which different percentiles of predictor variables contribute a defined score towards the total credit score. 
+
+Further we find that this approach does not decrease the performance of the model quite the contrary for this sample dataset performance is actually increased by 1.5%
+
+
+# Next steps
+
+## Calibrating the model
+
+We have not yeat calibrated the model. Meaning we have not checked whether the calculated probabilities truly reflect the actual probabilities. `Applied predictive modelling p. 249`
+
+## Dealing with class imbalance
+
+The German Credit data set is an artificial dataset in a sense that it is most likely that occurrences of credit default have been oversampled since the default ratio is 700:300.
+
+To fully implement a working algorithm in R for a real credit risk data set we would propably have to use SMOTE or ROSE oversampling methods. Those methods are implemented in `caret` but probably are not yet compatible with `recipes`. But this remains to be tested. A description can be found in `Applied predictive modelling p. 419`
+
+
+
+
+
+
+
+
 
 

@@ -58,7 +58,8 @@ f_datatable_universal = function(df
   bool_count = stringr::str_detect(names(df), '_count' ) |
                stringr::str_detect(names(df), 'count_' )
 
-  bool_sign = stringr::str_detect(names(df), 'p_val' )
+  bool_sign = stringr::str_detect(names(df), 'p_val' ) |
+              stringr::str_detect(names(df), 'p.val' )
 
   bool_nums = map_lgl(df, is.double)
 
