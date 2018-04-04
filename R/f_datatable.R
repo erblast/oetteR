@@ -117,7 +117,7 @@ f_datatable_universal = function(df
 f_datatable_minimal = function(df, escape = F ){
 
   dt = DT::datatable( df , escape = escape, rownames = FALSE, options = list( dom = ''
-                                                                              , page_length = length(df)) )
+                                                                              , pageLength = nrow(df) ) )
 
   return(dt)
 }

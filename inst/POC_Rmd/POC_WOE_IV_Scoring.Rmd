@@ -1,5 +1,5 @@
 ---
-title: "WOE, IV and Scorevalues"
+title: "WOE, IV and Scorecards in Credit Risk Modelling"
 author: "OEB"
 date: "March 2018"
 output:
