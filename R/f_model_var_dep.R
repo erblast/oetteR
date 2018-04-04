@@ -64,7 +64,7 @@ f_model_data_grid = function( col_var, data_ls, formula, n = 500, set_manual = l
   response_var_sym = as.name(col_var)
 
   if( ! col_var %in% vars ){
-    stop('f_model_data_grid supplied variable is not in formula')
+    stop('f_model_data_grid supplied variable is not a response variable in formula')
   }
 
   summarized_ls = f_manip_summarize_2_median_and_most_common_factor(data_ls)
@@ -73,7 +73,7 @@ f_model_data_grid = function( col_var, data_ls, formula, n = 500, set_manual = l
 
   grid = summarized_ls$data %>%
     select( one_of(vars) )%>%
-    mutate( !!response_var_sym := list( response_var_sym = range ) ) %>%
+    mutate( !!response_var_sym := list( tibble( !! response_var_sym := range ) ) ) %>%
     unnest( !!response_var_sym , .drop = F) %>%
     select( one_of(col_var), everything() )
 
@@ -102,7 +102,7 @@ f_model_data_grid = function( col_var, data_ls, formula, n = 500, set_manual = l
 }
 
 #' @title add predictions to grid (regression models)
-#' @description wrapper for modelr::add_predictions
+#' @description wrapper for f_predict_regression_add_predictions
 #' @param grid grid containing all variables used for the model
 #' @param m model
 #' @param var character vector denoting response variable
@@ -120,8 +120,8 @@ f_model_data_grid = function( col_var, data_ls, formula, n = 500, set_manual = l
 #' @importFrom modelr add_predictions
 f_model_add_predictions_2_grid_regression = function( grid, m, var){
 
-  grid = grid %>%
-    modelr::add_predictions( m, var)
+  grid = f_predict_regression_add_predictions( grid, m ) %>%
+    rename( !! as.name(var) := pred )
 
   return(grid)
 
@@ -237,7 +237,7 @@ f_model_plot_variable_dependency_regression = function( m
                         , data_ls
                         , formula
                         , set_manual = set_manual )
-            ,grid = map( grid, f_model_add_predictions_2_grid_regression, m, response_var)
+            , grid = map( grid, f_model_add_predictions_2_grid_regression, m, response_var)
             ) %>%
     unnest(grid, .drop = F) %>%
     mutate_if( is.factor, f_manip_factor_2_numeric ) %>%

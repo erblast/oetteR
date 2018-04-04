@@ -181,7 +181,7 @@ f_model_importance_rpart = function(m){
 }
 
 #' @title model importance
-#' @description supports rpart, randomForest, svm, will return NULL for other models
+#' @description supports rpart, randomForest, svm and caret will return NULL for other models
 #' @param m model
 #' @param data training data
 #' @return tibble
@@ -209,6 +209,20 @@ f_model_importance = function(m, data){
   if( inherits(m, 'svm') ){
 
     return(f_model_importance_svm(m, data))
+  }
+
+  if( inherits(m, 'train') ){
+
+    imp = caret::varImp( m )$importance
+    imp$row_names = row.names(imp)
+    imp = imp %>%
+      mutate( value = Overall
+              , rank = rank( desc(value) ) ) %>%
+      select( row_names, value, rank) %>%
+      arrange( desc(value) )
+
+    return(imp)
+
   }
 
   return(NULL)

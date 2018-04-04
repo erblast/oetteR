@@ -2,7 +2,15 @@
 title: "WOE, IV and Scorevalues"
 author: "OEB"
 date: "March 2018"
-output: html_document
+output:
+  html_document:
+    toc: true
+    toc_depth: 3
+    toc_float: 
+      collapsed: false
+      smooth_scroll: false
+    number_sections: true
+    code_folding: show 
 editor_options: 
   chunk_output_type: console
 ---
@@ -41,41 +49,33 @@ Weight of evidence (WOE), Information Value (IV) and Score values are common ter
 ### Introduction to WOE and IV and a complementary R package
 - https://multithreaded.stitchfix.com/blog/2015/08/13/weight-of-evidence/
 
+# Definitions
 
-## Weight of evidence
+## Weight of evidence (WOE)
 
-This is basically a technique that can be applied if we have a binary response variable and any kind of predictor variable. We replace the response variable values with t
+This is basically a technique that can be applied if we have a binary response variable and any kind of predictor variable. First we perform a reasonable binning on the response variable and then decide which form of the binary response we count as positive and which as negative. Then we calculate the percentage positive cases in each bin of the total of all positive cases. For example 20 positive cases in bin A out of 100 total positive cases in all bins equals 20 %. Next we calculate the percentage of negative cases in each bin of the total of all negative cases, for example 5 negative cases in bin A out of a total of 50 negative cases in all bins equals 10%. Then we calculate the WOE by dividing the bin percentages of positive cases by the bin percentage of negative cases, and take the logarithm. For the described example log(20/10).
+  
+**Rule of thump:** If WOE values are negative, negative cases supersede the positive cases. If WOE values are positive, positive cases supersede the negative cases. 
+  
+**This serves the following purposes:**  
+- We eliminate any none-linear relationships  
+- We automatically scale all variables too some extend  
+- We convert categorical variables to contineous variables  
+- Missing Data can be handled as just another factor value  
+- We can built a stand alone score card, that could be manually applied by a person with a pen and a printout of all relevant variables.  
+  
+**It has the following disadvantages:**  
+- We always loose information via binning  
+- Score development along single variables is not contineous and occurs in steps  
+- Binning requires manual revision  
+- Calculating Variable importance is not as straight forward as with classical logistic regression with regularly scaled variables  
 
-TODO finish
 
+## Information Value (IV)
 
-## Convert Odds to Score
+By doing another sequence of calculations similar to the WOE calculation we can calculate the IV. Classically this serves as variable ranking method and allows us to perform feature selection, which is less compuationally demanding as other methods.
 
-(source)[https://www.analyticbridge.datasciencecentral.com/forum/topics/what-is-the-best-way-to]
-
-Define a target:
-**Target Score Value (tv):** 600
-**Target Odds (to):** 50
-
-Read as: at my target score 600 the ods should be 50:1
-
-Define slope:
-**points to double the odds (pdo):** 20
-
-Read as the odds should double every 20 points
-
-$$score = offset + factor\ ln(2\ odds)$$
-$$factor = \frac{pdo}{ln(2)}$$
-$$offset = ts - factor\ ln(to)$$ 
-replace **odds** with **logit**
-
-$$odds = e^{logit}$$
-
-$$score = offset + factor\ ln(2\ e^{logit})$$
-
-## Information Value
-
-```{r}
+```{r echo = F}
 
 tribble( ~`Information Value`, ~`Predictive Power`
         , '< 0.02'          , 'useless for prediction'
@@ -87,9 +87,22 @@ tribble( ~`Information Value`, ~`Predictive Power`
 
 ```
 
+
+## Scoring
+
+The score is the converted prediction of the model into a score value. The score is of a given arbitrary range with a defined slope and is normally distributed. The score reflects the increase or decrease in odds, with **High Score Values reflect a low probability of a modelled event**. 
+
+The score comes with a scorecard in which all contibuting variables are represented and linked to a specific score value. The sum of all score values that can be attributed to each variable is the total score. For example the credit score of an 18-year-old customer falls into the 18-25 age bin, a group with increased credit risk which reduces the overall credit score by 50 points. Such a score card is sufficient to calculate the total score if one has the values of all variables that contribute to the score.
+
+
+
+
 # WOE, IF, Scorecards implementation in R
 
-package: `scorecard`
+We will use the `scorecard` package and an example dataset to investigate the concepts of WOE, IV and Score and test its implementation in R
+
+
+## Sample Data
 
 ```{r}
 
@@ -104,11 +117,17 @@ vars = names(data) %>%
 
 names(data) <- vars
 
+# convert response factor variable to dummy variable
+
+data = data %>%
+  mutate( creditability = ifelse( creditability == 'bad', 1, 0 )
+          , creditability = as.factor(creditability) )
+
 summary(data)
 
 ```
 
-# Missing Data
+### Missing Data
 
 No mising data in dataset
 
@@ -119,7 +138,9 @@ Amelia::missmap(data)
 ```
 
 
-# Select variables using information value
+## Select variables using IV
+
+We can use `scorecard::iv()` to calculate the information values
 
 ```{r}
 
@@ -132,23 +153,22 @@ iv %>%
   knitr::kable()
 
 
-vars = iv %>%
-  filter( info_value >= 0.02 )
-
-
 ```
 
 
-# Weight of evidence binning
+## Weight of evidence binning
+
+We can use `scorecard::woebin()` to automatically create the bins and calculate the WOE values
 
 ```{r}
 
 bins = woebin(data, y = 'creditability')
 
-
 ```
 
-## Examplatory Plots
+### Examplatory Plots
+
+`scorecard::woebin()` returns a list with one element for each variable. There also is a plotting function that we can use to make meaningful plots and check the binning `scorecard::woebin_plot()`. 
 
 ```{r}
 
@@ -164,7 +184,9 @@ woebin_plot(bins$other_debtors_or_guarantors)
 
 ```
 
-# Apply bins
+### Apply bins
+
+We can take the list with all the binning information and pass ist to `scorecard::woebin_ply` in order to transform our dataset into an all WOE value dataset
 
 ```{r}
 
@@ -173,61 +195,108 @@ data_woe = woebin_ply( data, bins ) %>%
 
 ```
 
+## Feature Selection
 
-# glm with lasso and crossvalidataion
+We can reduce the variables that enter our feature selection process by filtering all variables with `IV < 0.02`. 
+
+We would then procede to use forward or backward stepwise feature selection, which are somewhat deprecated methods. [wikipedia](https://en.wikipedia.org/wiki/Stepwise_regression)
+
+We prefer to use lasso for feature selection in this case, since we do not have the same computational problems as in the old days we can run the lasso algorithm on all features without prefiltering by IV.
+
+### `glm` with lasso and crossvalidataion
+
+I prefer to use `oetteR::f_train_lasso` because it creates a more tidy output and figures and most noteworthy already returns a usable formula for the optimal features.
+
+A vignette for that function can be found [here](http://rpubs.com/erblast/366619)
+
+However `oetteR::f_train_lasso` it is simply a wrapper for `glmnet::glmnet()`
+
 
 ```{r}
 
-formula = as.formula( paste( 'creditability ~', paste(vars, collapse = '+') ) )
+set.seed(1)
+
+vars = names(data_woe)
+vars = vars[ vars != 'creditability']
+
+formula = as.formula( paste( 'creditability ~', paste( vars , collapse = '+') ) )
 
 
 lasso = oetteR::f_train_lasso( data = data_woe
                                , p = NULL
-                               , formula = trans_ls$formula
-                               , k = 10
+                               , formula = formula
+                               , k = 50
                                , family = 'binomial'
                                )
 
 
 ```
 
-## Lasso vis 
+#### Lasso Visualisation 
+
 
 ```{r}
 
-lasso$plot_mse
+plotly::ggplotly( lasso$plot_mse )
 
-lasso$plot_coef
+p = lasso$plot_coef +
+  theme( legend.position = 'none')
 
-lasso$formula_str_lambda_1se
-
-lasso$tib_all %>%
-  filter(lambda == lambda_1se) %>%
-  select( lambda_1se, auc, n_coeff_before_lasso, n_coeff_after_lasso)
+plotly::ggplotly( p, tooltip = c('x','y','color'))
 
 ```
 
-We can eliminate 11 out of 20 variables applying the lasso.
+the dashed line marks the lambda with min(MSE) the solid line marks lambda for which MSE is in range of min(MSE)+SEM.
+
+#### Formula 
+
+We select the highest lambda value whose MSE is in range of the min(MSE)+SEM.
+
+**`r lasso$formula_str_lambda_1se`**
+
+```{r}
+
+lasso$tib_all %>%
+  filter(lambda == lambda_1se) %>%
+  select( lambda_1se, auc, n_coeff_before_lasso, n_coeff_after_lasso) %>%
+  knitr::kable()
+
+```
+
+**We can eliminate 6 out of 20 variables applying the lasso.**
 
 
 # Build and interpret the model
+
+## Build the model
 
 Formula logistic regression :
 
 $$ln\left(\frac{P(X)}{1-P(X)}\right) = intercept + \beta_1x + \beta_nx $$
 the term on the left is called the link function its result is the **logit** value
 
-We can convert the **logit** value to **odds** by $$e^{logit}$$
-
-The **odds** can be converted to probability *P* by $$P(X)=\frac{odds}{odds+1}$$
-
-Classically we would use `predict()` with `type = 'response'` to directly get the porbability. However here we will do the calculations manually as described above.
 
 ```{r}
 
 formula = as.formula( lasso$formula_str_lambda_1se )
 
 m = glm( formula, data_woe, family = 'binomial')
+
+broom::tidy( m ) %>%
+  mutate( star = oetteR::f_stat_stars(p.value) ) %>%
+  oetteR::f_datatable_universal( round_other_nums = 2, page_length = nrow(.) )
+
+```
+
+## Logit and Odds
+
+We can convert the **logit** value to **odds** by $$e^{logit}$$
+
+The **odds** can be converted to probability *P* by $$P(X)=\frac{odds}{odds+1}$$
+
+Classically we would use `predict()` with `type = 'response'` to directly get the probability. However here we will do the calculations manually as described above.
+
+```{r}
 
 
 pred = predict(m)
@@ -236,57 +305,128 @@ resp = predict(m, type = 'response')
 res = tibble( logit = pred
               , odds = exp(pred)
               , prob = odds / (odds + 1)
-              , resp = resp )
+              , prob_ctrl = resp )
 
 
+res %>%
+  f_datatable_universal( page_length =  10, round_other_nums = 5 )
 
 ```
 
-# Score Card
 
-We can use `scorecard::scorecard()` in order to convert the **logit** to a contineous value.
+
+## Convert Odds to Score
+
+[source for calculations below](https://www.analyticbridge.datasciencecentral.com/forum/topics/what-is-the-best-way-to)
+
+Define a target:  
+**Target Score Value (ts):** 600  
+**Inverted Target Odds (to):** 50  
+  
+*Read as: at my target score 600 the ods should be 1:50  *
+  
+Define slope:  
+**points to double the odds (pdo):** 20  
+  
+*Read as the odds should double every 20 points  *
+  
+  
+Scoring is a bit counter intuitive the higher the score value the lower is the probability. Thus the highest score value will be associated with the lowest odds value. So when deciding on target score ( ts ), target odds( to ) and slope( pdo ) we are actually just defining a starting value and then decrease these values gradually by the rate of the slope until we cover the whole odds range. If we decide on a low target score with a steep slope we will again end up with negative values at the lower end of the score. 
+
+$$score = offset - factor\ ln(odds)$$
+$$factor = \frac{pdo}{ln(2)}$$
+$$offset = ts - factor\ ln(to)$$ 
+replace **odds** with **logit**
+
+$$odds = e^{logit}$$
+
+$$score = offset - factor\ logit$$
+
+### Score Card
+
+We can use `scorecard::scorecard()` in order to convert the **logit** to a score
 
 ```{r}
 
+points0 = 600
+odds0 = 20
+pdo = 50
+
+```
+
+- ts: `r points0`  
+- to: `r odds0`  
+- pdo: `r pdo`  
+
+```{r}
 card = scorecard( bins , m
-                  , points0 = 600 ## target maximum score
-                  , odds0 = 1/20 ## target odds at maximum score, max(odds) = 103
-                  , pdo = 50 ## score points to double odds 
+                  , points0 = points0 
+                  , odds0 = 1/odds0 # scorecard wants the inverse
+                  , pdo = pdo 
                   )
 
 sc = scorecard_ply( data, card )
 
 res$score = sc[[1]]
 
-
-res %>%
-  head(10) %>%
-  knitr::kable()
-
-
-summary(res)
 ```
 
-As a control we are going to calculate them also manually using the formulas described above.
+
+The card list is a fully functional score cards of which we will just print one example
+
 
 ```{r}
 
-points0 = 600
-odds0 = 1/20
-pdo = 50
-
-
+card[[2]]
 
 ```
 
 
+### Calculate the score manually
+
+As a control we are going to calculate them manually using the formulas described above.
+
+```{r}
+
+factor = pdo / log(2)
+offset = points0 - factor * log( odds0 )
+
+res$score_ctrl = offset - factor * res$logit
+
+
+res %>%
+  arrange( desc(score) ) %>%
+  f_datatable_universal( page_length =  10, round_other_nums = 5 )
+
+
+summary(res)
+
+
+```
+
+We can see from those summaries that our manual calculations are correct. We can use the simple formula
+
+$$score = offset - factor \ logit$$
+
+to calculate score values for any total logit value now with
+
+- **offset:** `r offset`  
+- **factor** `r factor`  
+
 # Plot 
+
+Here we will compare the distributions and relationships between odds, score, logit and probability in order to better undestand the score values.
 
 ## Logit vs. Odds, Probabilities and Score
 
 ```{r}
+
+# filter control values
+
+res = res %>%
+  select( - ends_with('_ctrl') )
+
 res %>%
-  select( - resp ) %>%
   gather( key = 'key', value = 'value', - logit ) %>%
   ggplot( aes( logit, value, color = key) ) +
   geom_point() +
@@ -302,7 +442,6 @@ We can see that the score is perfectly linearly correlated with the logit
 ```{r}
 
 res %>%
-  select( - resp ) %>%
   mutate( score = score * - 1 ) %>%
   gather( key = 'key', value = 'value', - odds ) %>%
   ggplot( aes( odds, value, color = key) ) +
@@ -312,7 +451,6 @@ res %>%
 
 
 res %>%
-  select( - resp ) %>%
   mutate( score = score * - 1 ) %>%
   mutate_at( vars(logit, prob, score), scale ) %>%
   gather( key = 'key', value = 'value', - odds ) %>%
@@ -330,7 +468,6 @@ We can see that the relationship between odds and score and odds and logit is id
 ```{r}
 
 res %>%
-  select( - resp ) %>%
   gather( key = 'key', value = 'value' ) %>%
   ggplot( aes(value) ) +
     geom_histogram( bins = 50
@@ -340,7 +477,7 @@ res %>%
     facet_wrap(~key, scales = 'free')
 
 res %>%
-  select( - resp, - odds, -prob ) %>%
+  select( logit, score ) %>%
   mutate_all( scale, center = T ) %>%
   mutate_all( as.vector ) %>%
   gather( key = 'key', value = 'value' ) %>%
@@ -361,13 +498,15 @@ Score and Logit also have identical distributions
 
 ## Variable importance for regression models
 
-$$link function(logit) = intercept + \beta_1x_1 + \beta_nx_n$$
+$$logit = intercept + \beta_1x_1 + \beta_nx_n$$
 
-Clasically one would look at the P-values in the model`s sumamry statistics. However this is particularly flawed when you have colinear variables, which results in reduced P values for all affected variables. Also when having to pick one variable which maximally decreases modelling quality the variable with the lowest P Value is not always the best choice.
+Clasically one would look at the P-values in the model`s summary statistics. However this is particularly flawed when you have colinear variables, which results in reduced P values for all affected variables. Also when having to pick one variable which maximally decreases modelling quality the variable with the lowest P Value is not always the best choice.
 
-A better method is to scale and center the variables before fitting and then rank the variables by their absolute coefficient values $$\beta$$. The interpretation being that a large absolute value of variable $$x$$ is higher the higher its absolute coefficient $$\beta$$. Categorical variables would be split into dummy variables so we intuitevely know their range as 1 or 0.
+A better method is to scale and center the variables before fitting and then rank the variables by their absolute coefficient values $\beta$. The interpretation being that a large absolute value of $x$ is higher the higher its absolute coefficient $\beta$. Numerical variables range from 0 to 1 because of the scaling and categorical variables would be split into dummy variables so we intuitevely know their range as 1 or 0.
 
-However this is now a bit difficult since we replaced all our variable values with the WOE. We do not intuitively know the WOE range of each variable. Thus a high value of $$\beta$$ could theoretically be multiplied by any range of $$x$$. A suggestion that I could make is to multiply the coefficents witht he information value. 
+However this is now a bit difficult since we replaced all our variable values with the WOE. We do not intuitively know the WOE range of each variable. We simply know that it follows a logarithmic distribution and values >1 and <-1 will be sparse. Thus a high value of $\beta$ could theoretically be multiplied by any range of $x$. 
+
+The best solution that we can come up with is to simply multiply coefficient and IV. Which returns sensible results.
 
 ```{r}
 
@@ -378,33 +517,309 @@ imp = tibble( variable = names( coef(m) )
   mutate( imp = abs(coef) * info_value ) %>%
   arrange( desc(imp) ) 
 
-knitr::kable( imp, align = 'lccc' )
+knitr::kable( imp, align = 'lccc', digits = 2 )
 
 
 ```
 
 
-The best method of ranking the variables by importance is to remove them from the model and measure the reduction im performance. This method could be applied to all type of models and allow comparisons. However this approach is computationally quite expensive.
+The actually best method of ranking the variables by importance is to remove them from the model and measure the reduction im performance. This method could be applied to all type of models and allow comparisons. However this approach is computationally quite expensive.
 
 
 ## Interpreting individual predictions
 
 In order to interpret the individual results for each customer we need to calculate the logit manually using the coefficients and look at the individual terms of the regression function.
 
+First we calculate all $\beta_n x_n$ logits for all observations
+
 ```{r}
-
-
 
 
 data_relevant = data_woe[, names( coef(m) )[-1] ]
 
-data_mult = as_tibble( data_relevant * coef(m)[-1] )
+data_mult_logit = as_tibble( data_relevant * coef(m)[-1] ) 
+
+```
+
+
+Then we calculate the score value for each logit value and the intercept. 
+
+$$BaseScore = offset - factor * intercept$$
+$$SummandScore = factor * logit$$
+
+$$TotalScore = \sum SummandScore + BaseScore $$
+
+### Dataframe with individual score values
+
+```{r}
+
+
+data_mult_score = data_mult_logit %>%
+  mutate_all( function(x) - factor * x ) %>%
+  mutate( intercept = coef(m)[1]
+          , intercept = offset - factor * intercept )
+
+score = apply( data_mult_score, 1, sum ) 
+
+data_mult_score$score = score
+
+data_mult_score$score_ctrl = res$score
+
+data_mult_score %>%
+  select( score, score_ctrl, intercept, everything() ) %>%
+  head(10) %>%
+  knitr::kable()
+
+
+```
+
+
+### Examplatory score output for customer/observation 1
+
+including original value and WOE tranformed value
+
+```{r}
+
+# correct variable names
+
+new_names_score = names(data_mult_score) %>%
+  str_replace_all( '_woe', '')
+
+new_names_data_relevant = names(data_relevant) %>%
+  str_replace_all( '_woe', '')
+
+
+names(data_mult_score) <- new_names_score
+
+names(data_relevant) <- new_names_data_relevant
+
+obs1_woe = data_relevant[1,] %>%
+  mutate( rwn = row_number() ) %>%
+  select( rwn, everything() ) %>%
+  f_manip_transpose_tibble()
+
+obs1_values = data[1,] %>%
+  mutate( rwn = row_number() ) %>%
+  select( rwn, everything() ) %>%
+  f_manip_transpose_tibble()
+
+obs1_score = data_mult_score[1,] %>%
+  mutate( rwn = row_number() ) %>%
+  select( rwn, everything() ) %>%
+  f_manip_transpose_tibble() 
+
+
+obs1_score %>%
+  left_join( obs1_woe , by = 'row_names' ) %>%
+  left_join( obs1_values, by = 'row_names') %>%
+  left_join( iv, by = c('row_names' = 'variable') ) %>%
+  arrange( desc(info_value) ) %>%
+  rename( variable = row_names
+          , `score` = `1.x`
+          , `woe` = `1.y`
+          , `value` = `1`) %>%
+  knitr::kable( digits = 2, align = 'lcccc' )
+
 
 ```
 
 
 
+# Test performance of WOE binned variables vs an approach without binnings.
 
+## Regular approach
+
+We will build a small modelling dataframe, which consists of two differently transformed data sets, two individual formulas and a `rsample` object.
+
+- We will use `recipes` for data transformation
+- We will use `rsample` for 10 x 10 cross validation
+- We will use `glmnet` via `oetteR` for feature selection
+- We will use `caret` for modelling and performance prediction
+
+### Data Preparation with `recipes`
+
+We will create dummy variables and use Yeo Johnson (like BoxCox but is tolerant of negative values) transformation on the contineous variables.
+
+
+```{r}
+
+require(recipes)
+
+rec = recipe( data, creditability ~ . ) %>%
+  step_dummy( all_predictors(), - all_numeric() ) %>%
+  step_scale( all_numeric() ) %>%
+  step_center( all_numeric() ) %>%
+  step_YeoJohnson( all_numeric() )
+
+rec_prep = prep( rec, data)
+
+summary(rec_prep)
+
+data_trans = bake( rec_prep, data)
+
+#unfortuntatly also recipes uses '.' in the dummy variable names which are not 
+#compatible with f_train_lasso
+
+new_names = names(data_trans) %>%
+  str_replace_all( '\\.', '_') %>%
+  unlist()
+
+names(data_trans) <- new_names
+
+formula = new_names[ new_names != 'creditability'] %>%
+  paste( collapse = '+' )
+
+formula = paste( 'creditability ~', formula ) %>%
+  as.formula()
+  
+```
+
+### Feature Selection with lasso
+
+```{r}
+
+set.seed(1)
+
+lasso_reg = f_train_lasso(data_trans
+                      , formula
+                      , p = NULL
+                      , family = 'binomial'
+                      , k = 50)
+
+```
+
+
+#### Formula
+
+**`r lasso_reg$formula_str_lambda_1se`**
+
+```{r}
+
+lasso_reg$tib_all %>%
+  filter(lambda == lambda_1se) %>%
+  select( lambda_1se, auc, n_coeff_before_lasso, n_coeff_after_lasso) %>%
+  knitr::kable()
+
+```
+
+
+We can eleminate 27 out of 48 variables, remember that we are now carrying dummy variables.
+
+
+## Compare
+
+### Build modelling dataframe
+
+We are using `rsample` for the 10 x 10 cross validation
+
+```{r}
+
+tib = tribble( ~ data_name, ~ data     , ~ formula
+               , 'woe'    , data_woe   , lasso$formula_str_lambda_1se
+               , 'regular', data_trans , lasso_reg$formula_str_lambda_1se ) %>%
+  mutate( rs = map( data, rsample::vfold_cv, v = 10, repeats = 10)
+          , rs = map( rs, rsample::rsample2caret )
+          , method = 'glm'
+          , formula = map( formula, as.formula )
+          , data = map(data, mutate
+                       , creditability = ifelse(creditability == 1, 'bad', 'good')
+                       , creditability = as.factor(creditability) ) )
+
+tib
+  
+```
+
+### wrapper for `caret`
+
+```{r}
+
+wr_car = function( formula, rsample, data, method, ... ){
+  
+  grid = as.data.frame(grid)
+  
+  car = caret::train( formula
+                      , data
+                      , method = method
+                      , trControl = caret::trainControl(index = rsample$index
+                                                        , indexOut = rsample$indexOut
+                                                        , method = 'cv'
+                                                        , verboseIter = F
+                                                        , savePredictions = T
+                                                        , classProbs = T
+                                                        , allowParallel = F
+                                                        , summaryFunction = caret::twoClassSummary
+                                                        )
+                      , ...
+                       )
+  return( car )
+}
+
+
+```
+
+### Apply
+
+```{r}
+
+tib = tib %>%
+  mutate( car = pmap( list(formula, rs, data, method), wr_car
+                      , family = 'binomial')
+          , results = map(car,'results' ) ) %>%
+  unnest( results , drop. = F )
+
+
+```
+
+### Results
+
+```{r}
+
+tib_perf = tib  %>%
+  select( data_name, ROC, ROCSD ) %>%
+  gather( key = 'metric', value = 'value', - data_name, - ends_with('SD') ) %>%
+  gather( key = 'metric_SD', value = 'SD', - data_name, - metric, - value ) %>%
+  select( - metric_SD ) %>%
+  mutate( SEM = SD / sqrt(100) )  
+
+
+tib_perf %>%
+  knitr::kable( digits = 3, align = c('lcccccc') )
+
+
+tib_perf %>%
+  ggplot( ) +
+    geom_pointrange( aes( x = data_name
+                          , y = value
+                          , ymin = value - SEM
+                          , ymax = value + SEM
+                          , color = data_name ) ) +
+    labs( x = '', y = 'AUC')
+
+
+
+```
+
+
+The WOE method improves modelling performance by 1.5 %, which is not much but is considerable. 
+
+# Conclusion
+
+We find that tranforming logit, odds or pobabilities to a score value has its benefits when it comes to judging the contribution of each variable to the total score. Further we find that using WOE instead of a more modern approach of data preparation allows us build the model as a score card for which different percentiles of predictor variables contribute a defined score towards the total credit score. 
+
+Further we find that this approach does not decrease the performance of the model quite the contrary for this sample dataset performance is actually increased by 1.5%
+
+
+# Next steps
+
+## Calibrating the model
+
+We have not yeat calibrated the model. Meaning we have not checked whether the calculated probabilities truly reflect the actual probabilities. `Applied predictive modelling p. 249`
+
+## Dealing with class imbalance
+
+The German Credit data set is an artificial dataset in a sense that it is most likely that occurrences of credit default have been oversampled since the default ratio is 700:300.
+
+To fully implement a working algorithm in R for a real credit risk data set we would propably have to use SMOTE or ROSE oversampling methods. Those methods are implemented in `caret` but probably are not yet compatible with `recipes`. But this remains to be tested. A description can be found in `Applied predictive modelling p. 419`
 
 
 
