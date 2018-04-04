@@ -81,10 +81,20 @@ Some of the POCs are also posted on Rpubs
 - [ggpubr](http://rpubs.com/erblast/369520)  
 
 ## Modelling
+
+### Modelling Dataframe packages
 - [Pipelearner for classification](http://rpubs.com/erblast/369542)  
 - [rsample](http://rpubs.com/erblast/370014)
 - [recipes](http://rpubs.com/erblast/recipes)
 - [caret](http://rpubs.com/erblast/caret)
+
+### Regression models with caret
+- [01 robust linear regression, `rlm`](http://rpubs.com/erblast/rlm)
+- [02 neuronal networks, `nnet`](http://rpubs.com/erblast/nnet)
+- [03 multiviariate adaptive regession splines (MARS), `earth`](http://rpubs.com/erblast/mars)
+
+### Various
+- [WOE, IV Scorecard in Credit Risk Modelling](http://rpubs.com/erblast/creditrisk)
 
 ## Algorithms
 - [SOM with connectivity restrains](http://rpubs.com/erblast/SOM)  

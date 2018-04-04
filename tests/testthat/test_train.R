@@ -85,6 +85,7 @@ test_that('lasso',{
 test_that( 'lasso classification',{
 
   data_ls = mtcars %>%
+    bind_rows( mtcars ) %>% # to make sure we do not get an error because the testset is to small
     f_clean_data()
 
   formula = vs ~ cyl + mpg + disp + hp + drat + wt + qsec + am + gear + carb
@@ -99,6 +100,9 @@ test_that( 'lasso classification',{
                          )
 
   lasso
+
+  # if the test set is too small auc could get heigher then 1 for some reason
+  # the f_train_lasso catches that
 
   expect_error({
 
