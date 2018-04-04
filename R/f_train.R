@@ -794,7 +794,8 @@ f_train_lasso = function(data
       labs( y = 'AUC' )
 
     if( max(pl_fin$auc) > 1 ){
-      stop( 'maximum value of AUC > 1, reduce k, to reduce the numbe of cross validation sets' )
+      stop( 'maximum value of AUC > 1, possibly to few samples in test set
+            , reduce k to reduce the number of cross validation sets' )
     }
 
   }

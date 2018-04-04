@@ -366,19 +366,17 @@ f_predict_plot_model_performance_regression = function(data){
 #' m = rpart::rpart(disp~., df)
 #' pred = f_predict_regression_add_predictions(df, m, 'disp', 'names')
 #' pred
-#' @details works with HDtweedie, randomForest, rpart, e1071::svm, glmnet, gamlss
+#' @details works with HDtweedie, randomForest, rpart, e1071::svm, glmnet, gamlss, caret
 #' @rdname f_predict_regression_add_predictions
 #' @export
 #' @importFrom modelr add_predictions add_residuals
 f_predict_regression_add_predictions = function(data_test
                                                 , m
-                                                , col_target
+                                                , col_target = NULL
                                                 , data_train = NULL
                                                 , cols_id = NULL
                                                 , formula = NULL
                                                 , ...){
-
-  col_target_sym = as.name(col_target)
 
   data_test = as.tibble(data_test)
   data_train = as.tibble(data_train)
@@ -411,8 +409,7 @@ f_predict_regression_add_predictions = function(data_test
     }
 
     df = data_test %>%
-      mutate( pred = pred
-             , resid = (!! col_target_sym) - pred)
+      mutate( pred = pred )
 
   } else if (inherits(m, what = 'gamlss') ) {
     if( is_empty(data_train) ){
@@ -420,24 +417,34 @@ f_predict_regression_add_predictions = function(data_test
     }
       pred = gamlss:::predict.gamlss(m, data = data_train, newdata = data_test )
       df = data_test %>%
-        mutate( pred = pred
-                , resid = (!! col_target_sym) - pred)
+        mutate( pred = pred )
+
+  }else if( inherits(m, what = 'train') ){
+
+    pred = caret::predict.train(m, newdata = data_test )
+    df = data_test %>%
+      mutate( pred = pred )
 
   }else{
 
   df = data_test %>%
-    modelr::add_predictions(m) %>%
-    modelr::add_residuals(m)
+    modelr::add_predictions(m)
   }
 
-  df = df %>%
-  mutate( target = !!col_target_sym ) %>%
-  select( one_of( c( cols_id, 'target', 'pred', 'resid') ) ) %>%
-  mutate( resid_abs   = abs(resid)
-            , resid_squ = resid^2
-            , ape       = abs(resid/pred) * 100
-            , ape       = ifelse( is.na(ape), 0, ape )
-  )
+  # add residuals if target column in test data or residuals added by modelr
+
+  if( ! is.null(col_target) )  {
+    df = df %>%
+      mutate( resid = pred - !! as.name(col_target)
+              , target = !!as.name(col_target) ) %>%
+      select( one_of( c( cols_id, 'target', 'pred', 'resid') ) ) %>%
+      mutate( resid_abs   = abs(resid)
+                , resid_squ = resid^2
+                , ape       = abs(resid/pred) * 100
+                , ape       = ifelse( is.na(ape), 0, ape )
+             )
+
+  }
 
   return(df)
 }
