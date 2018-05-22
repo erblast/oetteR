@@ -169,7 +169,9 @@ f_plot_adjust_col_vector_length = function( n = 74, col_vector = f_plot_col_vect
 #'@param x_max double, requires aut_range == F,  Default: 100
 #'@param title character vector plot title
 #'@param rug boolean
-#'@param add character vector one_of( c('mean','median','none') ) , Default: 'mean'
+#'@param add character vector one_of( c('mean','median','none') ), This feature
+#'  is currently enabled because it does not seem to be supported by ggpubr
+#'  under R 3.5, Default: 'mean'
 #'@param col_vector vector with RGB colors, Default:
 #'  f_plot_adjust_col_vector_length(100, RColorBrewer::brewer.pal(name =
 #'  "Dark2", n = 8))
@@ -257,7 +259,7 @@ f_plot_hist = function(variable
                    , fill = group
                    , palette = col_vector
                    , rug = rug
-                   , add = add
+                   #, add = add
     )
 
   }
@@ -273,7 +275,7 @@ f_plot_hist = function(variable
                  , fill = group
                  , palette = col_vector
                  , rug = rug
-                 , add = add
+                 #, add = add
                  , bins = n_breaks
     )
   }
@@ -302,7 +304,7 @@ f_plot_hist = function(variable
                    , x = variable
                    , y = y_axis
                    , rug = rug
-                   , add = add
+                   #, add = add
                    , palette = col_vector
                    , bins = n_breaks
                    ) +
@@ -318,7 +320,7 @@ f_plot_hist = function(variable
                              , x = variable
                              , y = y_axis
                              , rug = rug
-                             , add = add
+                             #, add = add
                              , palette = col_vector
     ) +
       geom_histogram( fill = col_vector[1], color = 'black' , alpha = 0.5)
@@ -824,6 +826,7 @@ f_plot_obj_2_html = function(obj_list
 #' @export
 #' @importFrom fields interp.surface
 #' @importFrom MASS kde2d
+#' @importFrom viridis scale_color_viridis
 f_plot_pretty_points = function(df
                                 , col_x
                                 , col_y
@@ -894,7 +897,7 @@ f_plot_pretty_points = function(df
 
   p = ggplot(df, aes_string( col_x, col_y, color = 'PC1') ) +
     geom_point( aes( alpha = 1/density ), size = size ) +
-    scale_color_viridis_c() +
+    viridis::scale_color_viridis() +
     theme_minimal() +
     theme( legend.position = 'none') +
     labs( title = title, x = x_title, y = y_title )

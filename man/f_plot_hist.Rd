@@ -45,7 +45,9 @@ f_plot_adjust_col_vector_length(100, RColorBrewer::brewer.pal(name =
 
 \item{p_val}{boolean, Default: T}
 
-\item{add}{character vector one_of( c('mean','median','none') ) , Default: 'mean'}
+\item{add}{character vector one_of( c('mean','median','none') ), This feature
+is currently enabled because it does not seem to be supported by ggpubr
+under R 3.5, Default: 'mean'}
 
 \item{...}{additional arguments passed to labs()}
 }

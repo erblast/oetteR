@@ -85,12 +85,13 @@ test_that('lasso',{
 test_that( 'lasso classification',{
 
   data_ls = mtcars %>%
-    bind_rows( mtcars ) %>% # to make sure we do not get an error because the testset is to small
     f_clean_data()
 
   formula = vs ~ cyl + mpg + disp + hp + drat + wt + qsec + am + gear + carb
 
   trans_ls = f_manip_data_2_model_matrix_format( data_ls$data, formula )
+
+  set.seed(1)
 
   lasso = f_train_lasso( trans_ls$data
                          , trans_ls$formula

@@ -15,7 +15,7 @@ f_model_importance(m, data)
 tibble
 }
 \description{
-supports rpart, randomForest, svm, will return NULL for other models
+supports rpart, randomForest, svm and caret will return NULL for other models
 }
 \examples{
 pl = pipelearner::pipelearner(mtcars) \%>\%

@@ -17,7 +17,7 @@ f_model_add_predictions_2_grid_regression(grid, m, var)
 grid
 }
 \description{
-wrapper for modelr::add_predictions
+wrapper for f_predict_regression_add_predictions
 }
 \examples{
 data_ls = f_clean_data(mtcars)
