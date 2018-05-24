@@ -79,6 +79,10 @@ test_that('lasso',{
   lasso = f_train_lasso(data, formula, p = NULL, k = 3
                         , lambda = 10^seq(3,-3,length= 25) )
 
+  expect_true( ncol(lasso$plot_mse$data) == 3 )
+  expect_true( ncol(lasso$plot_coef$data) == 4 )
+
+
   lasso
 })
 
