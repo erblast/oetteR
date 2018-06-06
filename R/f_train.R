@@ -742,13 +742,16 @@ f_train_lasso = function(data
     ungroup() %>%
     mutate( lambda = log(lambda)
             , distribution = as.factor(distribution) ) %>%
+    # we have to limit the selection of columns because the ggplot obj
+    # will save the entire dataframe and memory will explode for large datasets
+    select( lambda, distribution, mse ) %>%
     ggplot( aes( lambda
                  , mse
                  , fill = distribution
                  , color = distribution ) )+
     geom_line() +
     geom_point(size = 1) +
-    geom_vline( data = pl_min_plot
+    geom_vline( data = select(pl_min_plot, lambda_value, distribution, lambda_type)
                 , mapping = aes(xintercept = lambda_value
                                 , color = distribution
                                 , linetype = lambda_type ) ) +
