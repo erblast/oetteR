@@ -177,9 +177,9 @@ test_that('f_model_pl_add_plots_regression, f_model_importance_pl_plots_as_html 
     suppressWarnings({
 
       pl = pipelearner::pipelearner(data_ls$data) %>%
-        pipelearner::learn_models( twidlr::rpart, form ) %>%
-        pipelearner::learn_models( twidlr::randomForest, form ) %>%
-        pipelearner::learn_models( twidlr::svm, form ) %>%
+        pipelearner::learn_models( rpart::rpart, form ) %>%
+        pipelearner::learn_models( randomForest::randomForest, form ) %>%
+        pipelearner::learn_models( e1071::svm, form ) %>%
         pipelearner::learn() %>%
         mutate( imp = map2(fit, train, f_model_importance)
                 , title = paste(model, models.id, train_p) ) %>%

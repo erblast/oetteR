@@ -9,12 +9,12 @@
 #' @return dataframe
 #' @examples
 #' #regression
-#' m = twidlr::randomForest(mtcars, disp~.)
+#' m = randomForest::randomForest(mtcars, disp~.)
 #' f_model_importance_randomForest(m)
 #'
 #' #classification
 #' data_ls = f_clean_data(mtcars)
-#' m = twidlr::randomForest(data_ls$data, cyl~.)
+#' m = randomForest::randomForest(data_ls$data, cyl~.)
 #' f_model_importance_randomForest(m)
 #'
 #' @rdname f_model_importance_randomForest
@@ -51,13 +51,13 @@ f_model_importance_randomForest = function(m){
 #' @examples
 #'
 #'#regression
-#' m = twidlr::svm(mtcars, disp~.)
+#' m = e1071::svm(mtcars, disp~.)
 #' f_model_importance_svm(m, mtcars)
 #'
 #' #classification
 #' data = mtcars
 #' data$cyl = factor(data$cyl, ordered = T)
-#' m = twidlr::svm(data, cyl~.)
+#' m = e1071::svm(data, cyl~.)
 #' f_model_importance_svm(m, data)
 #'
 #'
@@ -106,7 +106,7 @@ f_model_importance_svm = function(m, data){
   } else{
     #regression
     suppressWarnings({
-      imp = rminer::Importance(m, data, PRED = twidlr::predict.svm )
+      imp = rminer::Importance(m, data, PRED = e1071:::predict.svm )
     })
   }
 
@@ -132,12 +132,12 @@ f_model_importance_svm = function(m, data){
 #' @examples
 #'
 #'#regression
-#' m = twidlr::rpart(mtcars, disp~.)
+#' m = rpart::rpart(mtcars, disp~.)
 #' f_model_importance_rpart(m)
 #'
 #' #classification
 #' data_ls = f_clean_data(mtcars)
-#' m = twidlr::rpart(data_ls$data, cyl~.)
+#' m = rpart::rpart(data_ls$data, cyl~.)
 #' f_model_importance_rpart(m)
 #'
 #' @rdname f_model_importance_rpart
@@ -187,9 +187,9 @@ f_model_importance_rpart = function(m){
 #' @return tibble
 #' @examples
 #' pl = pipelearner::pipelearner(mtcars) %>%
-#'   pipelearner::learn_models( twidlr::rpart, disp~. ) %>%
-#'   pipelearner::learn_models( twidlr::randomForest, disp~. ) %>%
-#'   pipelearner::learn_models( twidlr::svm, disp~. ) %>%
+#'   pipelearner::learn_models( rpart::rpart, disp~. ) %>%
+#'   pipelearner::learn_models( randomForest::randomForest, disp~. ) %>%
+#'   pipelearner::learn_models( e1071::svm, disp~. ) %>%
 #'   pipelearner::learn() %>%
 #'   mutate( imp = map2(fit, train, f_model_importance) )
 #'pl$imp
@@ -240,7 +240,7 @@ f_model_importance = function(m, data){
 #'
 #' data_ls = f_clean_data(mtcars)
 #' variable_color_code = f_plot_color_code_variables(data_ls)
-#' m = twidlr::rpart(mtcars, disp~.)
+#' m = rpart::rpart(mtcars, disp~.)
 #' imp = f_model_importance_rpart(m)
 #' f_model_importance_plot(imp
 #'                         , title = 'rpart'
@@ -248,9 +248,9 @@ f_model_importance = function(m, data){
 #'                         )
 #' #pipelearner
 #' pl = pipelearner::pipelearner(data_ls$data) %>%
-#'   pipelearner::learn_models( twidlr::rpart, disp~. ) %>%
-#'   pipelearner::learn_models( twidlr::randomForest, disp~. ) %>%
-#'   pipelearner::learn_models( twidlr::svm, disp~. ) %>%
+#'   pipelearner::learn_models( rpart::rpart, disp~. ) %>%
+#'   pipelearner::learn_models( randomForest::randomForest, disp~. ) %>%
+#'   pipelearner::learn_models( e1071::svm, disp~. ) %>%
 #'   pipelearner::learn() %>%
 #'   mutate( imp = map2(fit, train, f_model_importance)
 #'          , title = paste( model, models.id, cv_pairs.id, train_p )
@@ -331,9 +331,9 @@ f_model_importance_plot = function( importance
 #'#pipe
 #'form = as.formula('disp~cyl+mpg+hp')
 #'pl = pipelearner::pipelearner(mtcars) %>%
-#'  pipelearner::learn_models( twidlr::rpart, form ) %>%
-#'  pipelearner::learn_models( twidlr::randomForest, form ) %>%
-#'  pipelearner::learn_models( twidlr::svm, form ) %>%
+#'  pipelearner::learn_models( rpart::rpart, form ) %>%
+#'  pipelearner::learn_models( randomForest::randomForest, form ) %>%
+#'  pipelearner::learn_models( e1071::svm, form ) %>%
 #'  pipelearner::learn() %>%
 #'  mutate( imp = map2(fit, train, f_model_importance)
 #'          , tabplot = pmap( list( data = train
@@ -405,9 +405,9 @@ f_model_importance_plot_tableplot = function( data
 #' variable_color_code = f_plot_color_code_variables(data_ls)
 #'
 #' pl = pipelearner::pipelearner(data_ls$data) %>%
-#'   pipelearner::learn_models( twidlr::rpart, form ) %>%
-#'   pipelearner::learn_models( twidlr::randomForest, form ) %>%
-#'   pipelearner::learn_models( twidlr::svm, form ) %>%
+#'   pipelearner::learn_models( rpart::rpart, form ) %>%
+#'   pipelearner::learn_models( randomForest::randomForest, form ) %>%
+#'   pipelearner::learn_models( e1071::svm, form ) %>%
 #'   pipelearner::learn() %>%
 #'   mutate( imp = map2(fit, train, f_model_importance)
 #'           , title = paste(model, models.id, train_p) ) %>%
@@ -527,9 +527,9 @@ f_model_importance_pl_add_plots_regression = function( pl
 #'variable_color_code = f_plot_color_code_variables(data_ls)
 #'
 #'pl = pipelearner::pipelearner(data_ls$data) %>%
-#'  pipelearner::learn_models( twidlr::rpart, form ) %>%
-#'  pipelearner::learn_models( twidlr::randomForest, form ) %>%
-#'  pipelearner::learn_models( twidlr::svm, form ) %>%
+#'  pipelearner::learn_models( rpart::rpart, form ) %>%
+#'  pipelearner::learn_models( randomForest::randomForest, form ) %>%
+#'  pipelearner::learn_models( e1071::svm, form ) %>%
 #'  pipelearner::learn() %>%
 #'  mutate( imp = map2(fit, train, f_model_importance)
 #'          , title = paste(model, models.id, train_p) ) %>%
