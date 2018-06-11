@@ -1,0 +1,48 @@
+---
+title: "Untitled"
+author: "OEB"
+date: "August 8, 2017"
+output: html_document
+runtime: shiny
+---
+
+
+```{r}
+
+finished = reactiveValues( data = NULL)
+finished$worker1 = 'Work not yet finished'
+finished$worker2 = 'Work not yet finished'
+
+
+worker = function(){
+  
+  Sys.sleep(5)
+  
+  finished$worker1 = 'works is done'
+  
+
+}
+
+
+actionButton('worker1'
+             , 'work')
+
+
+nest = function(input, finished) {
+
+  observeEvent(input$worker1
+              , { 
+                finished$worker1 = worker()
+                finished$worker2 = worker()
+               }
+              )
+
+}
+
+nest(input, finished)
+
+renderText( finished$worker1)
+renderText( finished$worker2)
+
+```
+

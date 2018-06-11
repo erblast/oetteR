@@ -1,0 +1,1812 @@
+---
+title: "Multiview"
+author: "OEB"
+date: "May 16, 2017"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    toc_depth: 3
+    collapsed: false
+    smooth_scroll: false
+    number_sections: true
+    theme: sandstone
+    df_print: paged  
+    code_folding: hide 
+    
+runtime: shiny
+---
+
+<style>
+  .main-container {
+    max-width: 1920px !important;
+  }
+</style>
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = F, warning = F, message = F, eval = T)
+```
+
+```{r libraries, echo=FALSE, message=F, warning=FALSE}
+
+require(knitr)
+require(ISLR)
+require(tabplot)
+require(tidyverse)
+require(tabplot)
+require(randomForest)
+require(stringr)
+require(GGally)
+require(forcats)
+require(broom)
+require(caret)
+require(ggcorrplot)
+require(Amelia)
+
+```
+
+#Data
+
+## Load Data
+
+```{r load_data, eval = T}
+
+
+
+wellPanel(
+  
+  selectInput('sql_or_lib'
+              , label = 'Select Data Source'
+              , choices = c('SQL', 'Sample_Data')
+              , selected = 'Sample_Data')
+  
+  , selectInput('sample_data'
+              , label = 'Select Sample Data'
+              , choices = c('ISLR::OJ'
+                            , 'ISLR::Caravan'
+                            , 'ISLR::Auto'
+                            , 'ISLR::Carseats'
+                            , 'ISLR::Wage'
+                            , 'ISLR::College'
+                            , 'ISLR::Hitters'
+                            , 'ISLR::Default'
+                            , 'ISLR::Weekly'
+                            , 'ILSR::Wage categoricals'
+                            , 'ISLR::OJ numericals')
+              , selected = 'ISLR::Wage')
+  
+  # , textInput('server'
+  #             , label = 'Enter Server'
+  #             , width = 'auto')
+  # 
+  # , textInput('query'
+  #             , label = 'Paste SQL'
+  #             , width = '100%')
+  
+  
+  , textInput('path'
+            , label = 'Save Analysis to this directory'
+            , width = '100%'
+            , value = "C:/Users/erbla/Documents")
+
+)
+
+inputPanel(
+  
+  actionButton('load_data'
+               , label = 'Load Data')
+  
+  , checkboxInput('save'
+                  , label = 'Save Results'
+                  , value = F)
+  
+)
+
+rea_load = eventReactive(input$load_data,{
+
+  if(input$sql_or_lib == 'SQL'){
+    
+    require(RODBCext)
+    
+    con = odbcDriverConnect(
+                             str_c('Driver=SQL Server;Trusted_Connection=Yes;Server=', input$server)
+         )
+
+    query = input$query
+
+    data = sqlQuery(con, query = query)
+    
+    close(con)
+
+  }  
+  
+  else{
+    
+    if(input$sample_data == 'ILSR::Wage categoricals'){
+      
+      data = ISLR::Wage
+      
+      bool = ! summarise_all(data, is.numeric)
+      
+      data= data[,bool]
+        
+    }else if(input$sample_data == 'ISLR::OJ numericals'){
+      
+      data = ISLR::OJ %>%
+        as.data.frame()
+
+      bool = summarise_all(data, is.numeric)
+        
+
+      data= data[,as.logical(bool[1,])]
+        
+    }else{
+      exec_str = input$sample_data
+      
+      data = eval(parse(text = exec_str) )
+    }
+    
+    
+  }
+  
+  return(data)
+  
+})
+
+save_plot = function(plot
+                     , path
+                     , name
+                     , yes
+                     , scale = 1
+                     , excel = T){
+  
+  require(tidyverse)
+  
+  if(yes == F) return()
+  
+  folder_name = lubridate::today() %>%
+    as.character() %>%
+    stringr::str_replace_all('-','')%>%
+    stringr::str_c('_multiview')
+  
+  path = path %>%
+    stringr::str_c('/',folder_name)
+  
+  dir.create(path)
+    
+  file_name_plot = path %>%
+    stringr::str_c('/',name,'.png')
+  
+  file_name_excel = path %>%
+    stringr::str_c('/',name,'.xls')
+
+  # tabplot object should save with the same function
+  variable = tryCatch(
+	{
+    ggsave(file_name_plot
+           , plot = plot
+           , scale = scale)
+	}, warning = function(war){
+		#code to be executed in case of warning
+	}, error = function(err){
+	  tabplot::tableSave(tab = plot
+	                     ,filename = file_name_plot
+	                     , scale = scale)
+	}, finally={
+		#code to be executed regardlessly at end of statement
+	}
+
+)
+
+  
+  
+  if(excel == T){
+    coords = ggplot_build(plot)
+  
+  if(file.exists(file_name_excel)) {
+    file.remove(file_name_excel)
+  }
+  
+  purrr::pwalk(list( x = coords$data
+                    , sheetName = as.character(1:length(coords$data) ) 
+                    )
+              , xlsx::write.xlsx
+              , file = file_name_excel
+              , col.names = T
+              , row.names = T
+              , append = T
+              )
+  
+  }
+  
+}
+```
+
+## Clean Data
+
+```{r clean_data, eval = T}
+
+inputPanel(
+  
+  numericInput('max_no_lvls_fctr'
+               , label = 'Max number of levels for categorical variables'
+               , value = 10
+               , min = 1
+               , step = 1)
+  
+  , numericInput('min_no_vals_num'
+               , label = 'Minimum number of distinct values for numerical variables'
+               , value = 6
+               , min = 1
+               , step = 1)
+  
+  , checkboxInput('missing'
+                  , label = 'Exclude Missing Values'
+                  , value = F)
+  
+)
+
+rea_clean = reactive({
+  
+  data = rea_load()
+  
+  d_clean = f_clean_data(data
+                       ,  as.numeric(input$max_no_lvls_fctr)
+                       ,  as.numeric(input$min_no_vals_num)
+                        )
+  
+
+  return(d_clean)
+  
+})
+
+
+f_clean_data = function(data
+                       , max_number_of_levels_factors = 10
+                       , min_number_of_levels_nums = 6){
+  
+  
+  require(tidyverse)
+  require(stringr)
+  require(caret)
+  require(forcats)
+  
+  data = data %>%
+    as_tibble()
+  
+  numericals = names(data)[ map_lgl( data, is.numeric)]
+  
+  categoricals = names(data)[ ! map_lgl( data, is.numeric)]
+  
+  all_variables = names(data)
+  
+  
+  # add numericals with less than x distinc values to factors
+  
+  no_unique_vals = map_dbl(data[, numericals], function(x) length(unique(x)) )
+  
+  categoricals = c(categoricals, numericals[no_unique_vals <  min_number_of_levels_nums] )
+  
+  numericals = numericals[ !numericals %in% categoricals ]
+  
+                  
+  # convert all non numericals and grouping variables to factors
+  
+  for (var in categoricals ){
+    
+  
+    data[[var]] = as.factor(data[[var]])
+    
+  }
+  
+  # collapse smallest levels into one if factor levels exceed size x
+  
+
+  no_levels = map_dbl( data[, categoricals], function(x) length( levels(x) ) )  
+  
+  for (var in names( no_levels[no_levels > max_number_of_levels_factors] )) {
+    
+    data[[var]] = fct_lump(data[[var]], n = max_number_of_levels_factors)
+  }
+
+  # Boxcox transform numericals
+  
+  if(!is_empty(numericals)){
+  
+    data_box_cox = data[, numericals] %>%
+      mutate_all( function(x) x + min(x) + 0.00001 )
+    
+    trans = preProcess( as.data.frame(data_box_cox), c('BoxCox'))
+    
+    pred = predict(trans, as.data.frame(data_box_cox) )
+    
+    names_transformed = names(pred) %>%
+      str_c('_boxcox')
+    
+    names(pred) = names_transformed
+    
+    data = data %>%
+      bind_cols(pred) 
+    
+    if(!ncol(data[,numericals]) 
+         == ncol(data[,names_transformed])) {
+      stop( 'boxcox transformation unsucessfull')
+    }
+    
+  } else {
+    names_transformed = NULL
+  }
+  # drop categoricals with only one level
+  
+  if( !is_empty(categoricals)){
+  
+    data = data %>%
+      mutate_at( vars(one_of(categoricals) ) 
+                 , fct_drop )
+    
+    no_lvl = data[,categoricals] %>%
+      summarise_all( function(x) list(levels(x)) ) %>%
+      summarise_all( function(x) length(x[[1]]) )
+    
+    only_one_lvl = categoricals[no_lvl == 1]
+    
+    if(length(only_one_lvl) > 0 ) {
+      data = data %>%
+        select( - one_of(only_one_lvl) )
+      
+      all_variables = all_variables[ !all_variables %in% only_one_lvl ]
+      categoricals = categoricals[ no_lvl > 1]
+      
+    }
+  } 
+  
+  # drop observations with missing Values
+  
+  if(input$missing == T) data = data[complete.cases(data),]
+  
+  # return statement
+  
+  return( list( data = data
+                  , numericals = numericals
+                  , categoricals = categoricals
+                  , all_variables = all_variables
+                  , boxcox = names_transformed
+                )
+  )
+}
+
+
+
+
+```
+
+## Sample View
+
+```{r sample_view }
+
+DT::renderDataTable( options = list( pageLength = 5)
+                     
+,{
+  
+  d_clean = rea_clean()
+  
+  data          = d_clean$data
+  all_variables = d_clean$all_variables
+  
+  return( data[ ,all_variables] )
+})
+
+```
+
+## Summary
+
+### Numericals
+
+```{r summary_numericals }
+renderPrint({
+  
+  d_clean = rea_clean()
+  
+  data          = d_clean$data
+  numericals    = d_clean$numericals
+
+    print(summary( data[, numericals]))
+})
+
+```
+
+### Categoricals
+
+```{r summary_categoricals }
+renderPrint({
+  
+  d_clean = rea_clean()
+  
+  data          = d_clean$data
+  categoricals    = d_clean$categoricals
+
+  print(summary( data[, categoricals]))
+})
+
+```
+
+## Missing Values
+
+```{r, }
+renderPlot({
+  
+  d_clean = rea_clean()
+  
+  data             = d_clean$data
+  all_variables    = d_clean$all_variables
+  
+  p = Amelia::missmap( as_data_frame(data)[, all_variables])
+  
+  return(p)
+})
+
+
+```
+
+
+# Voranalyse
+## Group Statistics
+
+```{r stats_ui, eval = T}
+
+renderUI({
+  
+  d_clean = rea_clean()
+  categoricals = d_clean$categoricals
+  
+  inputPanel(
+  
+  selectInput("group_stats", label = "select grouping variable",
+              choices = categoricals, selected = categoricals[1])
+  )
+  
+})
+
+f_bring_to_pos_range = function(x){
+  
+
+  if( min(x)< 0) x = x + abs(min(x))
+  
+
+  return(x)
+}
+
+f_diff_of_means_medians = function(df, group, variable){
+  
+
+  data = df %>%
+    select( group = one_of(group), variable = one_of(variable) )%>%
+    mutate ( variable = f_bring_to_pos_range(variable) ) %>%
+    group_by( group ) %>%
+    summarise( means     = mean(variable,   na.rm = T)
+               , medians = median(variable, na.rm = T) ) %>%
+    ungroup() %>%
+    summarise( diff_of_means        = max(means) - min(means)
+               , diff_of_means_perc = ( ( max(means) - min(means) ) /max(means) ) *100
+               , diff_of_medians      = max(medians) - min(medians)
+               , diff_of_medians_perc = ( ( max(medians) - min(medians) ) /max(means) ) *100    )
+  
+
+  return(data)
+}
+
+f_max_diff_of_freq = function(df, var1, var2){
+  
+  t = table( df[[var1]], df[[var2]] ) %>%
+    as_tibble() %>%
+    group_by( Var1 ) %>% 
+    mutate ( diff_var1          = ( max(n)-min(n) ) 
+               , diff_var1_perc = ( ( max(n)-min(n))/ max(n) *100) 
+             ) %>%
+    group_by( Var2 ) %>%
+    mutate ( diff_var2          = ( max(n)-min(n) ) 
+               , diff_var2_perc = ( ( max(n)-min(n))/ max(n) *100) 
+              ) %>%
+    ungroup()%>%
+    summarise( max_diff_freq          = max( c(diff_var1, diff_var2) )
+               , max_diff_freq_perc  = max( c(diff_var1_perc, diff_var2_perc) ) 
+    )
+}
+
+f_anova_stats = function(df, group, variables) {
+  # returns a dataframe with anova stats
+  # df        : dataframe
+  # group     : grouping variable as character vector, must indicate factor variable
+  # variables : numerical variables to be analyzed as character vector, must indicate numerical variable
+  
+  data = df
+  
+  formula = stringr::str_c('value~',group) %>%
+    as.formula()
+  
+  df_anova = data %>%
+    as_tibble() %>%
+    select( one_of( c(group, variables) ) ) %>%
+    gather(key = 'variable', value = 'value', one_of( variables ) ) %>%
+    group_by( variable ) %>%
+    nest( one_of(group), value) %>%
+    mutate( model_anova     = purrr::map( data, ~aov( formula, data = .)) 
+            , summary_anova = purrr::map( model_anova, summary)
+            , summary_anova = purrr::map( summary_anova
+                                          , function(x) x[[1]])
+            , anova_pval    = purrr::map(summary_anova, 'Pr(>F)')
+            , anova_pval    = purrr::map_dbl(anova_pval
+                                             , function(x) x[1])
+            , model_kruskal = purrr::map( data, ~kruskal.test(formula, data = .) )
+            , kruskal_pval  = purrr::map_dbl(model_kruskal, 'p.value')
+            , model_shapiro = purrr::map(data
+                                      , function(x) shapiro.test(sample(x$value, 5000, replace = T) ) )
+            , shapiro_stat  = purrr::map_dbl(model_shapiro,'statistic')
+            , shapiro_pval  = purrr::map_dbl(model_shapiro,'p.value') 
+            , diff_df       = purrr::map( data, f_diff_of_means_medians, group = group, variable = 'value') ) %>%
+    unnest(diff_df) %>%
+    select(variable
+           , shapiro_stat
+           , shapiro_pval
+           , anova_pval
+           , kruskal_pval
+           , diff_of_means
+           , diff_of_means_perc
+           , diff_of_medians
+           , diff_of_medians_perc
+           )
+  
+  return(df_anova)
+}
+
+f_chi_square = function(df, group, variables) {
+  # returns a dataframe with anova stats
+  # df        : dataframe
+  # group     : grouping variable as character vector, must indicate factor variable
+  # variables : numerical variables to be analyzed as character vector, must indicate factor variable
+  
+  data = df
+  
+  variables = variables[!variables == group]
+  
+  if(purrr::is_empty(variables)) return()
+
+  df_chi = data %>%
+    as_tibble() %>%
+    select( one_of( c(group, variables) ) ) %>%
+    gather(key = 'variable', value = 'value', one_of( variables  ) ) %>%
+    group_by( variable ) %>%
+    nest( one_of( group ), value) %>%
+    mutate(  model_chi = purrr::map( data, ~chisq.test(x = .[[group]]
+                                                       , y = .[['value']]
+                                                       ) )
+            ,chi_pval  = purrr::map_dbl(model_chi, 'p.value')
+            ,diff_df   = purrr::map(data, f_max_diff_of_freq, group, 'value')  ) %>%
+    unnest(diff_df) %>%
+    select(variable, chi_pval, max_diff_freq, max_diff_freq_perc)
+    
+  return(df_chi)
+}
+
+rea_group_stats = reactive({
+  
+  d_clean    = rea_clean()
+  data       = d_clean$data
+  boxcox     = d_clean$boxcox
+  numericals = d_clean$numericals
+  categoricals = d_clean$categoricals
+
+  if(! is_empty(numericals)) {
+    
+
+    df_num    = f_anova_stats(df = data
+                             ,group = input$group_stats
+                             ,variables = numericals
+                             )
+    
+    df_boxcox = f_anova_stats(df = data
+                              ,group = input$group_stats
+                              ,variables = boxcox
+                              )
+    
+    sig_num = df_num %>%
+      mutate( p_val = ifelse(shapiro_stat >= 0.9
+                             , anova_pval
+                             , kruskal_pval) 
+              ) %>%
+      filter(p_val <= 0.001) %>%
+      .[['variable']]
+    
+    sig_boxcox = df_boxcox %>%
+      mutate( p_val = ifelse(shapiro_stat >= 0.9
+                             , anova_pval
+                             , kruskal_pval) 
+              ) %>%
+      filter(p_val <= 0.001) %>%
+      .[['variable']]
+    
+
+  } else {
+    
+    df_num     = NULL
+    df_boxcox  = NULL
+    sig_num    = NULL
+    sig_boxcox = NULL
+    
+  }
+  
+  
+  
+  # only works with minimum two categoricals vars
+  if( length(categoricals) >= 2 ){
+    
+    df_chi    = f_chi_square(df = data
+                              ,group = input$group_stats
+                              ,variables = categoricals
+                             )
+    
+    sig_chi = df_chi %>%
+      filter(chi_pval <= 0.001) %>%
+      .[['variable']]
+    
+
+  } else{
+    
+    df_chi  = NULL
+    sig_chi = NULL
+  }
+  
+  return( list( df = list(df_num     = df_num
+                          ,df_boxcox = df_boxcox
+                          ,df_chi    = df_chi
+                          )
+                , sig = list(sig_num     = sig_num
+                           ,sig_boxcox = sig_boxcox
+                           ,sig_chi    = sig_chi
+                           ) 
+                ) 
+          )
+  
+})
+
+```
+
+
+### Numericals (ANOVA)
+
+```{r anova_num, eval = T}
+
+
+render_table_num_group_stat = function( boxcox = F) {
+  
+  DT::renderDataTable(
+   extensions = 'Buttons'
+   , options = list( dom       = 'Bftrip'
+                    , buttons = c('copy', 'excel')
+                    , pageLength = 1
+                    )
+  ,{
+  
+    group = input$group_stats
+    
+    if( boxcox == F ){ 
+      
+      df = rea_group_stats()$df$df_num
+      
+    }else{
+      
+      df = rea_group_stats()$df$df_boxcox
+      
+    }
+    
+      df = DT::datatable(df
+                         , extensions = 'Buttons'
+                         , options    = list( dom       = 'Bftrip'
+                                              , buttons = c('copy', 'excel')
+                                              )
+                     ) %>%
+      DT::formatStyle('shapiro_stat'
+                      , color = DT::styleInterval(0.9, c('red','green') )
+                      ) %>%
+      DT::formatStyle(3:5
+                      , color = DT::styleInterval(0.01, c('green','red') )
+                      ) %>%
+      DT::formatRound(2:5, 6) %>%
+      DT::formatRound(c(6,8), 3) %>%
+      DT::formatRound(c(7,9), 2)
+  
+  })
+  
+}
+
+render_table_num_group_stat( boxcox = F )
+
+```
+
+### Numericals boxcox (ANOVA)
+
+```{r anova_num_boxcox, eval = T}
+
+render_table_num_group_stat( boxcox = T )
+
+```
+
+### Categoricals (Chi-Square)
+
+```{r chi_square, eval = T}
+
+
+DT::renderDataTable({
+  
+  d_clean    = rea_clean()
+  data       = d_clean$data
+  boxcox     = d_clean$boxcox
+  numericals = d_clean$numericals
+  categoricals = d_clean$categoricals
+  
+  
+  group = input$group_stats
+  
+  df = rea_group_stats()$df$df_chi 
+  
+  df = DT::datatable(df
+                     , extensions = 'Buttons'
+                     , options    = list( dom = 'Bftrip'
+                                          , buttons = c('copy', 'excel')
+                                          )
+                     ) %>%
+    DT::formatStyle('chi_pval'
+                    , color = DT::styleInterval(0.01, c('green','red') )
+                    ) %>%
+    DT::formatRound( 2, 6)   %>%
+    DT::formatRound( 4, 2)
+  
+  return(df)
+  
+})
+
+
+```
+
+
+
+## Predictive Capacity
+
+Listet die vorhersagekapazitaet aller Variablen fuer eine ausgewaehlte Gruppenvariable unter Anwednung des Random Forest Algorithmus. "Mean decrease in Gini" bezeichnet die Abnahme der Vorhersagekapazitaet des Modells wenn die entsprechende Variable nicht vorhanden ware. Stark autokorrellierende Variablen werden bei dieser Methode  unterbewertet. 
+
+```{r importance, eval = T }
+
+renderUI({
+  
+  d_clean = rea_clean()
+  categoricals = d_clean$categoricals
+  numericals   = d_clean$numericals
+
+  inputPanel(
+    
+    selectInput("group_imp"
+                , label = "select predicted variable"
+                , choices = c(categoricals, numericals)
+                , selected = categoricals[1])
+    
+  )
+
+})
+
+rea_imp = reactive({
+  
+  d_clean = rea_clean()
+  data = d_clean$data
+  all_variables = d_clean$all_variables
+  
+  form = as.formula( stringr::str_c(input$group_imp,'~.') )
+  
+  m = randomForest::randomForest(form, data[, all_variables] )
+  
+  imp = tibble( mean_decrease_gini = m$importance[,1]
+                ,variable = names(m$importance[,1])
+                ,group = input$group_imp) %>%
+    arrange(desc(mean_decrease_gini))
+  
+  return(imp)
+  
+})
+
+renderPlot({
+  
+  imp = rea_imp()
+  
+  p = ggplot(imp) +
+    geom_bar(aes(x = fct_reorder(variable
+                             , mean_decrease_gini) 
+                , y = mean_decrease_gini
+                , fill = fct_reorder(variable
+                                 , mean_decrease_gini
+                                 , .desc = T)
+                )
+            , stat = 'identity'
+            , show.legend = F) +
+        coord_flip() +
+        labs( x = 'Variable'
+              , y = 'Predictive capacity (Mean decrease in Gini)')
+  
+  
+  name = stringr::str_c( input$sql_or_lib,'_predictive_capacity_', imp[[1,'group']] )
+  
+  save_plot(plot = p
+            , path = input$path
+            , name = name
+            , yes = input$save
+            )
+  
+  return(p)
+  
+})
+
+
+```
+
+## Decision Tree
+
+```{r}
+
+renderUI({
+  
+  d_clean = rea_clean()
+  categoricals = d_clean$categoricals
+  numericals   = d_clean$numericals
+
+  inputPanel(
+    
+    selectInput("group_tree"
+                , label    = "select predicted variable"
+                , choices  = c(categoricals, numericals)
+                , selected = categoricals[1]
+                
+                )
+    
+    , numericInput('min_split'
+                  ,label = 'minimum node size to attempt split'
+                  , min   = 2
+                  , max   = 10000
+                  , step  = 1
+                  , value = 20
+                  )
+    
+    , numericInput('max_depth'
+                  , label = 'maximum tree depth'
+                  , min   = 2
+                  , max   = 30
+                  , step  = 1
+                  , value = 30
+                  )
+    
+    , numericInput('cp'
+                   ,label = 'minimum complexity reduction to attempt split'
+                   , min   = 0.0001
+                   , max   = 0.99
+                   , step  = 0.001
+                   , value = 0.01
+                   )
+    
+  )
+
+})
+
+rea_tree = reactive({
+  
+  d_clean = rea_clean()
+  data = d_clean$data
+  
+  pred = input$group_tree
+  
+  form = stringr::str_c(pred, '~.') %>%
+    as.formula()
+  
+  m = rpart::rpart(form
+                   , data
+                   , minsplit = input$min_split
+                   , cp       = input$cp
+                   #, maxcompete = 4
+                   #, maxsurrogate = 5
+                   #, usesurrogate = 2
+                   #, xval = 10
+                   #, surrogatestyle = 0
+                   , maxdepth = input$max_depth)
+  
+  return(m)
+  
+})
+
+
+renderPlot({
+  
+  m = rea_tree()
+  
+  rpart.plot::prp(m
+                  , branch.type = 5
+                  , box.palette="RdYlGn"
+                  , faclen = 0
+                  , extra = 6)
+})
+  
+renderPlot({
+  
+  m = rea_tree()
+
+  rpart.plot::rpart.plot(m)
+
+
+})
+```
+
+
+## Principle component Analysis
+
+Berechnent die ersten beiden Hauptkomponenten der numerisch- kontinuierlichen Variablen.
+
+```{r pca, eval = T  }
+rea_pca = reactive({
+  
+  d_clean       = rea_clean()
+  data          = d_clean$data
+  boxcox        = d_clean$boxcox
+  categoricals  = d_clean$categoricals
+  all_variables = d_clean$all_variables
+  numericals    = d_clean$numericals
+  
+  if(is_empty(numericals) | is_empty(boxcox)) return()
+  
+  if(input$boxcox_pca == T) {
+    
+    vars = boxcox
+    
+  }
+  else{
+    
+    vars = numericals
+  }
+  
+  pca = prcomp(x = select(data, one_of(vars) )
+               , scale. = input$scale_pca
+               , center = input$center_pca)
+  
+  pca$cos2 = pca$rotation^2
+  
+  pca$contrib = lmap( as_tibble(pca$cos2 ), function(y) y/ sum(y) *100 )
+  row.names(pca$contrib) = row.names(pca$cos2)
+  
+  pca$vae = as_tibble (t( pca$sdev / sum(pca$sdev) *100 ) )
+  colnames(pca$vae) = colnames(pca$contrib)
+  
+  pca$contrib_abs_perc = t( t( apply( pca$contrib/100, 1, function(x,y) x*pca$vae ) ) )
+  pca$contrib_abs_perc = unnest( as.data.frame( pca$contrib_abs_perc) )
+  row.names(pca$contrib_abs_perc) = row.names(pca$contrib)
+  
+  pca$contrib_abs_perc = as.data.frame( t(pca$contrib_abs_perc) )
+  pca$contrib_abs_perc$var = row.names(pca$contrib_abs_perc)
+  
+  pca$contrib_abs_perc = pca$contrib_abs_perc %>%
+    gather(key = 'key', value = 'value', everything(), -var) 
+  
+  #group variables with less than 2.5% contribution
+  pca$contrib_abs_perc_reduced = pca$contrib_abs_perc  %>%
+    mutate(key = ifelse(value < 2.5
+                        , ' sum contrib < 2.5%'
+                        , key)) %>%
+    group_by( var, key) %>%
+    summarise( value = sum(value) )
+  
+
+  # filter principle components that explain less than
+  # 2.5% of the variance
+  
+  pca$x                        = pca$x[, pca$vae > 2.5]
+  
+  pca$contrib_abs_perc         = pca$contrib_abs_perc %>%
+    filter(var %in% colnames(pca$x))
+  
+  pca$contrib_abs_perc_reduced = pca$contrib_abs_perc_reduced %>%
+    filter(var %in% colnames(pca$x))
+  
+  data = data %>%
+    cbind(pca$x)
+
+  return(list(data = data, pca = pca) )
+
+})
+
+renderUI({
+
+  inputPanel(
+    
+
+     checkboxInput('center_pca', label = 'center', value = T)  
+    
+    , checkboxInput('scale_pca', label = 'scale', value = T)  
+    
+    , checkboxInput('boxcox_pca', label = 'boxcox', value = T)  
+    
+    
+    
+  )
+  
+})
+
+
+
+```
+
+### Plot Principle Components
+
+```{r prin_comp}
+
+
+# rotation plot
+renderPlot({
+  
+  data = rea_pca()$data
+  pca  = rea_pca()$pca
+  
+  group  = input$group_pca
+  x_axis = input$x_axis_pca
+  y_axis = input$y_axis_pca
+  
+  
+  if(input$group_pca == 'None') group = NULL 
+  
+  p = ggplot(data) +
+    geom_point( aes_string(x = x_axis, y = y_axis, color = group)
+                ,alpha=0.4 ) +
+    labs(title = 'plot1')
+
+  
+  name = stringr::str_c( input$sql_or_lib,'_principle_component_')%>%
+    stringr::str_c( input$group_pca ) %>%
+    stringr::str_c('_boxcox', input$boxcox_pca) %>% 
+    stringr::str_c('_scale',  input$scale_pca) %>% 
+    stringr::str_c('_center', input$center_pca) 
+
+  save_plot(plot = p
+        , path = input$path
+        , name = name
+        , yes = input$save
+        )
+  
+  return( p )
+  
+})
+
+renderUI({
+  
+  d_clean       = rea_clean()
+  d_pca         = rea_pca()
+  data          = d_pca$data
+  boxcox        = d_clean$boxcox
+  categoricals  = d_clean$categoricals
+  all_variables = d_clean$all_variables
+  numericals    = d_clean$numericals
+
+  prin_comp = select(data, starts_with('PC', ignore.case = F)) %>%
+    names()
+  
+  inputPanel(
+  
+
+    selectInput("x_axis_pca"
+                , label = "select x_axis"
+                , choices = prin_comp 
+                , selected = prin_comp[2]
+                )
+
+    , selectInput("y_axis_pca"
+                , label = "select y_axis"
+                , choices = prin_comp 
+                , selected = prin_comp[1]
+                )
+    
+    , selectInput("group_pca"
+                , label = "select grouping variable"
+                , choices = c(categoricals, 'None')
+                , selected = categoricals[1]
+                )
+    
+  )
+  
+})
+
+
+```
+
+
+### Plot Variance Explained
+
+
+```{r var_expl}
+
+# variance explained
+
+renderPlot({
+
+  pca = rea_pca()$pca
+  
+  vae = tibble( value = pca$sdev
+                , pca_n = str_c('pca', 1:length(pca$sdev))
+            ) 
+
+  p =   ggplot(pca$contrib_abs_perc_reduced) +
+    geom_bar(aes(x = fct_reorder(var, value, sum, .desc = T )
+                 , y = value, fill = key)
+             , stat = 'identity'
+             , position='stack') +
+    scale_fill_brewer(palette = 'Paired') 
+
+  name = stringr::str_c( input$sql_or_lib,'_variance_explained_')%>%
+    stringr::str_c( input$group_pca ) %>%
+    stringr::str_c('_boxcox', input$boxcox_pca) %>% 
+    stringr::str_c('_scale',  input$scale_pca) %>% 
+    stringr::str_c('_center', input$center_pca)  
+
+    save_plot(plot = p
+          , path = input$path
+          , name = name
+          , yes = input$save
+          )
+
+  return(p)
+
+})
+
+
+```
+
+## Correlation
+
+```{r corr, eval = T}
+
+rea_corr = reactive({
+  
+  d_clean       = rea_clean()
+  data          = d_clean$data
+  boxcox        = d_clean$boxcox
+  categoricals  = d_clean$categoricals
+  all_variables = d_clean$all_variables
+  numericals    = d_clean$numericals
+  
+  if(is_empty(boxcox)) return()
+  
+  corr = round( cor(data[, boxcox]), 1)
+  
+  p_val_corr = ggcorrplot::cor_pmat( data[, boxcox] )
+
+  return( list(corr = corr,
+               p_val_corr = p_val_corr) )
+  
+})
+
+renderPlot({
+  
+  corr = rea_corr()$corr
+  p_val_corr = rea_corr()$p_val_corr
+  
+  p = ggcorrplot::ggcorrplot( corr,hc.order = TRUE, type = "lower",
+   lab = TRUE, p.mat = p_val_corr)
+  
+  name = stringr::str_c( input$sql_or_lib,'_correlation')
+
+  save_plot(plot = p
+        , path = input$path
+        , name = name
+        , yes = input$save
+        )
+  
+  return(p)
+    
+})
+```
+
+# Data Visualisation
+
+## Tabplot
+
+```{r tabplot, echo=FALSE, eval = T }
+
+
+preselect = c('all'
+              ,'none'
+              ,'categoricals'
+              ,'numericals'
+              ,'top_10_importance'
+              ,'boxcox'
+              ,'none_boxcox'
+              ,'pc1+pc2'
+              ,'pc1+pc2 contrib >2.5%'
+              ,'correlation'
+              ,'group_stat_P<0.001'
+              ,'2fac_2num'
+              )
+
+renderUI({
+  
+  d_clean       = rea_clean()
+  data          = d_clean$data
+  boxcox        = d_clean$boxcox
+  categoricals  = d_clean$categoricals
+  all_variables = d_clean$all_variables
+  numericals    = d_clean$numericals
+  
+  inputPanel(
+  
+     
+      sliderInput('n_breaks_tab'
+                  , label = "Number of bins:"
+                  , min = 1
+                  , max = 500
+                  , step = 1
+                  , value = 30)
+    
+    , selectInput("sort_col_tab"
+                  , label = "Sort_by"
+                  , choices = names(data) 
+                  , selected = numericals[1])
+    
+    , checkboxInput('decreasing_tab'
+                    , label = 'decreasing'
+                    , value = T)  
+    
+    , sliderInput('max_levels_tab'
+                  , label = "Maximum number of levels for categorical variables"
+                  , min = 3
+                  , max = 30
+                  , step = 1
+                  , value = 10)
+    
+    , selectInput("preselect", label = "preselect"
+                  ,choices = preselect 
+                  ,selected = 'top_10_importance')
+    
+    
+    , selectInput("preselect_correlation", label = "select_correlation"
+                  ,choices = boxcox 
+                  ,selected = boxcox[1])
+  
+    
+    
+  )
+
+})
+renderPlot({
+  
+  d_clean       = rea_clean()
+  data          = d_clean$data
+  boxcox        = d_clean$boxcox
+  categoricals  = d_clean$categoricals
+  all_variables = d_clean$all_variables
+  numericals    = d_clean$numericals
+  
+  imp = rea_imp()
+  
+  p = tabplot::tableplot(data
+                , select_string = input$select_vars_tab
+                , sortCol       = input$sort_col_tab
+                , decreasing    = input$decreasing_tab
+                , nBins         = input$n_breaks_tab
+                , max_levels    = input$max_levels_tab
+                , scales = 'lin')
+  
+  index_str = stringr::str_c( which(all_variables %in% input$select_vars_tab)
+                              , collapse = '+'  )
+  
+  name = stringr::str_c( input$sql_or_lib,'_tabplot_')%>%
+  stringr::str_c('sort_', input$sort_col_tab, '_') %>% 
+  stringr::str_c( index_str) 
+
+  save_plot(plot = p
+        , path = input$path
+        , name = name
+        , yes = input$save
+        , excel = F
+        )
+
+  return(p)
+
+  })
+
+
+chk_bx_grp_ui = function(x,y, name, label) { renderUI({
+  
+  
+  d_clean       = rea_clean()
+  data          = d_clean$data
+  boxcox        = d_clean$boxcox
+  categoricals  = d_clean$categoricals
+  all_variables = d_clean$all_variables
+  numericals    = d_clean$numericals
+  
+  imp        = rea_imp()
+  p_val_corr = rea_corr()$p_val_corr
+  pca        = rea_pca()$pca
+
+  if(input[[x]] == 'all')               preselect = names(data)
+  if(input[[x]] == 'none')              preselect = NULL
+  if(input[[x]] == 'top_10_importance') preselect = imp$variable[1:10]
+  if(input[[x]] == 'boxcox')            preselect = boxcox
+  if(input[[x]] == 'none_boxcox')       preselect = names(data)[!names(data) %in% boxcox]
+  if(input[[x]] == 'numericals')        preselect = numericals
+  if(input[[x]] == 'categoricals')      preselect = categoricals
+  
+  if(input[[x]] == 'group_stat_P<0.001') {
+    
+    sig = rea_group_stats()$sig
+    
+    #remove boxcox that are also in numericals
+    sig_boxcox = sig$sig_boxcox %>%
+      stringr::str_extract('^[A-Za-z]*') %>%
+      .[!. %in% sig$sig_num] %>%
+      stringr::str_c('_boxcox')
+    
+    preselect = stringr::str_c( c(sig$sig_num, sig_boxcox, sig$sig_chi ) )
+  }
+  
+  if(input[[x]] == 'correlation') {
+    
+    correlating = p_val_corr %>%
+      as_tibble() %>%
+      mutate( vars = names(.) ) %>%
+      select( filter_var = one_of(input[[y]]), vars) %>%
+      filter( filter_var <= 0.05  ) %>%
+      select( vars )
+
+
+    preselect = correlating$vars
+  }
+  
+  if( startsWith( input[[x]], 'pc1+pc2')) {
+    
+    if(endsWith( input[[x]], '>2.5%')){
+      
+      pca_1_2 = pca$contrib_abs_perc_reduced %>%
+        filter(var %in% c('PC1', 'PC2') )
+      
+      preselect = pca_1_2$key
+      
+    }else {
+      
+      pca_1_2 = pca$contrib_abs_perc %>%
+        filter(var %in% c('PC1', 'PC2') )
+      
+      preselect = pca_1_2$key
+    
+    }
+    
+  }
+
+  
+  if(input[[x]] == '2fac_2num')  {
+    preselect = c(numericals[1], categoricals[1]
+                  ,numericals[2], categoricals[2]
+                  ,numericals[3], categoricals[3]
+                  ,numericals[4], categoricals[4]
+                  )[1:4]
+  }
+  
+
+  checkboxGroupInput( name
+                    , label = label
+                    , choices = names(data)
+                    , selected = preselect
+                    , inline = F )
+ })
+}
+
+chk_bx_grp_ui('preselect', 'preselect_correlation', name = 'select_vars_tab', label = 'Select Variables')
+
+```
+
+##ggduo
+
+```{r ggduo, eval = T }
+
+renderUI({
+  
+  d_clean       = rea_clean()
+  data          = d_clean$data
+  boxcox        = d_clean$boxcox
+  categoricals  = d_clean$categoricals
+  all_variables = d_clean$all_variables
+  numericals    = d_clean$numericals
+  
+  inputPanel(
+    
+    selectInput("preselect_duo_col"
+                , label = "Preselect Column"
+              ,choices = preselect 
+              ,selected = '2fac_2num')
+
+    , selectInput("preselect_duo_row"
+                , label = "Preselect Row"
+              ,choices = preselect 
+              ,selected = '2fac_2num')
+  
+
+  )
+})
+
+renderUI({
+  
+  d_clean       = rea_clean()
+  data          = d_clean$data
+  boxcox        = d_clean$boxcox
+  categoricals  = d_clean$categoricals
+  all_variables = d_clean$all_variables
+  numericals    = d_clean$numericals
+
+  inputPanel(
+  
+   selectInput("preselect_corr_duo_col"
+                , label = "Select Correlation Column"
+                ,choices = boxcox 
+                ,selected = boxcox[1])
+  
+  , selectInput("preselect_corr_duo_row"
+                , label = "Select Correlation Row"
+                ,choices = boxcox 
+                ,selected = boxcox[1])
+
+  )
+  
+})
+
+rea_duo = eventReactive(input$but_duo
+                        , {
+                          return( list(col    = input$select_vars_duo_col
+                                       ,row   = input$select_vars_duo_row
+                                       ,group = input$group_duo
+                                       ,corr  = input$corr_duo) )
+                        } )
+
+
+renderPlot({
+  
+  d_clean       = rea_clean()
+  data          = d_clean$data
+  boxcox        = d_clean$boxcox
+  categoricals  = d_clean$categoricals
+  all_variables = d_clean$all_variables
+  numericals    = d_clean$numericals
+  
+  ret   = rea_duo()
+  col   = ret$col
+  row   = ret$row
+  group = ret$group
+  corr  = ret$corr
+  
+  if(group == 'None') group = NULL
+
+  lm_with_cor <- function(data, mapping, ..., method = "pearson") {
+    x <- data[[deparse(mapping$x)]]
+    y <- data[[deparse(mapping$y)]]
+    cor <- cor(x, y, method = method)
+    GGally::ggally_smooth_lm(data, mapping, ...) +
+      ggplot2::geom_label(
+        data = data.frame(
+          x = min(x, na.rm = TRUE),
+          y = max(y, na.rm = TRUE),
+          lab = round(cor, digits = 3)
+        ),
+        mapping = ggplot2::aes(x = x, y = y, label = lab, color = NULL),
+        hjust = 0, vjust = 1,
+        size = 5, fontface = "bold"
+      )
+  }
+
+  
+  if(corr == T)  {  
+    p =GGally::ggduo(
+      data, col, row,
+      mapping = aes_string(color = group),
+      types = list(continuous = GGally::wrap(lm_with_cor, alpha = 0.25)),
+      showStrips = FALSE
+    ) +
+      theme(legend.position = "bottom")
+  }
+  
+  else{
+    p = GGally::ggduo(
+      data, col, row,
+      mapping = aes_string(color = group),
+      #types = list(continuous = wrap(lm_with_cor, alpha = 0.25)),
+      showStrips = FALSE
+    ) +
+      theme(legend.position = "bottom")
+  }
+
+  index_str_row = stringr::str_c( which(all_variables %in% row)
+                              , collapse = '+'  )
+  
+  index_str_col = stringr::str_c( which(all_variables %in% col)
+                              , collapse = '+'  )
+  
+  name = stringr::str_c( input$sql_or_lib,'_ggduo')%>%
+  stringr::str_c('_sort', input$sort_col_tab ) %>% 
+  stringr::str_c( '_col', index_str_col) %>%
+  stringr::str_c( '_row', index_str_row) 
+
+  save_plot(plot = p
+        , path = input$path
+        , name = name
+        , yes = input$save
+        , excel = F
+        )
+  
+  return(p)
+})
+
+renderUI({
+  
+  d_clean       = rea_clean()
+  data          = d_clean$data
+  boxcox        = d_clean$boxcox
+  categoricals  = d_clean$categoricals
+  all_variables = d_clean$all_variables
+  numericals    = d_clean$numericals
+
+
+  inputPanel(
+    
+    selectInput("group_duo"
+                , label = "select grouping variable"
+                , choices = c(categoricals, 'None')
+                , selected = categoricals[length(categoricals)]
+                )
+    
+    , checkboxInput('corr_duo'
+                    , label = 'show corr coef'
+                    , value = T)  
+  
+    
+    , actionButton('but_duo', 'Render Plot')
+    
+    #, cellArgs = list(width = '50%')
+  )
+  
+  
+
+})
+
+# chk_bx_grp_ui has its own gui rendering function
+
+splitLayout(
+
+
+   chk_bx_grp_ui('preselect_duo_col', 'preselect_corr_duo_col'
+                   , name = 'select_vars_duo_col'
+                   , label = 'Select Variables Column')
+
+
+   , chk_bx_grp_ui('preselect_duo_row', 'preselect_corr_duo_row'
+                   , name = 'select_vars_duo_row'
+                   , label = 'Select Variables Row')
+
+
+ )
+
+```
+
+## Histograms
+
+### Histogram A
+
+```{r histo general, echo=FALSE, eval = T }
+
+input_panel_histo = function(suffix) {
+  
+  renderUI({
+  
+    d_clean       = rea_clean()
+    data          = d_clean$data
+    boxcox        = d_clean$boxcox
+    categoricals  = d_clean$categoricals
+    all_variables = d_clean$all_variables
+    numericals    = d_clean$numericals
+    
+    
+    
+    inputPanel(
+    
+      selectInput(str_c("n_breaks", suffix)
+                  , label = "Number of bins:"
+                  , choices = c(10, 20, 30, 50, 75, 100, 150, 200, 300, 500, 750, 1000)
+                  , selected = 30
+                  )
+      
+      , selectInput(str_c("variable", suffix)
+                    , label = "Select variable"
+                    , choices = names(data) 
+                    , selected = numericals[1]
+                    )
+      
+      , selectInput(str_c( "group", suffix)
+                    , label = "Select grouping variable"
+                    , choices = c(categoricals , 'None')
+                    , selected = categoricals[1]
+                    )
+      
+      , selectInput(str_c("graph_type", suffix)
+                    , label = "Graph Type"
+                    , choices = c('bar', 'line', 'violin') 
+                    , selected = 'line')
+      
+      , selectInput(str_c("y_axis", suffix)
+                    , label = "Y-Axis"
+                    , choices = c('density', 'counts') 
+                    , selected = 'density')
+      
+      , checkboxInput(str_c( 'auto_range', suffix )
+                      , label = 'use automatic range'
+                      , value = T)  
+      
+      , textInput(str_c('x_min', suffix)
+                  , label = 'X-min'
+                  , value = '0')
+      
+      , textInput(str_c('x_max', suffix)
+                  , label = 'X-max'
+                  , value = '1000')
+  
+    )
+  
+  })
+}
+
+renderPlot_histo = function( suffix ){
+  
+  
+  renderPlot({
+    
+    d_clean       = rea_clean()
+    data          = d_clean$data
+    boxcox        = d_clean$boxcox
+    categoricals  = d_clean$categoricals
+    all_variables = d_clean$all_variables
+    numericals    = d_clean$numericals
+
+    
+    # get input
+    
+    n_breaks   = input[[ str_c("n_breaks"   , suffix) ]]
+    variable   = input[[ str_c("variable"   , suffix) ]]
+    group      = input[[ str_c( "group"     , suffix) ]]
+    graph_type = input[[ str_c("graph_type" , suffix) ]]
+    y_axis     = input[[ str_c("y_axis"     , suffix) ]]
+    auto_range = input[[ str_c( 'auto_range', suffix) ]]
+    x_min      = input[[ str_c('x_min'      , suffix) ]]
+    x_max      = input[[ str_c('x_max'      , suffix) ]]
+    
+
+    #y-axis
+    if(y_axis == 'density') {
+      y_axis = '..density..'
+    }
+    else{
+      y_axis = '..count..'
+    }
+    
+    #group
+    
+    if(group == 'None') group = NULL 
+  
+    # numericals ----------------------------------------------------------------------------
+    
+    numericals = c(numericals, boxcox)
+    
+    #geom_freqpoly 
+    if(variable %in% numericals & graph_type == 'line'){
+      
+      p = data %>%
+      ggplot() +
+        geom_freqpoly( aes_string(x = variable, y = y_axis, color = group)
+                       , bins =  as.numeric(n_breaks))
+    }
+    
+
+     #geom_histo 
+    if(variable %in% numericals & graph_type == 'bar' ){
+    
+        
+      p = data %>%
+      ggplot() +
+        geom_histogram( aes_string(x = variable, y = y_axis, fill = group)
+                       , bins =  as.numeric(n_breaks), alpha = 0.6
+                       , position = 'identity')
+    }
+    
+    #geom_violin 
+    if(variable %in% numericals & graph_type == 'violin'){
+      
+      medians = data %>%
+        group_by_(as.symbol(group)) %>%
+        select( one_of(numericals ) ) %>%
+        summarise_all(  median )
+                   
+      
+      p = data %>%
+      ggplot() +
+        geom_violin( aes_string(x = group
+                                , y = variable
+                                , fill = group)
+                      ) +
+        geom_crossbar( data = medians,
+                       mapping = aes_string(x = group
+                                  , y = variable
+                                  , ymin = variable
+                                  , ymax = variable) )
+    }
+    
+    
+    # add x range
+    
+    if(variable %in% numericals & auto_range == F & !graph_type == 'violin'){
+      
+      p = p +
+        xlim( c( as.numeric(x_min), as.numeric(x_max)) )
+    }
+   
+    # add y range
+    
+    if(variable %in% numericals & auto_range == F & graph_type == 'violin'){
+      
+      p = p +
+        ylim( c( as.numeric(x_min), as.numeric(x_max)) )
+    }
+    
+  
+    # categoricals ----------------------------------------------------------------------------
+    
+    #geom_bar
+    if(variable %in% categoricals ){
+      
+      if(y_axis == '..density..')   y_axis = '..prop..'
+  
+      p = data %>%
+      ggplot() +
+        geom_bar( aes_string(x = variable, y = y_axis, fill = group, group = group)
+                       , position = 'dodge')
+      }
+  
+  y_axis_str = stringr::str_extract_all(y_axis
+                                        , '[A-Za-z]') %>%
+    unlist()%>%
+    stringr::str_c(collapse = '')
+  
+  name = stringr::str_c( input$sql_or_lib, '_')%>%
+  stringr::str_c(suffix ) %>% 
+  stringr::str_c('_', graph_type ) %>%
+  stringr::str_c('_', y_axis_str)  %>%
+  stringr::str_c( '_group', group) %>%
+  stringr::str_c( '_var', variable) %>%
+  stringr::str_c( '_', n_breaks)
+    
+  save_plot(plot = p
+        , path = input$path
+        , name = name
+        , yes = input$save
+        )
+  
+    return(p)
+    
+    })
+}
+```
+
+
+
+```{r histo_a, eval = T}
+
+input_panel_histo('histo_a')
+
+renderPlot_histo('histo_a')
+
+```
+
+

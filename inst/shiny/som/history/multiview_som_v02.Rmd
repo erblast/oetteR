@@ -1,0 +1,343 @@
+---
+title: "Multiview SOM"
+author: "OEB"
+date: "May 16, 2017"
+output:
+  html_document:
+    code_folding: hide
+    df_print: paged
+    number_sections: yes
+    theme: sandstone
+    toc: yes
+    toc_depth: 3
+    toc_float:
+      collapsed: no
+      smooth_scroll: no
+runtime: shiny
+params:
+  data: !r ISLR::Auto
+  data_input: TRUE
+---
+
+<style>
+  .main-container {
+    max-width: 1920px !important;
+  }
+</style>
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, eval = TRUE)
+```
+
+
+
+```{r libraries, echo=FALSE, message=FALSE, warning=FALSE}
+
+library(knitr)
+library(ISLR)
+library(tabplot)
+library(tidyverse)
+library(tabplot)
+library(randomForest)
+library(stringr)
+library(GGally)
+library(forcats)
+library(caret)
+library(kohonen)
+library(Amelia)
+library(e1071)
+
+# setwd("C:/Users/erbla/OneDrive/R/multiview shiny")
+
+qual_col_pals  = RColorBrewer::brewer.pal.info[RColorBrewer::brewer.pal.info$category == 'qual',]
+color_pallette = unlist(mapply(RColorBrewer::brewer.pal, qual_col_pals$maxcolors, rownames(qual_col_pals)))
+
+
+
+source( stringr::str_c(getwd(),'/mod_load_data v03.R') )
+
+source( stringr::str_c(getwd(),'/mod_summary v02.R') )
+
+source( stringr::str_c(getwd(), '/mod_clean_data v05.R') )
+
+source( stringr::str_c(getwd(), '/mod_som_map_v02.R') )
+
+source( stringr::str_c(getwd(), '/mod_som_cluster_v02.R') )
+
+source( stringr::str_c(getwd(), '/mod_vis_groups_v03.R') )
+
+source( stringr::str_c(getwd(), '/mod_tree_v03.R') )
+
+source( stringr::str_c(getwd(), '/mod_save_v01.R') )
+
+
+```
+
+```{r reactive_values}
+
+# this creates an object like input, that can store multiple
+# reactive values, this object stores values which we will use
+# to signal if certain calculations or processes are finished
+# and how often they were run
+
+status = reactiveValues( data = NULL)
+
+status$load     = 'No Data loaded. Select Data and Press Load button!'
+status$summary        = NULL
+status$clean          = NULL
+status$ana            = NULL
+status$som            = NULL
+status$est_exec_time  = NULL
+status$map_trained    = NULL
+status$map_loaded     = NULL
+status$pca      = 'Ready'
+status$imp      = 'Ready'
+status$corr     = 'Ready'
+status$group_stat = 'Ready'
+status$tree     = 'Ready'
+
+
+
+renderText(status$load)
+renderText(status$summary)
+renderText(status$clean)
+renderText(status$ana)
+renderText(status$som)
+renderText(status$est_exec_time)
+renderText(status$map_trained)
+renderText(status$map_loaded)
+#renderText(status$tree)
+
+
+```
+
+#Background
+
+For a more detailed explanation of the code go to this [post](http://rpubs.com/erblast/SOM), which outlines the concept of this app
+
+#Data
+
+## Load Data
+
+```{r load, eval = params$data_input == TRUE}
+
+# load two ui_elements and the save_plot() function
+# and the rea_load reactive element which returns 
+# the data
+
+mod_load_data_ui()
+
+rea_load = mod_load_rea(input, status)
+
+renderText( status$load )
+
+```
+
+```{r external_load, eval= params$data_input == FALSE}
+
+data = params$data
+
+rea_load = reactive({
+  
+  data
+  
+})
+
+
+```
+
+
+## Clean Data
+
+```{r clean}
+
+mod_clean_ui(rea_load)
+
+renderText( status$clean )
+
+rea_clean = mod_clean_rea(input, status, rea_load)
+
+```
+
+## Summary
+
+```{r summary , eval = T}
+
+mod_summary_ui(rea_clean)
+
+```
+
+## Start Analysis
+
+```{r ana}
+
+mod_ana_ui(rea_clean, select_grouping_var = F)
+
+renderText( status$ana )
+
+rea_ana   = mod_ana_rea(input, status, rea_clean)
+
+```
+
+
+# SOM
+
+##Train Map
+
+Boxcox-transformed values are used by default
+
+```{r train_map}
+
+rea_trans_som = mod_trans_som_rea(rea_ana)
+
+
+mod_som_map_ui()
+
+mod_som_map_exec_time_out(rea_trans_som
+                          , input
+                          , status)
+
+
+rea_trained_som = mod_train_map_som_rea(rea_trans_som
+                                        , rea_clean
+                                        , input
+                                        , status)
+
+
+renderText(
+  status$est_exec_time
+)
+
+renderText(
+  status$map_trained
+)
+
+renderText(
+  status$map_loaded
+)
+
+
+mod_save_map_som_rea(rea_trained_som
+                     ,input
+                     ,status
+                     )
+
+
+rea_som = mod_load_map_rea(rea_trained_som
+                           , input
+                           , status)
+
+
+
+```
+
+
+##Expand Map
+
+##Vis Map
+
+```{r}
+
+mod_som_map_plot(input, rea_som)
+
+
+```
+
+
+##Cluster Map
+
+```{r}
+
+rea_dist = mod_som_cluster_dist( rea_som )
+
+```
+
+
+###Optimal No Cluster
+
+```{r}
+mod_som_cluster_opt_no_clust( input, rea_dist )
+
+```
+
+
+###Cluster
+
+```{r}
+
+mod_som_cluster_ui(input)
+
+rea_clust = mod_som_cluster_rea(input
+                               , status
+                               , store
+                               , rea_som
+                               , rea_dist
+                               )
+renderText(status$clust)
+
+mod_som_cluster_man_change_cluster_UI( input )
+
+store = mod_som_store_rea()
+
+rea_clust_mod = mod_som_cluster_man_change_cluster_rea( input, store, rea_clust )
+
+mod_som_cluster_plot(input
+                     , rea_clust_mod
+                     , rea_som)
+
+renderPrint( input$but_clust == 0 )
+renderPrint( input$but_clust )
+renderPrint( input$but_assign_clust )
+renderPrint( store$but_clust )
+# renderPrint( store$map_loc )
+# renderPrint( store$assign_clust )
+# renderPrint(rea_clust_mod()$clust)
+
+```
+
+##Vis Clusters
+
+```{r}
+
+rea_new_data = mod_som_clust_2_data(rea_clust_mod)
+
+mod_vis_groups_ui(rea_new_data, 'cluster')
+
+mod_vis_groups_render_no_obs(input, rea_new_data, color_pallette = color_pallette)
+
+mod_vis_groups_render_numericals(input, rea_new_data, color_pallette = color_pallette)
+
+mod_vis_groups_render_categoricals(input, rea_new_data, color_pallette = color_pallette)
+
+```
+
+##Tree
+
+```{r}
+
+mod_tree_UI(input, status, rea_new_data )
+
+rea_tree = mod_tree_rea(input, status, rea_new_data)
+
+mod_tree_plot(input, status, rea_tree)
+
+mod_tree_UI_plot()
+
+mod_tree_prune_plot(input, rea_tree, rea_new_data)
+
+
+```
+
+
+#Save Clusters
+
+```{r}
+
+mod_save(input, rea_new_data)
+
+```
+
+
+
+
+

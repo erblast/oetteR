@@ -1,0 +1,49 @@
+---
+title: "Untitled"
+author: "OEB"
+date: "August 7, 2017"
+output: html_document
+runtime: shiny
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+
+ladida = function(){
+  
+  data <- mtcars
+
+  file_name = function() {
+      
+      file_name = paste("data-", Sys.Date(), ".csv", sep="")
+  
+      print(file_name)
+      
+      return(file_name)
+      
+  }
+  
+  cont = function(file) {
+      
+      print(file)
+      
+      save(data, file = file)
+  }
+  
+  downloadHandler(
+    filename = 'file_name.csv',
+    content = cont
+                  , outputArgs = list(label = 'Save Map')
+  )
+  
+}
+
+
+
+ladida()
+
+```
+

@@ -1,0 +1,94 @@
+---
+title: "Decision Tree"
+author: "OEB"
+date: "August 29, 2017"
+output: html_document
+params:
+  data: !r ISLR::Auto
+runtime: shiny
+
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = F, warning = F, message = F, eval = T)
+```
+
+```{r libraries, echo=FALSE, message=F, warning=FALSE}
+
+library(knitr)
+library(ISLR)
+library(tidyverse)
+library(tabplot)
+library(stringr)
+library(forcats)
+library(caret)
+library(e1071)
+require(shiny)
+
+source( stringr::str_c(getwd(), '/mod_clean_data v03.R') )
+
+source( stringr::str_c(getwd(), '/mod_tree_v01.R') )
+
+source( stringr::str_c(getwd(), '/mod_load_data v03.R') )
+```
+
+```{r status}
+
+status = reactiveValues( data = NULL)
+
+status$load     = 'Ready'
+status$summary  = 'Ready'
+status$clean    = 'Ready'
+status$ana      = 'Ready'
+status$pca      = 'Ready'
+status$imp      = 'Ready'
+status$corr     = 'Ready'
+status$group_stat = 'Ready'
+status$tree     = 'Ready'
+
+
+```
+
+```{r}
+
+textInput('path'
+            , label = 'Save Analysis to this directory'
+            , width = '100%'
+            , value = path.expand('~')
+            )
+
+
+checkboxInput('save'
+                , label = 'Save Results'
+                , value = F)
+
+
+data = params$data
+
+mod_read_data = function(data){
+  
+  reactive({
+    
+    f_clean_data(data, exclude_missing = T)
+    
+  })
+  
+}
+
+rea_data = mod_read_data(data)
+
+
+mod_tree_UI(input, status, rea_data )
+
+rea_tree = mod_tree_rea(input, status, rea_data)
+
+mod_tree_plot(input, status, rea_tree)
+
+mod_tree_UI_plot()
+
+mod_tree_prune_plot(input, rea_tree, rea_data)
+
+
+```
+
