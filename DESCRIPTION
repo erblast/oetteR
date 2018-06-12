@@ -1,7 +1,7 @@
 Package: oetteR
 Type: Package
 Title: Collection of personal R functions
-Version: 0.2.6
+Version: 0.2.7
 Author: Bjoern Oettinghaus
 Maintainer: Bjoern Oettinghaus <bjoern.oettinghaus@gmail.com>
 Description: Collection of functions I frequently use
