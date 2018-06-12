@@ -80,9 +80,9 @@ form = as.formula('disp~cyl+mpg+hp+am+gear+drat+wt+vs+carb')
 variable_color_code = f_plot_color_code_variables(data_ls)
 
 grids = pipelearner::pipelearner(data_ls$data) \%>\%
-  pipelearner::learn_models( twidlr::rpart, form ) \%>\%
-  pipelearner::learn_models( twidlr::randomForest, form ) \%>\%
-  pipelearner::learn_models( twidlr::svm, form ) \%>\%
+  pipelearner::learn_models( rpart::rpart, form ) \%>\%
+  pipelearner::learn_models( randomForest::randomForest, form ) \%>\%
+  pipelearner::learn_models( e1071::svm, form ) \%>\%
   pipelearner::learn() \%>\%
   dplyr::mutate( imp = map2(fit, train, f_model_importance)
                  , range_var = map_chr(imp, function(x) head(x,1)$row_names )

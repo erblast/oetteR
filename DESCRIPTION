@@ -50,7 +50,10 @@ Imports:
   , caret
   , rpart.plot
   , RColorBrewer
+  , rmarkdown
+  , viridis
+  
 Suggests: testthat,
-    knitr,
-    rmarkdown
+    knitr
+    
 VignetteBuilder: knitr

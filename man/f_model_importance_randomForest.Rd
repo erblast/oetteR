@@ -14,12 +14,12 @@ dataframe
 }
 \examples{
 #regression
-m = twidlr::randomForest(mtcars, disp~.)
+m = randomForest::randomForest(mtcars, disp~.)
 f_model_importance_randomForest(m)
 
 #classification
 data_ls = f_clean_data(mtcars)
-m = twidlr::randomForest(data_ls$data, cyl~.)
+m = randomForest::randomForest(data_ls$data, cyl~.)
 f_model_importance_randomForest(m)
 
 }
