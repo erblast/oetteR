@@ -26,7 +26,7 @@ optimised for usage in pipelearner dataframe
 
 data_ls = f_clean_data(mtcars)
 variable_color_code = f_plot_color_code_variables(data_ls)
-m = twidlr::rpart(mtcars, disp~.)
+m = rpart::rpart(mtcars, disp~.)
 imp = f_model_importance_rpart(m)
 f_model_importance_plot(imp
                         , title = 'rpart'
@@ -34,9 +34,9 @@ f_model_importance_plot(imp
                         )
 #pipelearner
 pl = pipelearner::pipelearner(data_ls$data) \%>\%
-  pipelearner::learn_models( twidlr::rpart, disp~. ) \%>\%
-  pipelearner::learn_models( twidlr::randomForest, disp~. ) \%>\%
-  pipelearner::learn_models( twidlr::svm, disp~. ) \%>\%
+  pipelearner::learn_models( rpart::rpart, disp~. ) \%>\%
+  pipelearner::learn_models( randomForest::randomForest, disp~. ) \%>\%
+  pipelearner::learn_models( e1071::svm, disp~. ) \%>\%
   pipelearner::learn() \%>\%
   mutate( imp = map2(fit, train, f_model_importance)
          , title = paste( model, models.id, cv_pairs.id, train_p )

@@ -15,12 +15,12 @@ dataframe
 \examples{
 
 #regression
-m = twidlr::rpart(mtcars, disp~.)
+m = rpart::rpart(mtcars, disp~.)
 f_model_importance_rpart(m)
 
 #classification
 data_ls = f_clean_data(mtcars)
-m = twidlr::rpart(data_ls$data, cyl~.)
+m = rpart::rpart(data_ls$data, cyl~.)
 f_model_importance_rpart(m)
 
 }

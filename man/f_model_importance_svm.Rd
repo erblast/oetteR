@@ -21,13 +21,13 @@ uses 1D-SA 1 dimensional sensitivity analysis using
 \examples{
 
 #regression
-m = twidlr::svm(mtcars, disp~.)
+m = e1071::svm(mtcars, disp~.)
 f_model_importance_svm(m, mtcars)
 
 #classification
 data = mtcars
 data$cyl = factor(data$cyl, ordered = T)
-m = twidlr::svm(data, cyl~.)
+m = e1071::svm(data, cyl~.)
 f_model_importance_svm(m, data)
 
 

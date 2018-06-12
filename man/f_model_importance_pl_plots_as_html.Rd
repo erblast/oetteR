@@ -27,9 +27,9 @@ form = disp~cyl+mpg+hp
 variable_color_code = f_plot_color_code_variables(data_ls)
 
 pl = pipelearner::pipelearner(data_ls$data) \%>\%
- pipelearner::learn_models( twidlr::rpart, form ) \%>\%
- pipelearner::learn_models( twidlr::randomForest, form ) \%>\%
- pipelearner::learn_models( twidlr::svm, form ) \%>\%
+ pipelearner::learn_models( rpart::rpart, form ) \%>\%
+ pipelearner::learn_models( randomForest::randomForest, form ) \%>\%
+ pipelearner::learn_models( e1071::svm, form ) \%>\%
  pipelearner::learn() \%>\%
  mutate( imp = map2(fit, train, f_model_importance)
          , title = paste(model, models.id, train_p) ) \%>\%

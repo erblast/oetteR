@@ -19,9 +19,9 @@ supports rpart, randomForest, svm and caret will return NULL for other models
 }
 \examples{
 pl = pipelearner::pipelearner(mtcars) \%>\%
-  pipelearner::learn_models( twidlr::rpart, disp~. ) \%>\%
-  pipelearner::learn_models( twidlr::randomForest, disp~. ) \%>\%
-  pipelearner::learn_models( twidlr::svm, disp~. ) \%>\%
+  pipelearner::learn_models( rpart::rpart, disp~. ) \%>\%
+  pipelearner::learn_models( randomForest::randomForest, disp~. ) \%>\%
+  pipelearner::learn_models( e1071::svm, disp~. ) \%>\%
   pipelearner::learn() \%>\%
   mutate( imp = map2(fit, train, f_model_importance) )
 pl$imp

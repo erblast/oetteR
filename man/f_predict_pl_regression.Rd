@@ -29,9 +29,9 @@ form = as.formula( 'disp~cyl+mpg')
 pl = mtcars \%>\%
   mutate(names = row.names(.)) \%>\%
   pipelearner::pipelearner() \%>\%
-  pipelearner::learn_models( twidlr::rpart, form ) \%>\%
-  pipelearner::learn_models( twidlr::randomForest, form ) \%>\%
-  pipelearner::learn_models( twidlr::svm, form ) \%>\%
+  pipelearner::learn_models( rpart::rpart, form ) \%>\%
+  pipelearner::learn_models( randomForest::randomForest, form ) \%>\%
+  pipelearner::learn_models( e1071::svm, form ) \%>\%
   pipelearner::learn_models( gamlss::gamlss, form ) \%>\%
   pipelearner::learn() \%>\%
   f_predict_pl_regression( cols_id = 'names' )
