@@ -243,3 +243,31 @@ test_that( 'plot model predictions as alluvial'
                                       , col_obs = 'target1')
 
 })
+
+
+test_that('prediction intervalls raw'
+  ,{
+
+    suppressWarnings({
+
+      data = ggplot2::diamonds
+
+      m = lm(price ~ carat + depth, data)
+
+      df = tibble( obs = data$price
+                 , pred = predict(m, newdata = data) ) %>%
+         f_prediction_intervall_raw( 'pred','obs', intervall = 0.975) %>%
+         f_prediction_intervall_raw( 'pred','obs', intervall = 0.025)
+
+      df = dplyr::select( df, pred, obs ) %>%
+        sample_n(100) %>%
+        f_prediction_intervall_raw( 'pred','obs', intervall = 0.975
+                                     , bootstrap = T, steps = F, n_neighbours = 10 )
+
+    })
+
+})
+
+
+
+
