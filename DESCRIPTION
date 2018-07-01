@@ -1,7 +1,7 @@
 Package: oetteR
 Type: Package
 Title: Collection of personal R functions
-Version: 0.2.9
+Version: 0.2.10
 Author: Bjoern Oettinghaus
 Maintainer: Bjoern Oettinghaus <bjoern.oettinghaus@gmail.com>
 Description: Collection of functions I frequently use
@@ -53,6 +53,7 @@ Imports:
   , rmarkdown
   , viridis
   , Hmisc
+  , boot
 Suggests: testthat,
     knitr
 VignetteBuilder: knitr
