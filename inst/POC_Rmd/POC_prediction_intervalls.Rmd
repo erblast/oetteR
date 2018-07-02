@@ -1,0 +1,243 @@
+---
+title: "Prediction Intervalls"
+author: "OEB"
+date: "December 21, 2017"
+output:
+  html_document:
+    toc: true
+    toc_depth: 3
+    toc_float:
+      collapsed: false
+      smooth_scroll: false
+    number_sections: true
+    theme: sandstone
+    df_print: kable
+    code_folding: show
+editor_options:
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = F, warning = F, results = 'hide')
+```
+
+
+```{r}
+
+suppressPackageStartupMessages( require(tidyverse) )
+suppressPackageStartupMessages( require(oetteR) )
+
+```
+
+# Various Intervalls of a normally distributed sample
+
+```{r}
+
+map_intervalls_norm = function( .f = rnorm, n = 50, ...){
+
+  set.seed(1)
+  
+  pop = .f(n, ...)
+  
+  me = mean(pop)
+  std = sd(pop)
+  sem = std / sqrt( length(pop) )
+  
+  df = tibble( value = c('mean','SEM','2xSEM(CI95)','SD','2xSD(PI95)')
+               , min = c( me, me - sem, me - 2 * sem, me - std, me - 2 * std )
+               , max = c( me, me + sem, me + 2 * sem, me + std, me + 2 * std )
+               , pop = list(pop) ) %>%
+    mutate( value = fct_relevel(value, 'mean','SEM','2xSEM(CI95)','SD') )
+  
+  return(df)
+
+}
+
+
+plot_intervals = function(df, title){
+  
+  df_unnest = df %>%
+    unnest(pop) %>%
+    mutate( fill = case_when( pop < min | pop > max ~ 'out'
+                              , TRUE ~ 'in' ) )
+  
+  p = ggplot(df) +
+    geom_errorbar( aes(x = value, ymin = min, ymax = max)
+                   , size = 1) +
+    ggbeeswarm::geom_beeswarm( aes(x = value, y = pop, fill = fill)
+                               , data = df_unnest
+                               , shape = 21) +
+    theme( legend.position = 'none') +
+    geom_hline(yintercept = 0, color = 'grey', linetype = 2, size = 1 ) +
+    labs( x = '', y = '', subtitle = title )
+  
+  return(p)
+
+}
+
+title = paste( c('calculated intervalls for 50 samples taken from a normal distributed population'
+                 , 'with mean = 0 and sd = 1'), collapse = '\n' )
+
+df = map_intervalls_norm( .f = rnorm)
+
+plot_intervals(df, title = title)
+
+
+
+```
+
+# Misleading Intervalls if sample is not normally distributed
+
+```{r}
+
+title = paste( c('calculated intervalls for 50 samples taken from a gamma distributed population'
+                 , 'with rate = 1 and scale = 1/rate'), collapse = '\n' )
+
+df = map_intervalls_norm( .f = rgamma, shape = 1)
+
+plot_intervals(df, title = title)
+
+
+```
+
+# Bootstrap method can be used to calculate intervalls for none-normally distributed samples
+
+```{r}
+
+
+map_intervalls_boot = function(){
+
+  require(boot)
+  
+  set.seed(1)
+  
+  pop = rgamma(50, shape = 1)
+  
+  boundary = c(0.975, 0.84, 0.5, 0.16, 0.025)
+  
+  sim_mean = boot( pop
+                , function(data, index) mean(data[index])
+                , 1000 )
+  
+  sim_mean = sim_mean$t
+  
+  me_boot = quantile(sim_mean, boundary)
+  
+  df_boot = tibble(boundary = boundary )%>%
+    mutate( boot = map( boundary, function(x) boot(pop, function(data, index) quantile(data[index], x), 1000 ) )
+            , boot_value = map_dbl(boot, 't0') ) 
+  
+  
+  df = tibble( value = c('mean','SEM','2xSEM(CI95)','PI68','PI95')
+               , min = c( me_boot[3], me_boot[4], me_boot[5], df_boot$boot_value[4], df_boot$boot_value[5] )
+               , max = c( me_boot[3], me_boot[2], me_boot[1], df_boot$boot_value[2], df_boot$boot_value[1] )
+               , pop = list(pop) ) %>%
+    mutate( value = fct_relevel(value, 'mean','SEM','2xSEM(CI95)','PI68','PI95') )
+
+}
+
+df = map_intervalls_boot()
+
+title = paste( c('calculated intervalls for 50 samples taken from a gamma distributed population'
+                 , 'with rate = 1 and scale = 1/rate using bootstrap'), collapse = '\n' )
+
+
+plot_intervals(df, title = title)
+
+```
+
+# Calculating prediction intervalls for linear regression
+
+When we use a linear model to predict a none-linear context the residuals are not normally distributed throughout the prediction space.
+
+```{r}
+
+set.seed(1)
+
+m = lm(price~carat, ggplot2::diamonds)
+
+df = tibble(pred = predict(m)
+            , resid = m$residuals
+            , obs = ggplot2::diamonds$price
+            , min = obs - predict(m, se.fit = T)$se.fit * 2
+            , max = obs + predict(m, se.fit = T)$se.fit * 2 ) %>%
+  mutate( fill = case_when( obs < min | obs > max ~ 'out'
+                              , TRUE ~ 'in' ) ) %>%
+  sample_n(250)
+
+df %>%
+  select(pred, obs, resid) %>%
+  gather( value = 'value', key = 'key', - pred) %>%
+  ggplot( aes(x = pred, y = value) ) +
+    geom_point( ) +
+    geom_smooth( method = 'lm') +
+    facet_wrap(~key)
+
+
+
+```
+
+We can seperate the prediction space into bins and use the bootstrap method to calculate the prediction intervalls for each bin
+
+Here we bin 250 value pairs into 10 equally sized bins of 25 observations
+
+```{r}
+
+df_pi = f_prediction_intervall_raw(df, 'pred', 'obs'
+                                   , bootstrap = T
+                                   , n_neighbours = 25
+                                   , intervall = 0.975) %>%
+  f_prediction_intervall_raw('pred', 'obs'
+                               , bootstrap = T
+                               , n_neighbours = 25
+                               , intervall = 0.025)
+
+
+ggplot(df_pi) +
+  geom_ribbon( aes(x = pred
+                   , ymax = pred_PI97.5_raw
+                   , ymin = pred_PI2.5_raw) ) +
+  geom_point(aes(x = pred, y = obs, color = steps)
+             , show.legend = F) +
+  scale_color_manual( values = f_plot_col_vector74(greys = F))
+
+```
+
+Here we bin 53940 obseravations into 107 bins of 500 observations each.
+
+Only a subset of 500 random points will be plotted
+
+```{r}
+
+m = lm(price ~ carat + depth, ggplot2::diamonds)
+
+df = tibble( obs = ggplot2::diamonds$price
+           , pred = predict(m, newdata = ggplot2::diamonds) ) %>%
+   f_prediction_intervall_raw( 'pred','obs', intervall = 0.975) %>%
+   f_prediction_intervall_raw( 'pred','obs', intervall = 0.025)
+
+p = f_plot_pretty_points( dplyr::sample_n(df, 500), 'pred', 'obs' ) +
+  geom_ribbon(mapping = aes(ymin = pred_PI2.5_raw
+                            , ymax = pred_PI97.5_raw
+                            , fill = 'lightsalmon')
+              , data = df
+              , color = NA
+              , fill = 'lightsalmon'
+              , alpha = 0.3 ) + 
+  geom_line(mapping = aes(x = pred
+                          , y = pred_mean_raw
+                          )
+            , data = df
+            , color = 'deepskyblue4'
+            #, size = 1
+            ) +
+  coord_cartesian( xlim=c(0,20000), ylim = c(0,20000))
+
+# reorganize layers
+p$layers = list(p$layers[[2]], p$layers[[1]], p$layers[[3]] )
+
+p
+
+```
+
+
