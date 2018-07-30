@@ -701,7 +701,7 @@ f_predict_plot_regression_alluvials = function( data
 #'               , alpha = 0.5 ) +
 #'   geom_line( aes(x = pred, y = pred_PI2.5_raw ), size = 1, color = 'darkgreen' ) +
 #'   geom_line( aes(x = pred, y = pred_PI97.5_raw ), size = 1, color = 'darkgreen'  ) +
-#'   geom_line( aes(x = pred, y = pred_PINA_raw ), size = 1, color = 'tomato'  )
+#'   geom_line( aes(x = pred, y = pred_mean_raw ), size = 1, color = 'tomato'  )
 #'
 #' }
 #' @seealso \code{\link[plyr]{arrange}}
@@ -867,10 +867,14 @@ f_prediction_intervall_raw = function( df, pred_col, obs_col, intervall = 0.95, 
       pi = c(pi, mean = me )
     }
 
+
     if( steps == T ){
 
       for (ix in 1:length(pi) ){
-        df[ df$steps == levels(df$steps)[i], paste(pred_col,'_PI', as.numeric( names(pi[ix]) ) *100, '_raw', sep = '') ] = pi[ix]
+
+        col_name = paste0('pred_PI', as.numeric( names(pi[ix]) ) *100, '_raw' )
+
+        df[ df$steps == levels(df$steps)[i], col_name ] = pi[ix]
       }
 
       print( paste (pred_col ,' ',(i/ length(levels(df$steps)) *100), '%') )
@@ -880,7 +884,10 @@ f_prediction_intervall_raw = function( df, pred_col, obs_col, intervall = 0.95, 
     else{
 
       for (ix in 1:length(pi) ){
-        df[ i , paste(pred_col,'_PI', as.numeric( names(pi[ix]) ) *100, '_raw', sep = '') ] = pi[ix]
+
+        col_name = paste0('pred_PI', as.numeric( names(pi[ix]) ) *100, '_raw' )
+
+        df[ i , col_name ] = pi[ix]
       }
 
       print( paste (pred_col ,' ',(i/nrow(df)*100), '%') )

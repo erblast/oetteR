@@ -18,7 +18,7 @@ editor_options:
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE, message = F, warning = F, results = 'hide')
+knitr::opts_chunk$set(echo = TRUE, message = F, warning = F, results = 'markdown')
 ```
 
 
@@ -207,15 +207,17 @@ Here we bin 53940 obseravations into 107 bins of 500 observations each.
 
 Only a subset of 500 random points will be plotted
 
-```{r}
+```{r results = 'hide'}
 
 m = lm(price ~ carat + depth, ggplot2::diamonds)
 
 df = tibble( obs = ggplot2::diamonds$price
            , pred = predict(m, newdata = ggplot2::diamonds) ) %>%
    f_prediction_intervall_raw( 'pred','obs', intervall = 0.975) %>%
-   f_prediction_intervall_raw( 'pred','obs', intervall = 0.025)
-
+   f_prediction_intervall_raw( 'pred','obs', intervall = 0.025) %>%
+   f_prediction_intervall_raw( 'pred','obs', intervall = 0.875) %>%
+   f_prediction_intervall_raw( 'pred','obs', intervall = 0.125)
+   
 p = f_plot_pretty_points( dplyr::sample_n(df, 500), 'pred', 'obs' ) +
   geom_ribbon(mapping = aes(ymin = pred_PI2.5_raw
                             , ymax = pred_PI97.5_raw
@@ -240,4 +242,16 @@ p
 
 ```
 
+# Check if percentiles are correct on total observations
+
+```{r}
+
+df %>%
+  mutate( in_75_perc = ( obs > pred_PI12.5_raw & obs < pred_PI87.5_raw )
+          , in_95_perc = ( obs > pred_PI2.5_raw & obs < pred_PI97.5_raw ) ) %>%
+  summarize( perc_in_75_percentile = sum(in_75_perc) / n()
+             , perc_in_95_percentile = sum(in_95_perc) / n() ) %>%
+  knitr::kable()
+
+```
 

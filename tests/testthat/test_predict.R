@@ -264,6 +264,11 @@ test_that('prediction intervalls raw'
         f_prediction_intervall_raw( 'pred','obs', intervall = 0.975
                                      , bootstrap = T, steps = F, n_neighbours = 10 )
 
+
+      df = tibble( obs_A = data$price
+                   , pred_A = predict(m, newdata = data) ) %>%
+        f_prediction_intervall_raw( 'pred_A','obs_A', intervall = 0.975)
+
     })
 
 })
