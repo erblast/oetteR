@@ -133,16 +133,15 @@ f_manip_summarize_2_median_and_most_common_factor = function(data_ls){
 #'  \code{\link[broom]{tidy}}
 #' @rdname f_manip_get_most_common_level
 #' @export
-#' @importFrom broom tidy
 f_manip_get_most_common_level = function(x){
 
   if( ! is.factor(x) ){
     stop( 'f_manip_get_most_common_level called on none factor vector' )
   }
 
-  level = broom::tidy( summary(x) ) %>%
-    arrange( desc(x) ) %>%
-    .$names %>%
+  level = summary(x)  %>%
+    sort( decreasing = T ) %>%
+    names() %>%
     head(1)
 
   x = x[x == level] %>%

@@ -31,3 +31,4 @@ vignettes/*.pdf
 *.utf8.md
 *.knit.md
 inst/doc
+inst/POC_Rmd/rsconnect
