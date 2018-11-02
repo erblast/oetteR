@@ -4,8 +4,9 @@
 \alias{f_model_plot_var_dep_over_spec_var_range}
 \title{plot vmodel varaible dependency over the range of a specified variable}
 \usage{
-f_model_plot_var_dep_over_spec_var_range(m, title, variables, range_variable,
-  data, formula, data_ls, variable_color_code, log_y = F, limit = 12)
+f_model_plot_var_dep_over_spec_var_range(m, title, variables,
+  range_variable, data, formula, data_ls, variable_color_code, log_y = F,
+  limit = 12)
 }
 \arguments{
 \item{m}{a model}

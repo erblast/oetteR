@@ -23,6 +23,9 @@ f_predict_pl_regression(pl, cols_id = NULL, formula = NULL,
 
 \item{data_train}{character vector naming train data column, Default: 'train'#' @return dataframe}
 }
+\description{
+adds predictions to learned pipelearner dataframe
+}
 \examples{
 form = as.formula( 'disp~cyl+mpg')
 

@@ -6,9 +6,11 @@
 \usage{
 f_plot_alluvial(data, variables = names(data), col_id = NULL,
   max_variables = 20, bins = 5, bin_labels = c("LL", "ML", "M", "MH",
-  "HH"), NA_label = "NA", order_levels = NULL, fill_by = "first_variable",
+  "HH"), NA_label = "NA", order_levels = NULL,
+  fill_by = "first_variable",
   col_vector_flow = f_plot_col_vector74(faint = F, greys = F),
-  col_vector_value = RColorBrewer::brewer.pal(9, "Greys")[c(3, 6, 4, 7, 5)])
+  col_vector_value = RColorBrewer::brewer.pal(9, "Greys")[c(3, 6, 4, 7,
+  5)])
 }
 \arguments{
 \item{data}{a dataframe}

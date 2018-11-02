@@ -256,18 +256,20 @@ test_that('prediction intervalls raw'
 
       df = tibble( obs = data$price
                  , pred = predict(m, newdata = data) ) %>%
-         f_prediction_intervall_raw( 'pred','obs', intervall = 0.975) %>%
-         f_prediction_intervall_raw( 'pred','obs', intervall = 0.025)
+         f_prediction_intervall_raw( 'pred','obs', intervall = 0.975, verbose = F) %>%
+         f_prediction_intervall_raw( 'pred','obs', intervall = 0.025, verbose = F)
 
       df = dplyr::select( df, pred, obs ) %>%
         sample_n(100) %>%
         f_prediction_intervall_raw( 'pred','obs', intervall = 0.975
-                                     , bootstrap = T, steps = F, n_neighbours = 10 )
+                                    , bootstrap = T, steps = F
+                                    , n_neighbours = 10, verbose = F )
 
 
       df = tibble( obs_A = data$price
                    , pred_A = predict(m, newdata = data) ) %>%
-        f_prediction_intervall_raw( 'pred_A','obs_A', intervall = 0.975)
+        f_prediction_intervall_raw( 'pred_A','obs_A', intervall = 0.975
+                                    , verbose = F)
 
     })
 

@@ -9,6 +9,9 @@ f_content_get_file_type(file_type = "html", folder = "vignettes")
 \arguments{
 \item{file_type}{character vector denoting file extensions}
 }
+\description{
+returns files of specified type from vignette path
+}
 \examples{
 \dontrun{
  f_content_get_file_type()

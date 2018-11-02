@@ -21,6 +21,9 @@ colour, Default: NULL}
 htmltools taglist containing a plotly graph and tow DT datatables
   will only show if printed in a rmarkdown document
 }
+\description{
+plot principle components as a dot plot
+}
 \examples{
 \dontrun{
 tagls = f_clean_data(mtcars) \%>\%

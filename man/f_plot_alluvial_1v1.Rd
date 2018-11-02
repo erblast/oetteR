@@ -5,11 +5,13 @@
 \title{plot alluvial of gathered data}
 \usage{
 f_plot_alluvial_1v1(data, col_x, col_y, col_id, col_fill = NULL,
-  fill_right = T, bins = 5, bin_labels = c("LL", "ML", "M", "MH", "HH"),
-  NA_label = "NA", order_levels_y = NULL, order_levels_x = NULL,
-  order_levels_fill = NULL, complete = TRUE, fill_by = "first_variable",
+  fill_right = T, bins = 5, bin_labels = c("LL", "ML", "M", "MH",
+  "HH"), NA_label = "NA", order_levels_y = NULL,
+  order_levels_x = NULL, order_levels_fill = NULL, complete = TRUE,
+  fill_by = "first_variable",
   col_vector_flow = f_plot_col_vector74(faint = F, greys = F),
-  col_vector_value = RColorBrewer::brewer.pal(9, "Greys")[c(3, 6, 4, 7, 5)])
+  col_vector_value = RColorBrewer::brewer.pal(9, "Greys")[c(3, 6, 4, 7,
+  5)])
 }
 \arguments{
 \item{data}{a dataframe}

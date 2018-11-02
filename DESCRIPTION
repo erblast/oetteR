@@ -1,13 +1,13 @@
 Package: oetteR
 Type: Package
 Title: Collection of personal R functions
-Version: 0.2.12
+Version: 0.2.13
 Author: Bjoern Oettinghaus
 Maintainer: Bjoern Oettinghaus <bjoern.oettinghaus@gmail.com>
 Description: Collection of functions I frequently use
 License: None
 LazyData: true
-RoxygenNote: 6.0.1
+RoxygenNote: 6.1.0
 Imports:
   tidyverse
   , DT

@@ -4,8 +4,8 @@
 \alias{f_train_lasso_manual_cv}
 \title{wrapper for glmnet and HDtweedie}
 \usage{
-f_train_lasso_manual_cv(data, formula, grid = 10^seq(4, -4, length = 100),
-  p = c(1, 1.25, 1.5, 1.75, 2), k = 5, family = "gaussian")
+f_train_lasso_manual_cv(data, formula, grid = 10^seq(4, -4, length =
+  100), p = c(1, 1.25, 1.5, 1.75, 2), k = 5, family = "gaussian")
 }
 \arguments{
 \item{data}{dataframe}

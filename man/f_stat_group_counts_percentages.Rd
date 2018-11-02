@@ -16,6 +16,9 @@ numerical columns>)}
 \value{
 dataframe
 }
+\description{
+create a aggregated data frame with percentagers and counts for categorical variables
+}
 \examples{
 f_clean_data( mtcars) \%>\%
  f_stat_group_counts_percentages('cyl')

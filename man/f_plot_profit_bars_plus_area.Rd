@@ -6,9 +6,9 @@
   revenue and costs and an area chart for profit.}
 \usage{
 f_plot_profit_bars_plus_area(data, col_revenue, col_cost, col_time,
-  now = max(data[, col_time]), unit_time = "years", unit_value = "CHF",
-  title = "", alpha_past = 1, alpha_future = 0.5, alpha_past_area = 0.9,
-  alpha_future_area = 0.7)
+  now = max(data[, col_time]), unit_time = "years",
+  unit_value = "CHF", title = "", alpha_past = 1,
+  alpha_future = 0.5, alpha_past_area = 0.9, alpha_future_area = 0.7)
 }
 \arguments{
 \item{data}{datafram}

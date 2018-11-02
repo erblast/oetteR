@@ -12,6 +12,9 @@ f_model_importance_randomForest(m)
 \value{
 dataframe
 }
+\description{
+extract variable importance for randomForest model
+}
 \examples{
 #regression
 m = randomForest::randomForest(mtcars, disp~.)

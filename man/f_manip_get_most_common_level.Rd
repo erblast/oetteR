@@ -12,6 +12,9 @@ f_manip_get_most_common_level(x)
 \value{
 character vector
 }
+\description{
+get most common level from vector
+}
 \examples{
 data_ls = f_clean_data(mtcars)
 f_manip_get_most_common_level( data_ls$data$cyl)

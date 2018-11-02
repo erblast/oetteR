@@ -4,7 +4,8 @@
 \alias{f_model_data_grid}
 \title{generates a data grid based on a formula}
 \usage{
-f_model_data_grid(col_var, data_ls, formula, n = 500, set_manual = list())
+f_model_data_grid(col_var, data_ls, formula, n = 500,
+  set_manual = list())
 }
 \arguments{
 \item{col_var}{character vector, denoting variable that should be expanded}

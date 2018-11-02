@@ -16,6 +16,9 @@ numerical columns>)}
 \value{
 dataframe
 }
+\description{
+create a aggregated data frame with means and medians for numerical variables
+}
 \examples{
 f_clean_data( mtcars) \%>\%
  f_stat_group_mean_medians('cyl')

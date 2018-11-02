@@ -12,6 +12,9 @@ f_manip_get_variables_from_formula(formula)
 \value{
 character vector
 }
+\description{
+get variables from formula
+}
 \examples{
 f = foo~bar1 + bar2
 

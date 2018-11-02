@@ -5,7 +5,8 @@
 \title{calculate raw prediction intervalls}
 \usage{
 f_prediction_intervall_raw(df, pred_col, obs_col, intervall = 0.95,
-  n_neighbours = 500, rm_outliers = T, bootstrap = F, steps = T)
+  n_neighbours = 500, rm_outliers = T, bootstrap = F, steps = T,
+  verbose = T)
 }
 \arguments{
 \item{df}{a dataframe containing predictions and obsvervation pairs}
@@ -29,6 +30,8 @@ calculated based on the mean, Default: F}
 
 \item{steps}{logical, if TRUE predictions will be binned instead of
 considering the neighbouhood of each point, Default: T}
+
+\item{verbose}{logical}
 }
 \value{
 OUTPUT_DESCRIPTION
@@ -59,7 +62,7 @@ ggplot2::ggplot(df) +
               , alpha = 0.5 ) +
   geom_line( aes(x = pred, y = pred_PI2.5_raw ), size = 1, color = 'darkgreen' ) +
   geom_line( aes(x = pred, y = pred_PI97.5_raw ), size = 1, color = 'darkgreen'  ) +
-  geom_line( aes(x = pred, y = pred_PINA_raw ), size = 1, color = 'tomato'  )
+  geom_line( aes(x = pred, y = pred_mean_raw ), size = 1, color = 'tomato'  )
 
 }
 }

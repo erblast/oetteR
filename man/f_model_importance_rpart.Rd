@@ -12,6 +12,9 @@ f_model_importance_rpart(m)
 \value{
 dataframe
 }
+\description{
+extract variable importance for rpart
+}
 \examples{
 
 #regression

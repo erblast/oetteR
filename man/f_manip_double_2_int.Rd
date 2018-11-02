@@ -13,6 +13,10 @@ f_manip_double_2_int(df)
 \value{
 tibble
 }
+\description{
+converts columns of type double to integer if maximum number of
+  decimal digits is zero
+}
 \examples{
 as_tibble(mtcars)
 f_manip_double_2_int(mtcars)

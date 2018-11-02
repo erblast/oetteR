@@ -17,6 +17,9 @@ returns a list
   \item{numericals}{vector of column names containing numerical data}
   \item{ids}{vector of column names containing ids}
 }
+\description{
+wrapper for f_clean_data without modifications to data
+}
 \seealso{
 \code{\link{f_clean_data}}
 }

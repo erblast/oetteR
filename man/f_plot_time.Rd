@@ -4,8 +4,9 @@
 \alias{f_plot_time}
 \title{plot variable distribution over time as reduced overlapping boxplots}
 \usage{
-f_plot_time(variable, time_variable, data_ls, time_variable_as_factor = F,
-  group = NULL, normalize = F, time_unit = "day")
+f_plot_time(variable, time_variable, data_ls,
+  time_variable_as_factor = F, group = NULL, normalize = F,
+  time_unit = "day")
 }
 \arguments{
 \item{variable}{character vector naming the variable to be plotted}

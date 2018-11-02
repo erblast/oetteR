@@ -19,6 +19,10 @@ list
   \item{data_boxcox}{summarized boxcox data as dataframe}
 }
 }
+\description{
+takes a data_ls list created by f_clean_data() and returns a list with
+  all medians for numerical and most common level for categorical variables.
+}
 \examples{
 summarized_ls = f_clean_data(mtcars) \%>\%
   f_boxcox() \%>\%

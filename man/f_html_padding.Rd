@@ -25,6 +25,9 @@ f_html_padding(obj, pad_before = 0, title = NULL, subtitle = NULL,
 \value{
 taglist
 }
+\description{
+add some padding around html objects
+}
 \examples{
 f_html_padding(DT::datatable(mtcars),5,'mtcars Data','subtitle', 'caption', 8 )
 }

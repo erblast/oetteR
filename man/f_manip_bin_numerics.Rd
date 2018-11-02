@@ -4,8 +4,8 @@
 \alias{f_manip_bin_numerics}
 \title{bin numerical columns}
 \usage{
-f_manip_bin_numerics(df, bins = 5, bin_labels = c("LL", "ML", "M", "MH",
-  "HH"), center = T, scale = T, transform = T)
+f_manip_bin_numerics(df, bins = 5, bin_labels = c("LL", "ML", "M",
+  "MH", "HH"), center = T, scale = T, transform = T)
 }
 \arguments{
 \item{df}{dataframe with numeric variables}

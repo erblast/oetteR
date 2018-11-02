@@ -682,6 +682,7 @@ f_predict_plot_regression_alluvials = function( data
 #'   calculated based on the mean, Default: F
 #' @param steps logical, if TRUE predictions will be binned instead of
 #'   considering the neighbouhood of each point, Default: T
+#' @param verbose logical
 #' @return OUTPUT_DESCRIPTION
 #' @details DETAILS
 #' @examples
@@ -711,7 +712,7 @@ f_predict_plot_regression_alluvials = function( data
 #' @importFrom Hmisc cut2
 #' @importFrom boot boot
 f_prediction_intervall_raw = function( df, pred_col, obs_col, intervall = 0.95, n_neighbours = 500,
-                                   rm_outliers = T, bootstrap = F, steps = T){
+                                   rm_outliers = T, bootstrap = F, steps = T, verbose = T ){
 
   # this function uses an experimental approach to calculate prediction intervalls by mapping
   # predicted and observed values.
@@ -877,7 +878,9 @@ f_prediction_intervall_raw = function( df, pred_col, obs_col, intervall = 0.95, 
         df[ df$steps == levels(df$steps)[i], col_name ] = pi[ix]
       }
 
-      print( paste (pred_col ,' ',(i/ length(levels(df$steps)) *100), '%') )
+      if( verbose ){
+        print( paste (pred_col ,' ',(i/ length(levels(df$steps)) *100), '%') )
+      }
 
     }
 
@@ -889,8 +892,9 @@ f_prediction_intervall_raw = function( df, pred_col, obs_col, intervall = 0.95, 
 
         df[ i , col_name ] = pi[ix]
       }
-
-      print( paste (pred_col ,' ',(i/nrow(df)*100), '%') )
+      if( verbose ){
+        print( paste (pred_col ,' ',(i/nrow(df)*100), '%') )
+      }
 
     }
 

@@ -14,6 +14,9 @@ f_model_importance_svm(m, data)
 \value{
 dataframe
 }
+\description{
+extract variable importance for svm
+}
 \details{
 uses 1D-SA 1 dimensional sensitivity analysis using
   rminer::Importance()

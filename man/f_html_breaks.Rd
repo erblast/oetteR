@@ -12,6 +12,9 @@ f_html_breaks(n)
 \value{
 taglist
 }
+\description{
+create a taglist with n lines of html line breaks
+}
 \examples{
 f_html_breaks(5)
 }

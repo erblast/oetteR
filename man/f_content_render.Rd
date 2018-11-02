@@ -9,6 +9,9 @@ f_content_render(overwrite = F, folder = "vignettes")
 \arguments{
 \item{overwrite}{logical, Default: F}
 }
+\description{
+renders content
+}
 \examples{
 \dontrun{
  f_content_render()

@@ -12,6 +12,9 @@ f_manip_get_response_variable_from_formula(formula)
 \value{
 character vector
 }
+\description{
+get response variable from formula
+}
 \seealso{
 \code{\link{f_manip_get_variables_from_formula}}
 }

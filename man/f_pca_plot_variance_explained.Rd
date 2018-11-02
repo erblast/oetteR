@@ -15,6 +15,9 @@ explain a lesser percentage of the variance than this threshold, Default: 2.5}
 \value{
 plotly graph
 }
+\description{
+plot varaince explained of principle components
+}
 \examples{
 p = f_clean_data(mtcars) \%>\%
   f_boxcox() \%>\%

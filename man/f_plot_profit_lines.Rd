@@ -4,9 +4,10 @@
 \alias{f_plot_profit_lines}
 \title{plot revenues cost and profit development over time as an area chart.}
 \usage{
-f_plot_profit_lines(data, col_revenue, col_cost, col_time, now = max(data[,
-  col_time]), unit_time = "years", unit_value = "CHF", title = "",
-  alpha_past = 1, alpha_future = 0.5)
+f_plot_profit_lines(data, col_revenue, col_cost, col_time,
+  now = max(data[, col_time]), unit_time = "years",
+  unit_value = "CHF", title = "", alpha_past = 1,
+  alpha_future = 0.5)
 }
 \arguments{
 \item{data}{datafram}

@@ -4,7 +4,8 @@
 \alias{f_plot_adjust_col_vector_length}
 \title{adjust length of color vector, by repeating colors}
 \usage{
-f_plot_adjust_col_vector_length(n = 74, col_vector = f_plot_col_vector74())
+f_plot_adjust_col_vector_length(n = 74,
+  col_vector = f_plot_col_vector74())
 }
 \arguments{
 \item{n}{length, Default: 74}
@@ -13,6 +14,9 @@ f_plot_adjust_col_vector_length(n = 74, col_vector = f_plot_col_vector74())
 }
 \value{
 vector containing colors of specified length
+}
+\description{
+adjust length of color vector, by repeating colors
 }
 \examples{
 

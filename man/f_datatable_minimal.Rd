@@ -14,6 +14,9 @@ f_datatable_minimal(df, escape = F)
 \value{
 DT::datatable
 }
+\description{
+convert dataframe to DT:datatable with minimal features
+}
 \examples{
 f_datatable_minimal(mtcars)
 }

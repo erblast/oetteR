@@ -12,6 +12,9 @@ f_manip_factor_2_numeric(vec)
 \value{
 vector
 }
+\description{
+converts factor to numeric preserving numeric levels and order in character levels
+}
 \examples{
 fac_num = factor( c(1,3,8) )
 fac_chr = factor( c('foo','bar') )

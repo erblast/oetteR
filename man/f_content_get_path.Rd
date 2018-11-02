@@ -6,6 +6,9 @@
 \usage{
 f_content_get_path(folder = "vignettes")
 }
+\description{
+returns content path
+}
 \examples{
 \dontrun{
  f_content_get_path()

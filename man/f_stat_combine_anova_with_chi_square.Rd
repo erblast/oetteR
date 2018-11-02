@@ -4,7 +4,8 @@
 \alias{f_stat_combine_anova_with_chi_square}
 \title{combines anova with chi square results into single dataframe}
 \usage{
-f_stat_combine_anova_with_chi_square(df_anova = NULL, df_chi_square = NULL)
+f_stat_combine_anova_with_chi_square(df_anova = NULL,
+  df_chi_square = NULL)
 }
 \arguments{
 \item{df_anova}{dataframe created with f_stat_anova, Default: NULL}

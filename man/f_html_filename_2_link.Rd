@@ -19,6 +19,9 @@ f_html_filename_2_link(file_name = dir()[1], path = getwd(),
 \value{
 link
 }
+\description{
+convert a filename + path or a file_path  to a html link
+}
 \examples{
 dir()[1]
 f_html_filename_2_link()
