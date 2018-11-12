@@ -97,7 +97,8 @@ Some of the POCs are also posted on Rpubs
 - [WOE, IV Scorecard in Credit Risk Modelling](http://rpubs.com/erblast/creditrisk)
 
 ## Algorithms
-- [SOM with connectivity restrains](http://rpubs.com/erblast/SOM)  
+- [SOM with connectivity restrains](http://rpubs.com/erblast/SOM)
+- [Prediction Intervalls](http://rpubs.com/erblast/pi)
 
 
 
