@@ -7,13 +7,7 @@ a few packages that I cosntantly use and that one should know about in order to 
 # Prerequisites
 
 - [Pipes and the Tidyverse](http://r4ds.had.co.nz/)
-- Functional dataframe based modelling concepts as described in the R4DS book linked above. A package that I started out with is 
- [`pipelearner`](https://github.com/drsimonj/pipelearner) and  [`twidlr`](https://github.com/drsimonj/twidlr). A lot of my code 
- examples use these two packages and I even use them in some of my functions. They also have a nice tutorials on their github page and a great simple syntax that make it easy to get the advantages of dataframe based modelling concepts. Those two packages are great however there is a major disadvantage in my opinion.
- If you train a lot of models `pipelearner` will always store them in memory. R models tend to be very large so you quickly fill up 
- your memory on weaker machines. Further you cannot train a model whithout defining some sort of test set. Which sometimes had me define
- a test set with one observation. So at the moment I still use `pipelearner` for its great syntax but tend to write my own modelling
- dataframes and to use the tools devloped by Max Kuhn `rsample` `recipes` and `caret`.
+- Functional dataframe based modelling concepts as described in the R4DS book linked above. A package that I started out with is [`pipelearner`](https://github.com/drsimonj/pipelearner) which provides an easy to use interface for modelling dataframes and I use it in some of my functions. However, `pipelearner` always stores the entire model inside the modelling df and you quickly run into memory issue so I tend to write my own modelling dataframes and to use the tools devloped by Max Kuhn `rsample` `recipes` and `caret`.
  - I generate a lot of my visual results as `html` and use `rmarkdown` to its full capacity. In my project folder I usually have
  one folder for `Rmd` and one for `html` files. I have one `Rmd` file for each step in my workflow and all resulting `hmtl`s are
  rendered to the `html` folder. I have one `execute.R` file in the parent project folder which triggers rendering of all `Rmds`.
