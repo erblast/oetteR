@@ -313,8 +313,8 @@ f_manip_data_2_model_matrix_format = function(data
 
   data = as_tibble(data)
 
-  vars = f_manip_get_variables_from_formula(formula)
-  response_var = f_manip_get_response_variable_from_formula(formula)
+  vars = oetteR::f_manip_get_variables_from_formula(formula)
+  response_var = oetteR::f_manip_get_response_variable_from_formula(formula)
 
   data_trans = select(data, one_of( c(response_var, vars ) ) )
 
@@ -348,8 +348,17 @@ f_manip_data_2_model_matrix_format = function(data
   #correct names
 
   new_names = names(matrix_trans) %>%
-    stringr::str_replace_all( '\\.', '_' ) %>%
-    stringr::str_replace_all( ' ', '_' )
+    gsub("([^A-Za-z0-9])+", "", x = .)
+
+    # stringi::stri_enc_toascii() %>%
+    # stringr::str_replace_all( '\\.', '_' ) %>%
+    # stringr::str_replace_all( ' ', '_' )
+    # stringr::str_replace_all( ',', '_' ) %>%
+    # stringr::str_replace_all( '\\-', '_' ) %>%
+    # stringr::str_replace_all( '\\+', '_' ) %>%
+    # stringr::str_replace_all( '\\^', '_' ) %>%
+    # stringr::str_replace_all( '\\/', '_' ) %>%
+    # stringr::str_replace_all( '\\', '_' )
 
   names(matrix_trans) = new_names
 

@@ -52,7 +52,7 @@ test_that('f_stat_max_diff_of_freq'
   ,{
 
   data_ls = f_clean_data(mtcars)
-  df = f_stat_max_diff_of_freq(data_ls$data, 'cyl', 'gear')
+  df = f_stat_max_diff_of_freq(df = data_ls$data, col_var1 = 'cyl', col_var2 = 'gear')
 
 })
 

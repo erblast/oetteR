@@ -138,14 +138,15 @@ f_stat_anova = function(data_ls, col_group, boxcox = F) {
 f_stat_max_diff_of_freq = function(df, col_var1, col_var2){
 
   t = table( df[[col_var1]], df[[col_var2]] ) %>%
+    as.data.frame() %>% # as_tibble cannot convert the table input anymore
     as_tibble() %>%
-    group_by( Var1 ) %>% #Var1 and Var2 are the automatically assigneed column names
-    mutate ( diff_var1          = ( max(n)-min(n) )
-             , diff_var1_perc = ( ( max(n)-min(n))/ max(n) *100)
+    group_by( Var1 ) %>% #Var1, Var2 and Freq are the automatically assigneed column names
+    mutate ( diff_var1          = ( max(Freq)-min(Freq) )
+             , diff_var1_perc = ( ( max(Freq)-min(Freq))/ max(Freq) *100)
     ) %>%
     group_by( Var2 ) %>%
-    mutate ( diff_var2          = ( max(n)-min(n) )
-             , diff_var2_perc = ( ( max(n)-min(n))/ max(n) *100)
+    mutate ( diff_var2          = ( max(Freq)-min(Freq) )
+             , diff_var2_perc = ( ( max(Freq)-min(Freq))/ max(Freq) *100)
     ) %>%
     ungroup()%>%
     summarise( max_diff_freq          = max( c(diff_var1, diff_var2) )
